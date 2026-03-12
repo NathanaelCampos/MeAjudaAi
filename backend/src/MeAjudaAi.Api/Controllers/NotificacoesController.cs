@@ -57,6 +57,45 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("minhas/preferencias")]
+    [ProducesResponseType(typeof(IReadOnlyList<PreferenciaNotificacaoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListarPreferencias(
+        CancellationToken cancellationToken = default)
+    {
+        var usuarioId = User.ObterUsuarioId();
+
+        if (usuarioId is null)
+            return Unauthorized();
+
+        var response = await _notificacaoService.ListarPreferenciasAsync(
+            usuarioId.Value,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
+    [HttpPut("minhas/preferencias")]
+    [ProducesResponseType(typeof(IReadOnlyList<PreferenciaNotificacaoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> AtualizarPreferencias(
+        [FromBody] AtualizarPreferenciasNotificacaoRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var usuarioId = User.ObterUsuarioId();
+
+        if (usuarioId is null)
+            return Unauthorized();
+
+        var response = await _notificacaoService.AtualizarPreferenciasAsync(
+            usuarioId.Value,
+            request.Preferencias,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     [HttpPut("{notificacaoId:guid}/marcar-lida")]
     [ProducesResponseType(typeof(NotificacaoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]

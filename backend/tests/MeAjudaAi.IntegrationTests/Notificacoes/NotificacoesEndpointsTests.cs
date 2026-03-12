@@ -143,6 +143,125 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.Contains(notificacoes!, x => x.Tipo == TipoNotificacao.ImpulsionamentoAtivado && x.ReferenciaId == contratado.Id);
     }
 
+    [Fact]
+    public async Task Preferencias_DeveListarDefaultsEPermitirAtualizacao()
+    {
+        using var client = _factory.CreateClient();
+
+        var auth = await RegistrarUsuarioAsync(client, TipoPerfil.Profissional, "preferencias-notif");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
+
+        var preferenciasIniciais = await client.GetFromJsonAsync<List<PreferenciaNotificacaoResponse>>("/api/notificacoes/minhas/preferencias");
+
+        Assert.NotNull(preferenciasIniciais);
+        Assert.Equal(Enum.GetValues<TipoNotificacao>().Length, preferenciasIniciais!.Count);
+        Assert.All(preferenciasIniciais, x => Assert.True(x.AtivoInterno));
+
+        var atualizarResponse = await client.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias =
+            [
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = false
+                },
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ImpulsionamentoAtivado,
+                    AtivoInterno = false
+                }
+            ]
+        });
+
+        var preferenciasAtualizadas = await atualizarResponse.Content.ReadFromJsonAsync<List<PreferenciaNotificacaoResponse>>();
+
+        Assert.Equal(HttpStatusCode.OK, atualizarResponse.StatusCode);
+        Assert.NotNull(preferenciasAtualizadas);
+        Assert.Contains(preferenciasAtualizadas!, x => x.Tipo == TipoNotificacao.ServicoSolicitado && !x.AtivoInterno);
+        Assert.Contains(preferenciasAtualizadas!, x => x.Tipo == TipoNotificacao.ImpulsionamentoAtivado && !x.AtivoInterno);
+        Assert.Contains(preferenciasAtualizadas!, x => x.Tipo == TipoNotificacao.ServicoAceito && x.AtivoInterno);
+    }
+
+    [Fact]
+    public async Task PreferenciaDesativada_DeveSuprimirNotificacaoInterna()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-pref-sup");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-pref-sup");
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+
+        var atualizarResponse = await profissionalClient.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias =
+            [
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = false
+                }
+            ]
+        });
+
+        Assert.Equal(HttpStatusCode.OK, atualizarResponse.StatusCode);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico sem notificar",
+            Descricao = "Teste de preferencia desativada",
+            ValorCombinado = 75m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var notificacoesProfissional = await profissionalClient.GetFromJsonAsync<List<NotificacaoResponse>>("/api/notificacoes/minhas");
+
+        Assert.NotNull(notificacoesProfissional);
+        Assert.DoesNotContain(notificacoesProfissional!, x => x.Tipo == TipoNotificacao.ServicoSolicitado);
+    }
+
+    [Fact]
+    public async Task AtualizarPreferencias_ComTiposDuplicados_DeveRetornarErroValidacao()
+    {
+        using var client = _factory.CreateClient();
+
+        var auth = await RegistrarUsuarioAsync(client, TipoPerfil.Profissional, "preferencias-duplicadas");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
+
+        var response = await client.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias =
+            [
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = false
+                },
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = true
+                }
+            ]
+        });
+
+        var erro = await response.Content.ReadFromJsonAsync<ErroValidacaoResponse>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.NotNull(erro);
+        Assert.Equal("Erro de validação.", erro!.Mensagem);
+        Assert.Contains(erro.Erros, x => x.Campo == "Preferencias");
+    }
+
     private static async Task<AuthResponse> RegistrarUsuarioAsync(HttpClient client, TipoPerfil tipoPerfil, string prefixo)
     {
         var response = await client.PostAsJsonAsync("/api/auth/registrar", new RegistrarUsuarioRequest

@@ -18,6 +18,15 @@ public interface INotificacaoService
         bool somenteNaoLidas = false,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<PreferenciaNotificacaoResponse>> ListarPreferenciasAsync(
+        Guid usuarioId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<PreferenciaNotificacaoResponse>> AtualizarPreferenciasAsync(
+        Guid usuarioId,
+        IReadOnlyList<PreferenciaNotificacaoItemRequest> preferencias,
+        CancellationToken cancellationToken = default);
+
     Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(
         Guid usuarioId,
         CancellationToken cancellationToken = default);

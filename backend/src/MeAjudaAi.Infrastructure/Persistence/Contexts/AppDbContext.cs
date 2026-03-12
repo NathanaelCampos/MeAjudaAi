@@ -27,6 +27,7 @@ public class AppDbContext : DbContext
     public DbSet<ImpulsionamentoProfissional> ImpulsionamentosProfissionais => Set<ImpulsionamentoProfissional>();
     public DbSet<WebhookPagamentoImpulsionamentoEvento> WebhookPagamentoImpulsionamentoEventos => Set<WebhookPagamentoImpulsionamentoEvento>();
     public DbSet<NotificacaoUsuario> NotificacoesUsuarios => Set<NotificacaoUsuario>();
+    public DbSet<PreferenciaNotificacaoUsuario> PreferenciasNotificacoesUsuarios => Set<PreferenciaNotificacaoUsuario>();
     public DbSet<Estado> Estados => Set<Estado>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
