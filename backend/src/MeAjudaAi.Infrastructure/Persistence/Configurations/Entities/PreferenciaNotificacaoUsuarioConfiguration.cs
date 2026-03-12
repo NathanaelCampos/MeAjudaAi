@@ -18,6 +18,9 @@ public class PreferenciaNotificacaoUsuarioConfiguration : IEntityTypeConfigurati
         builder.Property(x => x.AtivoInterno)
             .IsRequired();
 
+        builder.Property(x => x.AtivoEmail)
+            .IsRequired();
+
         builder.Property(x => x.Ativo)
             .IsRequired();
 

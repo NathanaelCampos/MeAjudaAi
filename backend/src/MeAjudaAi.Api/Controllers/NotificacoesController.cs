@@ -2,6 +2,7 @@ using MeAjudaAi.Api.Extensions;
 using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.DTOs.Notificacoes;
 using MeAjudaAi.Application.Interfaces.Notificacoes;
+using MeAjudaAi.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -91,6 +92,23 @@ public class NotificacoesController : ControllerBase
         var response = await _notificacaoService.AtualizarPreferenciasAsync(
             usuarioId.Value,
             request.Preferencias,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
+    [HttpGet("emails")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(IReadOnlyList<EmailNotificacaoOutboxResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListarEmailsOutbox(
+        [FromQuery] StatusEmailNotificacao? status = null,
+        [FromQuery] Guid? usuarioId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.ListarEmailsOutboxAsync(
+            status,
+            usuarioId,
             cancellationToken);
 
         return Ok(response);

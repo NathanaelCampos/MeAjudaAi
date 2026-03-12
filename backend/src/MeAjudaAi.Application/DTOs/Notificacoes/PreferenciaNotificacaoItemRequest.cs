@@ -6,4 +6,5 @@ public class PreferenciaNotificacaoItemRequest
 {
     public TipoNotificacao Tipo { get; set; }
     public bool AtivoInterno { get; set; }
+    public bool AtivoEmail { get; set; }
 }

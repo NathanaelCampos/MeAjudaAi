@@ -470,6 +470,9 @@ public class ImpulsionamentoServiceTests
         public Task<IReadOnlyList<PreferenciaNotificacaoResponse>> AtualizarPreferenciasAsync(Guid usuarioId, IReadOnlyList<PreferenciaNotificacaoItemRequest> preferencias, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<PreferenciaNotificacaoResponse>>(Array.Empty<PreferenciaNotificacaoResponse>());
 
+        public Task<IReadOnlyList<EmailNotificacaoOutboxResponse>> ListarEmailsOutboxAsync(StatusEmailNotificacao? status = null, Guid? usuarioId = null, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<EmailNotificacaoOutboxResponse>>(Array.Empty<EmailNotificacaoOutboxResponse>());
+
         public Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(Guid usuarioId, CancellationToken cancellationToken = default)
             => Task.FromResult(new QuantidadeNotificacoesNaoLidasResponse());
 

@@ -24,19 +24,48 @@ public class NotificacaoService : INotificacaoService
         Guid? referenciaId = null,
         CancellationToken cancellationToken = default)
     {
-        if (!await PodeReceberNotificacaoInternaAsync(usuarioId, tipo, cancellationToken))
+        var usuario = await _context.Set<Usuario>()
+            .AsNoTracking()
+            .Where(x => x.Id == usuarioId && x.Ativo)
+            .Select(x => new { x.Id, x.Email })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (usuario is null)
             return;
 
-        var notificacao = new NotificacaoUsuario
-        {
-            UsuarioId = usuarioId,
-            Tipo = tipo,
-            Titulo = titulo.Trim(),
-            Mensagem = mensagem.Trim(),
-            ReferenciaId = referenciaId
-        };
+        var deveReceberInterna = await PodeReceberNotificacaoInternaAsync(usuarioId, tipo, cancellationToken);
+        var deveReceberEmail = await PodeReceberNotificacaoEmailAsync(usuarioId, tipo, cancellationToken);
 
-        _context.Set<NotificacaoUsuario>().Add(notificacao);
+        if (!deveReceberInterna && !deveReceberEmail)
+            return;
+
+        if (deveReceberInterna)
+        {
+            var notificacao = new NotificacaoUsuario
+            {
+                UsuarioId = usuarioId,
+                Tipo = tipo,
+                Titulo = titulo.Trim(),
+                Mensagem = mensagem.Trim(),
+                ReferenciaId = referenciaId
+            };
+
+            _context.Set<NotificacaoUsuario>().Add(notificacao);
+        }
+
+        if (deveReceberEmail)
+        {
+            _context.Set<EmailNotificacaoOutbox>().Add(new EmailNotificacaoOutbox
+            {
+                UsuarioId = usuarioId,
+                TipoNotificacao = tipo,
+                EmailDestino = usuario.Email,
+                Assunto = titulo.Trim(),
+                Corpo = mensagem.Trim(),
+                ReferenciaId = referenciaId
+            });
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
     }
 
@@ -86,7 +115,8 @@ public class NotificacaoService : INotificacaoService
                 return new PreferenciaNotificacaoResponse
                 {
                     Tipo = tipo,
-                    AtivoInterno = preferencia?.AtivoInterno ?? true
+                    AtivoInterno = preferencia?.AtivoInterno ?? true,
+                    AtivoEmail = preferencia?.AtivoEmail ?? false
                 };
             })
             .ToArray();
@@ -115,13 +145,15 @@ public class NotificacaoService : INotificacaoService
                 {
                     UsuarioId = usuarioId,
                     Tipo = item.Tipo,
-                    AtivoInterno = item.AtivoInterno
+                    AtivoInterno = item.AtivoInterno,
+                    AtivoEmail = item.AtivoEmail
                 });
 
                 continue;
             }
 
             preferencia.AtivoInterno = item.AtivoInterno;
+            preferencia.AtivoEmail = item.AtivoEmail;
             preferencia.Ativo = true;
             preferencia.DataAtualizacao = agora;
         }
@@ -129,6 +161,41 @@ public class NotificacaoService : INotificacaoService
         await _context.SaveChangesAsync(cancellationToken);
 
         return await ListarPreferenciasAsync(usuarioId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<EmailNotificacaoOutboxResponse>> ListarEmailsOutboxAsync(
+        StatusEmailNotificacao? status = null,
+        Guid? usuarioId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Set<EmailNotificacaoOutbox>()
+            .AsNoTracking()
+            .Where(x => x.Ativo);
+
+        if (status.HasValue)
+            query = query.Where(x => x.Status == status.Value);
+
+        if (usuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == usuarioId.Value);
+
+        return await query
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(100)
+            .Select(x => new EmailNotificacaoOutboxResponse
+            {
+                Id = x.Id,
+                UsuarioId = x.UsuarioId,
+                TipoNotificacao = x.TipoNotificacao,
+                EmailDestino = x.EmailDestino,
+                Assunto = x.Assunto,
+                Corpo = x.Corpo,
+                ReferenciaId = x.ReferenciaId,
+                Status = x.Status,
+                DataCriacao = x.DataCriacao,
+                DataProcessamento = x.DataProcessamento,
+                UltimaMensagemErro = x.UltimaMensagemErro
+            })
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(
@@ -219,6 +286,20 @@ public class NotificacaoService : INotificacaoService
                 cancellationToken);
 
         return preferencia?.AtivoInterno ?? true;
+    }
+
+    private async Task<bool> PodeReceberNotificacaoEmailAsync(
+        Guid usuarioId,
+        TipoNotificacao tipo,
+        CancellationToken cancellationToken)
+    {
+        var preferencia = await _context.Set<PreferenciaNotificacaoUsuario>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                x => x.UsuarioId == usuarioId && x.Tipo == tipo && x.Ativo,
+                cancellationToken);
+
+        return preferencia?.AtivoEmail ?? false;
     }
 
     private static TipoNotificacao[] ListarTiposSuportados()

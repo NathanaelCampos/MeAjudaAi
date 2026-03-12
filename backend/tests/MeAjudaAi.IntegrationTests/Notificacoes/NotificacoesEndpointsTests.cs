@@ -164,12 +164,14 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
                 new PreferenciaNotificacaoItemRequest
                 {
                     Tipo = TipoNotificacao.ServicoSolicitado,
-                    AtivoInterno = false
+                    AtivoInterno = false,
+                    AtivoEmail = true
                 },
                 new PreferenciaNotificacaoItemRequest
                 {
                     Tipo = TipoNotificacao.ImpulsionamentoAtivado,
-                    AtivoInterno = false
+                    AtivoInterno = false,
+                    AtivoEmail = false
                 }
             ]
         });
@@ -178,9 +180,9 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
 
         Assert.Equal(HttpStatusCode.OK, atualizarResponse.StatusCode);
         Assert.NotNull(preferenciasAtualizadas);
-        Assert.Contains(preferenciasAtualizadas!, x => x.Tipo == TipoNotificacao.ServicoSolicitado && !x.AtivoInterno);
+        Assert.Contains(preferenciasAtualizadas!, x => x.Tipo == TipoNotificacao.ServicoSolicitado && !x.AtivoInterno && x.AtivoEmail);
         Assert.Contains(preferenciasAtualizadas!, x => x.Tipo == TipoNotificacao.ImpulsionamentoAtivado && !x.AtivoInterno);
-        Assert.Contains(preferenciasAtualizadas!, x => x.Tipo == TipoNotificacao.ServicoAceito && x.AtivoInterno);
+        Assert.Contains(preferenciasAtualizadas!, x => x.Tipo == TipoNotificacao.ServicoAceito && x.AtivoInterno && !x.AtivoEmail);
     }
 
     [Fact]
@@ -202,7 +204,8 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
                 new PreferenciaNotificacaoItemRequest
                 {
                     Tipo = TipoNotificacao.ServicoSolicitado,
-                    AtivoInterno = false
+                    AtivoInterno = false,
+                    AtivoEmail = true
                 }
             ]
         });
@@ -224,9 +227,15 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
 
         var notificacoesProfissional = await profissionalClient.GetFromJsonAsync<List<NotificacaoResponse>>("/api/notificacoes/minhas");
+        var authAdmin = await LoginAdminAsync(clienteClient);
+        using var adminClient = _factory.CreateClient();
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+        var emailsOutbox = await adminClient.GetFromJsonAsync<List<EmailNotificacaoOutboxResponse>>($"/api/notificacoes/emails?status={StatusEmailNotificacao.Pendente}&usuarioId={authProfissional.UsuarioId}");
 
         Assert.NotNull(notificacoesProfissional);
         Assert.DoesNotContain(notificacoesProfissional!, x => x.Tipo == TipoNotificacao.ServicoSolicitado);
+        Assert.NotNull(emailsOutbox);
+        Assert.Contains(emailsOutbox!, x => x.TipoNotificacao == TipoNotificacao.ServicoSolicitado && x.UsuarioId == authProfissional.UsuarioId);
     }
 
     [Fact]
@@ -244,12 +253,14 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
                 new PreferenciaNotificacaoItemRequest
                 {
                     Tipo = TipoNotificacao.ServicoSolicitado,
-                    AtivoInterno = false
+                    AtivoInterno = false,
+                    AtivoEmail = false
                 },
                 new PreferenciaNotificacaoItemRequest
                 {
                     Tipo = TipoNotificacao.ServicoSolicitado,
-                    AtivoInterno = true
+                    AtivoInterno = true,
+                    AtivoEmail = true
                 }
             ]
         });
@@ -260,6 +271,19 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.NotNull(erro);
         Assert.Equal("Erro de validação.", erro!.Mensagem);
         Assert.Contains(erro.Erros, x => x.Campo == "Preferencias");
+    }
+
+    [Fact]
+    public async Task ListarEmailsOutbox_DeveExigirAdmin()
+    {
+        using var client = _factory.CreateClient();
+
+        var auth = await RegistrarUsuarioAsync(client, TipoPerfil.Cliente, "emails-outbox-nao-admin");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
+
+        var response = await client.GetAsync("/api/notificacoes/emails");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     private static async Task<AuthResponse> RegistrarUsuarioAsync(HttpClient client, TipoPerfil tipoPerfil, string prefixo)

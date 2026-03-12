@@ -27,6 +27,11 @@ public interface INotificacaoService
         IReadOnlyList<PreferenciaNotificacaoItemRequest> preferencias,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<EmailNotificacaoOutboxResponse>> ListarEmailsOutboxAsync(
+        StatusEmailNotificacao? status = null,
+        Guid? usuarioId = null,
+        CancellationToken cancellationToken = default);
+
     Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(
         Guid usuarioId,
         CancellationToken cancellationToken = default);
