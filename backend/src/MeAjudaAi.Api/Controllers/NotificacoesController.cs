@@ -252,6 +252,30 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("emails/metricas/destinatarios")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(EmailNotificacaoDestinatariosMetricasResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterMetricasDestinatariosEmailsOutbox(
+        [FromQuery] TipoNotificacao? tipoNotificacao = null,
+        [FromQuery] string? emailDestino = null,
+        [FromQuery] DateTime? dataCriacaoInicial = null,
+        [FromQuery] DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.ObterMetricasDestinatariosEmailsOutboxAsync(
+            new BuscarMetricasEmailsOutboxRequest
+            {
+                TipoNotificacao = tipoNotificacao,
+                EmailDestino = emailDestino,
+                DataCriacaoInicial = dataCriacaoInicial,
+                DataCriacaoFinal = dataCriacaoFinal
+            },
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     [HttpPost("emails/reprocessar")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(ReprocessarEmailsOutboxResponse), StatusCodes.Status200OK)]
