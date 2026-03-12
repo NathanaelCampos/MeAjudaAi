@@ -370,6 +370,14 @@ curl -X PUT "http://localhost:5231/api/notificacoes/emails/reabrir-lote" \
   -d '{"status":"Cancelado","tipoNotificacao":"ServicoSolicitado","limite":100}'
 ```
 
+Exportacao CSV filtrada do outbox:
+
+```bash
+curl -L "http://localhost:5231/api/notificacoes/emails/exportar?status=Pendente&tipoNotificacao=ServicoSolicitado&limite=100" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN" \
+  -o emails-outbox.csv
+```
+
 Metricas agregadas do outbox com filtros:
 
 ```bash

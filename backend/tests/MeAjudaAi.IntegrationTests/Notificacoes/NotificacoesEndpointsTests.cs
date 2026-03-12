@@ -1161,6 +1161,78 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.Contains(erro!.Erros, x => x.Campo == string.Empty || x.Campo == "request");
     }
 
+    [Fact]
+    public async Task ExportarEmailsOutbox_DeveRetornarCsvFiltrado()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-export-email");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-export-email");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var atualizarResponse = await profissionalClient.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias =
+            [
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = false,
+                    AtivoEmail = true
+                }
+            ]
+        });
+
+        Assert.Equal(HttpStatusCode.OK, atualizarResponse.StatusCode);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para exportacao",
+            Descricao = "Teste de exportacao csv",
+            ValorCombinado = 130m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var response = await adminClient.GetAsync(
+            $"/api/notificacoes/emails/exportar?status={StatusEmailNotificacao.Pendente}&usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}&limite=10");
+
+        var csv = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/csv; charset=utf-8", response.Content.Headers.ContentType!.ToString());
+        Assert.Contains("Id,UsuarioId,TipoNotificacao,EmailDestino,Assunto,Status", csv);
+        Assert.Contains(authProfissional.UsuarioId.ToString(), csv);
+        Assert.Contains("ServicoSolicitado", csv);
+        Assert.Contains("Pendente", csv);
+    }
+
+    [Fact]
+    public async Task ExportarEmailsOutbox_SemFiltro_DeveRetornarErroValidacao()
+    {
+        using var adminClient = _factory.CreateClient();
+        var authAdmin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var response = await adminClient.GetAsync("/api/notificacoes/emails/exportar?limite=10");
+        var erro = await response.Content.ReadFromJsonAsync<IntegrationTests.Infrastructure.ErroValidacaoResponse>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.NotNull(erro);
+        Assert.Contains(erro!.Erros, x => x.Campo == string.Empty || x.Campo == "request");
+    }
+
     private static async Task<AuthResponse> RegistrarUsuarioAsync(HttpClient client, TipoPerfil tipoPerfil, string prefixo)
     {
         var response = await client.PostAsJsonAsync("/api/auth/registrar", new RegistrarUsuarioRequest

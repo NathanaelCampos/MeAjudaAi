@@ -137,6 +137,23 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("emails/exportar")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ExportarEmailsOutbox(
+        [FromQuery] ExportarEmailsOutboxRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var csv = await _notificacaoService.ExportarEmailsOutboxCsvAsync(request, cancellationToken);
+
+        return File(
+            System.Text.Encoding.UTF8.GetBytes(csv),
+            "text/csv; charset=utf-8",
+            $"emails-outbox-{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
+    }
+
     [HttpGet("emails/{emailId:guid}")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(EmailNotificacaoOutboxResponse), StatusCodes.Status200OK)]

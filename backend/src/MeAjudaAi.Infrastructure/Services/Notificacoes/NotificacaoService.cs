@@ -7,6 +7,7 @@ using MeAjudaAi.Infrastructure.Configurations;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Text;
 
 namespace MeAjudaAi.Infrastructure.Services.Notificacoes;
 
@@ -216,6 +217,55 @@ public class NotificacaoService : INotificacaoService
             TotalPaginas = totalRegistros == 0 ? 0 : (int)Math.Ceiling(totalRegistros / (double)tamanhoPagina),
             Itens = itens
         };
+    }
+
+    public async Task<string> ExportarEmailsOutboxCsvAsync(
+        ExportarEmailsOutboxRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var emails = await AplicarFiltrosEmailsOutbox(request)
+            .AsNoTracking()
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(Math.Min(request.Limite, 5000))
+            .Select(x => new EmailNotificacaoOutboxResponse
+            {
+                Id = x.Id,
+                UsuarioId = x.UsuarioId,
+                TipoNotificacao = x.TipoNotificacao,
+                EmailDestino = x.EmailDestino,
+                Assunto = x.Assunto,
+                Corpo = x.Corpo,
+                ReferenciaId = x.ReferenciaId,
+                Status = x.Status,
+                TentativasProcessamento = x.TentativasProcessamento,
+                ProximaTentativaEm = x.ProximaTentativaEm,
+                DataCriacao = x.DataCriacao,
+                DataProcessamento = x.DataProcessamento,
+                UltimaMensagemErro = x.UltimaMensagemErro
+            })
+            .ToListAsync(cancellationToken);
+
+        var csv = new StringBuilder();
+        csv.AppendLine("Id,UsuarioId,TipoNotificacao,EmailDestino,Assunto,Status,TentativasProcessamento,DataCriacao,DataProcessamento,ProximaTentativaEm,ReferenciaId,UltimaMensagemErro");
+
+        foreach (var email in emails)
+        {
+            csv.AppendLine(string.Join(",",
+                EscaparCsv(email.Id),
+                EscaparCsv(email.UsuarioId),
+                EscaparCsv(email.TipoNotificacao),
+                EscaparCsv(email.EmailDestino),
+                EscaparCsv(email.Assunto),
+                EscaparCsv(email.Status),
+                EscaparCsv(email.TentativasProcessamento),
+                EscaparCsv(email.DataCriacao),
+                EscaparCsv(email.DataProcessamento),
+                EscaparCsv(email.ProximaTentativaEm),
+                EscaparCsv(email.ReferenciaId),
+                EscaparCsv(email.UltimaMensagemErro)));
+        }
+
+        return csv.ToString();
     }
 
     private static IQueryable<EmailNotificacaoOutbox> AplicarOrdenacaoOutbox(
@@ -642,6 +692,50 @@ public class NotificacaoService : INotificacaoService
             query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
 
         return query;
+    }
+
+    private IQueryable<EmailNotificacaoOutbox> AplicarFiltrosEmailsOutbox(ExportarEmailsOutboxRequest request)
+    {
+        var query = _context.Set<EmailNotificacaoOutbox>()
+            .Where(x => x.Ativo);
+
+        if (request.Status.HasValue)
+            query = query.Where(x => x.Status == request.Status.Value);
+
+        if (request.UsuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
+
+        if (request.TipoNotificacao.HasValue)
+            query = query.Where(x => x.TipoNotificacao == request.TipoNotificacao.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.EmailDestino))
+        {
+            var emailNormalizado = request.EmailDestino.Trim().ToLowerInvariant();
+            query = query.Where(x => x.EmailDestino.ToLower().Contains(emailNormalizado));
+        }
+
+        if (request.DataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= request.DataCriacaoInicial.Value);
+
+        if (request.DataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
+
+        return query;
+    }
+
+    private static string EscaparCsv(object? valor)
+    {
+        if (valor is null)
+            return "\"\"";
+
+        var texto = valor switch
+        {
+            DateTime dateTime => dateTime.ToString("O"),
+            DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("O"),
+            _ => valor.ToString() ?? string.Empty
+        };
+
+        return $"\"{texto.Replace("\"", "\"\"")}\"";
     }
 
     private IQueryable<EmailNotificacaoOutbox> AplicarFiltrosEmailsOutbox(AtualizarEmailsOutboxEmLoteRequest request)
