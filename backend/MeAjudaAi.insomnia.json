@@ -1,0 +1,614 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-03-12T18:10:00.000Z",
+  "__export_source": "codex-gpt-5",
+  "resources": [
+    {
+      "_id": "wrk_meajudaai",
+      "_type": "workspace",
+      "parentId": null,
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Me Ajuda Ai Backend",
+      "description": "Colecao Insomnia para os fluxos principais, operacionais e de webhook do backend Me Ajuda Ai."
+    },
+    {
+      "_id": "env_meajudaai_base",
+      "_type": "environment",
+      "parentId": "wrk_meajudaai",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Base Environment",
+      "data": {
+        "host": "http://localhost:5231",
+        "admin_email": "admin@meajudaai.local",
+        "admin_password": "Admin@123",
+        "profissional_nome": "Profissional Insomnia",
+        "profissional_email": "profissional.insomnia@teste.local",
+        "profissional_telefone": "11999999999",
+        "profissional_senha": "Senha@123",
+        "cliente_nome": "Cliente Insomnia",
+        "cliente_email": "cliente.insomnia@teste.local",
+        "cliente_telefone": "11988888888",
+        "cliente_senha": "Senha@123",
+        "token_admin": "",
+        "token_profissional": "",
+        "token_cliente": "",
+        "plano_id": "",
+        "profissao_id": "",
+        "especialidade_id": "",
+        "cidade_id": "",
+        "bairro_id": "",
+        "profissional_id": "",
+        "impulsionamento_id": "",
+        "servico_id": "",
+        "avaliacao_id": "",
+        "webhook_signature": "",
+        "webhook_asaas_signature": ""
+      }
+    },
+    {
+      "_id": "fld_auth",
+      "_type": "request_group",
+      "parentId": "wrk_meajudaai",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Auth"
+    },
+    {
+      "_id": "req_login_admin",
+      "_type": "request",
+      "parentId": "fld_auth",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Login Admin",
+      "method": "POST",
+      "url": "{{ _.host }}/api/auth/login",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"{{ _.admin_email }}\",\n  \"senha\": \"{{ _.admin_password }}\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_registrar_profissional",
+      "_type": "request",
+      "parentId": "fld_auth",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Registrar Profissional",
+      "method": "POST",
+      "url": "{{ _.host }}/api/auth/registrar",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"{{ _.profissional_nome }}\",\n  \"email\": \"{{ _.profissional_email }}\",\n  \"telefone\": \"{{ _.profissional_telefone }}\",\n  \"senha\": \"{{ _.profissional_senha }}\",\n  \"tipoPerfil\": 2\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_registrar_cliente",
+      "_type": "request",
+      "parentId": "fld_auth",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Registrar Cliente",
+      "method": "POST",
+      "url": "{{ _.host }}/api/auth/registrar",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"{{ _.cliente_nome }}\",\n  \"email\": \"{{ _.cliente_email }}\",\n  \"telefone\": \"{{ _.cliente_telefone }}\",\n  \"senha\": \"{{ _.cliente_senha }}\",\n  \"tipoPerfil\": 1\n}"
+      },
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "fld_catalogos",
+      "_type": "request_group",
+      "parentId": "wrk_meajudaai",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Catalogos"
+    },
+    {
+      "_id": "req_listar_planos",
+      "_type": "request",
+      "parentId": "fld_catalogos",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Listar Planos",
+      "method": "GET",
+      "url": "{{ _.host }}/api/impulsionamentos/planos"
+    },
+    {
+      "_id": "req_listar_profissoes",
+      "_type": "request",
+      "parentId": "fld_catalogos",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Listar Profissoes",
+      "method": "GET",
+      "url": "{{ _.host }}/api/profissoes"
+    },
+    {
+      "_id": "req_listar_especialidades",
+      "_type": "request",
+      "parentId": "fld_catalogos",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Listar Especialidades",
+      "method": "GET",
+      "url": "{{ _.host }}/api/profissoes/especialidades?profissaoId={{ _.profissao_id }}"
+    },
+    {
+      "_id": "req_listar_cidades",
+      "_type": "request",
+      "parentId": "fld_catalogos",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Listar Cidades",
+      "method": "GET",
+      "url": "{{ _.host }}/api/cidades"
+    },
+    {
+      "_id": "req_listar_bairros",
+      "_type": "request",
+      "parentId": "fld_catalogos",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Listar Bairros",
+      "method": "GET",
+      "url": "{{ _.host }}/api/cidades/{{ _.cidade_id }}/bairros"
+    },
+    {
+      "_id": "fld_profissional",
+      "_type": "request_group",
+      "parentId": "wrk_meajudaai",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Profissional"
+    },
+    {
+      "_id": "req_atualizar_perfil",
+      "_type": "request",
+      "parentId": "fld_profissional",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Atualizar Perfil",
+      "method": "PUT",
+      "url": "{{ _.host }}/api/profissionais/me",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nomeExibicao\": \"Profissional Insomnia Colecao\",\n  \"descricao\": \"Atendimento residencial\",\n  \"whatsApp\": \"11999999999\",\n  \"instagram\": \"\",\n  \"facebook\": \"\",\n  \"outraFormaContato\": \"\",\n  \"aceitaContatoPeloApp\": true\n}"
+      },
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_profissional }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_atualizar_profissoes",
+      "_type": "request",
+      "parentId": "fld_profissional",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Atualizar Profissoes",
+      "method": "PUT",
+      "url": "{{ _.host }}/api/profissionais/me/profissoes",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"profissaoIds\": [\n    \"{{ _.profissao_id }}\"\n  ]\n}"
+      },
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_profissional }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_atualizar_especialidades",
+      "_type": "request",
+      "parentId": "fld_profissional",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Atualizar Especialidades",
+      "method": "PUT",
+      "url": "{{ _.host }}/api/profissionais/me/especialidades",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"especialidadeIds\": [\n    \"{{ _.especialidade_id }}\"\n  ]\n}"
+      },
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_profissional }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_atualizar_areas",
+      "_type": "request",
+      "parentId": "fld_profissional",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Atualizar Areas Atendimento",
+      "method": "PUT",
+      "url": "{{ _.host }}/api/profissionais/me/areas-atendimento",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"areas\": [\n    {\n      \"cidadeId\": \"{{ _.cidade_id }}\",\n      \"bairroId\": \"{{ _.bairro_id }}\",\n      \"cidadeInteira\": false\n    }\n  ]\n}"
+      },
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_profissional }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_buscar_profissionais",
+      "_type": "request",
+      "parentId": "fld_profissional",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Buscar Profissionais",
+      "method": "GET",
+      "url": "{{ _.host }}/api/profissionais/buscar?profissaoId={{ _.profissao_id }}&cidadeId={{ _.cidade_id }}&bairroId={{ _.bairro_id }}&pagina=1&tamanhoPagina=10"
+    },
+    {
+      "_id": "req_detalhes_profissional",
+      "_type": "request",
+      "parentId": "fld_profissional",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Detalhes Profissional",
+      "method": "GET",
+      "url": "{{ _.host }}/api/profissionais/{{ _.profissional_id }}/detalhes"
+    },
+    {
+      "_id": "fld_impulsionamento",
+      "_type": "request_group",
+      "parentId": "wrk_meajudaai",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Impulsionamento"
+    },
+    {
+      "_id": "req_contratar_plano",
+      "_type": "request",
+      "parentId": "fld_impulsionamento",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Contratar Plano",
+      "method": "POST",
+      "url": "{{ _.host }}/api/impulsionamentos/contratar",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"planoImpulsionamentoId\": \"{{ _.plano_id }}\",\n  \"codigoReferenciaPagamento\": \"insomnia-ref-001\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_profissional }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_confirmar_pagamento_admin",
+      "_type": "request",
+      "parentId": "fld_impulsionamento",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Confirmar Pagamento Admin",
+      "method": "POST",
+      "url": "{{ _.host }}/api/impulsionamentos/confirmar-pagamento",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"codigoReferenciaPagamento\": \"insomnia-ref-001\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_admin }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_meus_impulsionamentos",
+      "_type": "request",
+      "parentId": "fld_impulsionamento",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Meus Impulsionamentos",
+      "method": "GET",
+      "url": "{{ _.host }}/api/impulsionamentos/meus",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_profissional }}"
+        }
+      ]
+    },
+    {
+      "_id": "fld_servicos",
+      "_type": "request_group",
+      "parentId": "wrk_meajudaai",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Servicos e Avaliacoes"
+    },
+    {
+      "_id": "req_criar_servico",
+      "_type": "request",
+      "parentId": "fld_servicos",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Criar Servico",
+      "method": "POST",
+      "url": "{{ _.host }}/api/servicos",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"profissionalId\": \"{{ _.profissional_id }}\",\n  \"profissaoId\": \"{{ _.profissao_id }}\",\n  \"especialidadeId\": \"{{ _.especialidade_id }}\",\n  \"cidadeId\": \"{{ _.cidade_id }}\",\n  \"bairroId\": \"{{ _.bairro_id }}\",\n  \"titulo\": \"Troca de tomada\",\n  \"descricao\": \"Preciso trocar uma tomada com mau contato\",\n  \"valorCombinado\": 120.00\n}"
+      },
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_cliente }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_aceitar_servico",
+      "_type": "request",
+      "parentId": "fld_servicos",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Aceitar Servico",
+      "method": "POST",
+      "url": "{{ _.host }}/api/servicos/{{ _.servico_id }}/aceitar",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_profissional }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_iniciar_servico",
+      "_type": "request",
+      "parentId": "fld_servicos",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Iniciar Servico",
+      "method": "POST",
+      "url": "{{ _.host }}/api/servicos/{{ _.servico_id }}/iniciar",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_profissional }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_concluir_servico",
+      "_type": "request",
+      "parentId": "fld_servicos",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Concluir Servico",
+      "method": "POST",
+      "url": "{{ _.host }}/api/servicos/{{ _.servico_id }}/concluir",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_profissional }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_criar_avaliacao",
+      "_type": "request",
+      "parentId": "fld_servicos",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Criar Avaliacao",
+      "method": "POST",
+      "url": "{{ _.host }}/api/avaliacoes",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"servicoId\": \"{{ _.servico_id }}\",\n  \"notaAtendimento\": 5,\n  \"notaServico\": 5,\n  \"notaPreco\": 4,\n  \"comentario\": \"Servico muito bom e profissional pontual\"\n}"
+      },
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_cliente }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_pendentes_moderacao",
+      "_type": "request",
+      "parentId": "fld_servicos",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Pendentes Moderacao",
+      "method": "GET",
+      "url": "{{ _.host }}/api/avaliacoes/moderacao/pendentes",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_admin }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_aprovar_avaliacao",
+      "_type": "request",
+      "parentId": "fld_servicos",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Aprovar Avaliacao",
+      "method": "POST",
+      "url": "{{ _.host }}/api/avaliacoes/moderacao/{{ _.avaliacao_id }}/aprovar",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_admin }}"
+        }
+      ]
+    },
+    {
+      "_id": "fld_webhooks",
+      "_type": "request_group",
+      "parentId": "wrk_meajudaai",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Webhooks e Operacao"
+    },
+    {
+      "_id": "req_webhook_padrao",
+      "_type": "request",
+      "parentId": "fld_webhooks",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Webhook Padrao",
+      "method": "POST",
+      "url": "{{ _.host }}/api/webhooks/pagamentos/impulsionamentos",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"codigoReferenciaPagamento\": \"ref-001\",\n  \"statusPagamento\": \"pago\",\n  \"eventoExternoId\": \"evt-001\"\n}"
+      },
+      "headers": [
+        {
+          "name": "X-Webhook-Signature",
+          "value": "{{ _.webhook_signature }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_webhook_asaas",
+      "_type": "request",
+      "parentId": "fld_webhooks",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Webhook Asaas",
+      "method": "POST",
+      "url": "{{ _.host }}/api/webhooks/pagamentos/asaas/impulsionamentos",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"id\": \"evt-asaas-001\",\n  \"event\": \"PAYMENT_RECEIVED\",\n  \"payment\": {\n    \"externalReference\": \"ref-asaas-001\",\n    \"status\": \"RECEIVED\"\n  }\n}"
+      },
+      "headers": [
+        {
+          "name": "X-Asaas-Signature",
+          "value": "{{ _.webhook_asaas_signature }}"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    },
+    {
+      "_id": "req_consultar_webhooks",
+      "_type": "request",
+      "parentId": "fld_webhooks",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Consultar Historico Webhooks",
+      "method": "GET",
+      "url": "{{ _.host }}/api/impulsionamentos/webhooks?pagina=1&tamanhoPagina=20",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_admin }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_metricas_webhooks",
+      "_type": "request",
+      "parentId": "fld_webhooks",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Consultar Metricas Webhooks",
+      "method": "GET",
+      "url": "{{ _.host }}/api/impulsionamentos/webhooks/metricas",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_admin }}"
+        }
+      ]
+    },
+    {
+      "_id": "req_importacao_geografia",
+      "_type": "request",
+      "parentId": "fld_webhooks",
+      "modified": 1773339000000,
+      "created": 1773339000000,
+      "name": "Importacao Geografia",
+      "method": "POST",
+      "url": "{{ _.host }}/api/importacao/geografia",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token_admin }}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+using MeAjudaAi.Application.DTOs.Profissoes;
 using MeAjudaAi.Application.Interfaces.Profissoes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,7 @@ public class ProfissoesController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
+    [ProducesResponseType(typeof(IReadOnlyList<ProfissaoResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Listar(CancellationToken cancellationToken)
     {
         var response = await _profissaoService.ListarAsync(cancellationToken);
@@ -25,6 +27,7 @@ public class ProfissoesController : ControllerBase
 
     [HttpGet("{profissaoId:guid}/especialidades")]
     [AllowAnonymous]
+    [ProducesResponseType(typeof(IReadOnlyList<EspecialidadeResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListarEspecialidades(
         Guid profissaoId,
         CancellationToken cancellationToken)

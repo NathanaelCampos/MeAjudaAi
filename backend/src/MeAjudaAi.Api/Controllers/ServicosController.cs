@@ -1,4 +1,5 @@
 using MeAjudaAi.Api.Extensions;
+using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.DTOs.Servicos;
 using MeAjudaAi.Application.Interfaces.Servicos;
 using MeAjudaAi.Domain.Enums;
@@ -20,6 +21,9 @@ public class ServicosController : ControllerBase
 
     [HttpPost]
     [Authorize]
+    [ProducesResponseType(typeof(ServicoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Criar(
         [FromBody] CriarServicoRequest request,
         CancellationToken cancellationToken = default)
@@ -39,6 +43,9 @@ public class ServicosController : ControllerBase
 
     [HttpGet("{servicoId:guid}")]
     [Authorize]
+    [ProducesResponseType(typeof(ServicoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ObterPorId(
         Guid servicoId,
         CancellationToken cancellationToken = default)
@@ -61,6 +68,10 @@ public class ServicosController : ControllerBase
 
     [HttpPut("{servicoId:guid}/aceitar")]
     [Authorize]
+    [ProducesResponseType(typeof(ServicoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Aceitar(
         Guid servicoId,
         CancellationToken cancellationToken = default)
@@ -83,6 +94,10 @@ public class ServicosController : ControllerBase
 
     [HttpPut("{servicoId:guid}/iniciar")]
     [Authorize]
+    [ProducesResponseType(typeof(ServicoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Iniciar(
         Guid servicoId,
         CancellationToken cancellationToken = default)
@@ -105,6 +120,10 @@ public class ServicosController : ControllerBase
 
     [HttpPut("{servicoId:guid}/concluir")]
     [Authorize]
+    [ProducesResponseType(typeof(ServicoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Concluir(
         Guid servicoId,
         CancellationToken cancellationToken = default)
@@ -127,6 +146,10 @@ public class ServicosController : ControllerBase
 
     [HttpPut("{servicoId:guid}/cancelar")]
     [Authorize]
+    [ProducesResponseType(typeof(ServicoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Cancelar(
         Guid servicoId,
         CancellationToken cancellationToken = default)
@@ -149,6 +172,8 @@ public class ServicosController : ControllerBase
 
     [HttpGet("me/cliente")]
     [Authorize]
+    [ProducesResponseType(typeof(IReadOnlyList<ServicoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ListarMeusServicosCliente(
         [FromQuery] StatusServico? status,
         CancellationToken cancellationToken = default)
@@ -168,6 +193,8 @@ public class ServicosController : ControllerBase
 
     [HttpGet("me/profissional")]
     [Authorize]
+    [ProducesResponseType(typeof(IReadOnlyList<ServicoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ListarMeusServicosProfissional(
         [FromQuery] StatusServico? status,
         CancellationToken cancellationToken = default)

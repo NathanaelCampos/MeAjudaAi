@@ -43,6 +43,7 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<ImportadorGeografiaService>();
         services.AddScoped<IArquivoStorageService, ArquivoStorageService>();
         services.AddScoped<IImpulsionamentoService, ImpulsionamentoService>();
+        services.AddSingleton<IWebhookPagamentoMetricsService, WebhookPagamentoMetricsService>();
 
         return services;
     }

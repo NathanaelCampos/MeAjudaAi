@@ -33,4 +33,33 @@ public class ContratarPlanoImpulsionamentoRequestValidatorTests
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, x => x.PropertyName == nameof(ContratarPlanoImpulsionamentoRequest.CodigoReferenciaPagamento));
     }
+
+    [Fact]
+    public void ConfirmarPagamentoValidator_DeveRetornarErroQuandoCodigoNaoForInformado()
+    {
+        var validator = new ConfirmarPagamentoImpulsionamentoRequestValidator();
+
+        var result = validator.Validate(new ConfirmarPagamentoImpulsionamentoRequest
+        {
+            CodigoReferenciaPagamento = string.Empty
+        });
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, x => x.PropertyName == nameof(ConfirmarPagamentoImpulsionamentoRequest.CodigoReferenciaPagamento));
+    }
+
+    [Fact]
+    public void WebhookPagamentoValidator_DeveRetornarErroQuandoStatusForInvalido()
+    {
+        var validator = new WebhookPagamentoImpulsionamentoRequestValidator();
+
+        var result = validator.Validate(new WebhookPagamentoImpulsionamentoRequest
+        {
+            CodigoReferenciaPagamento = "pag-001",
+            StatusPagamento = "desconhecido"
+        });
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, x => x.PropertyName == nameof(WebhookPagamentoImpulsionamentoRequest.StatusPagamento));
+    }
 }

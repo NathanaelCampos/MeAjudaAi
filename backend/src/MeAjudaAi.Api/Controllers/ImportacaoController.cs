@@ -1,3 +1,4 @@
+using MeAjudaAi.Application.DTOs.Cidades;
 using MeAjudaAi.Infrastructure.Importacao;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using Microsoft.AspNetCore.Authorization;
@@ -25,6 +26,8 @@ public class ImportacaoController : ControllerBase
     }
 
     [HttpPost("geografia")]
+    [ProducesResponseType(typeof(ImportacaoGeografiaResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ImportarGeografia(CancellationToken cancellationToken)
     {
         var basePath = Path.Combine(_environment.ContentRootPath, "DadosCsv");
@@ -37,12 +40,12 @@ public class ImportacaoController : ControllerBase
         await _importadorGeografiaService.ImportarCidadesAsync(caminhoCidades, cancellationToken);
         await _importadorGeografiaService.ImportarBairrosAsync(caminhoBairros, cancellationToken);
 
-        return Ok(new
+        return Ok(new ImportacaoGeografiaResponse
         {
-            mensagem = "Importação concluída.",
-            estados = _context.Estados.Count(),
-            cidades = _context.Cidades.Count(),
-            bairros = _context.Bairros.Count()
+            Mensagem = "Importação concluída.",
+            Estados = _context.Estados.Count(),
+            Cidades = _context.Cidades.Count(),
+            Bairros = _context.Bairros.Count()
         });
     }
 }

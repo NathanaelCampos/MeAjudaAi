@@ -1,0 +1,603 @@
+{
+  "info": {
+    "_postman_id": "0b4f4cb2-0f50-4b5f-b5a4-8e6c0b5f9d01",
+    "name": "Me Ajuda Ai Backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Colecao Postman para os fluxos principais, operacionais e de webhook do backend Me Ajuda Ai."
+  },
+  "variable": [
+    {
+      "key": "host",
+      "value": "http://localhost:5231"
+    },
+    {
+      "key": "admin_email",
+      "value": "admin@meajudaai.local"
+    },
+    {
+      "key": "admin_password",
+      "value": "Admin@123"
+    },
+    {
+      "key": "profissional_nome",
+      "value": "Profissional Postman"
+    },
+    {
+      "key": "profissional_email",
+      "value": "profissional.postman@teste.local"
+    },
+    {
+      "key": "profissional_telefone",
+      "value": "11999999999"
+    },
+    {
+      "key": "profissional_senha",
+      "value": "Senha@123"
+    },
+    {
+      "key": "cliente_nome",
+      "value": "Cliente Postman"
+    },
+    {
+      "key": "cliente_email",
+      "value": "cliente.postman@teste.local"
+    },
+    {
+      "key": "cliente_telefone",
+      "value": "11988888888"
+    },
+    {
+      "key": "cliente_senha",
+      "value": "Senha@123"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_profissional",
+      "value": ""
+    },
+    {
+      "key": "token_cliente",
+      "value": ""
+    },
+    {
+      "key": "plano_id",
+      "value": ""
+    },
+    {
+      "key": "profissao_id",
+      "value": ""
+    },
+    {
+      "key": "especialidade_id",
+      "value": ""
+    },
+    {
+      "key": "cidade_id",
+      "value": ""
+    },
+    {
+      "key": "bairro_id",
+      "value": ""
+    },
+    {
+      "key": "profissional_id",
+      "value": ""
+    },
+    {
+      "key": "impulsionamento_id",
+      "value": ""
+    },
+    {
+      "key": "servico_id",
+      "value": ""
+    },
+    {
+      "key": "avaliacao_id",
+      "value": ""
+    },
+    {
+      "key": "webhook_signature",
+      "value": ""
+    },
+    {
+      "key": "webhook_asaas_signature",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"senha\": \"{{admin_password}}\"\n}"
+            },
+            "url": "{{host}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Registrar Profissional",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"{{profissional_nome}}\",\n  \"email\": \"{{profissional_email}}\",\n  \"telefone\": \"{{profissional_telefone}}\",\n  \"senha\": \"{{profissional_senha}}\",\n  \"tipoPerfil\": 2\n}"
+            },
+            "url": "{{host}}/api/auth/registrar"
+          }
+        },
+        {
+          "name": "Registrar Cliente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"{{cliente_nome}}\",\n  \"email\": \"{{cliente_email}}\",\n  \"telefone\": \"{{cliente_telefone}}\",\n  \"senha\": \"{{cliente_senha}}\",\n  \"tipoPerfil\": 1\n}"
+            },
+            "url": "{{host}}/api/auth/registrar"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catalogos",
+      "item": [
+        {
+          "name": "Listar Planos",
+          "request": {
+            "method": "GET",
+            "url": "{{host}}/api/impulsionamentos/planos"
+          }
+        },
+        {
+          "name": "Listar Profissoes",
+          "request": {
+            "method": "GET",
+            "url": "{{host}}/api/profissoes"
+          }
+        },
+        {
+          "name": "Listar Especialidades",
+          "request": {
+            "method": "GET",
+            "url": "{{host}}/api/profissoes/especialidades?profissaoId={{profissao_id}}"
+          }
+        },
+        {
+          "name": "Listar Cidades",
+          "request": {
+            "method": "GET",
+            "url": "{{host}}/api/cidades"
+          }
+        },
+        {
+          "name": "Listar Bairros",
+          "request": {
+            "method": "GET",
+            "url": "{{host}}/api/cidades/{{cidade_id}}/bairros"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profissional",
+      "item": [
+        {
+          "name": "Atualizar Perfil",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_profissional}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeExibicao\": \"Profissional Postman Colecao\",\n  \"descricao\": \"Atendimento residencial\",\n  \"whatsApp\": \"11999999999\",\n  \"instagram\": \"\",\n  \"facebook\": \"\",\n  \"outraFormaContato\": \"\",\n  \"aceitaContatoPeloApp\": true\n}"
+            },
+            "url": "{{host}}/api/profissionais/me"
+          }
+        },
+        {
+          "name": "Atualizar Profissoes",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_profissional}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profissaoIds\": [\n    \"{{profissao_id}}\"\n  ]\n}"
+            },
+            "url": "{{host}}/api/profissionais/me/profissoes"
+          }
+        },
+        {
+          "name": "Atualizar Especialidades",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_profissional}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"especialidadeIds\": [\n    \"{{especialidade_id}}\"\n  ]\n}"
+            },
+            "url": "{{host}}/api/profissionais/me/especialidades"
+          }
+        },
+        {
+          "name": "Atualizar Areas Atendimento",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_profissional}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"areas\": [\n    {\n      \"cidadeId\": \"{{cidade_id}}\",\n      \"bairroId\": \"{{bairro_id}}\",\n      \"cidadeInteira\": false\n    }\n  ]\n}"
+            },
+            "url": "{{host}}/api/profissionais/me/areas-atendimento"
+          }
+        },
+        {
+          "name": "Buscar Profissionais",
+          "request": {
+            "method": "GET",
+            "url": "{{host}}/api/profissionais/buscar?profissaoId={{profissao_id}}&cidadeId={{cidade_id}}&bairroId={{bairro_id}}&pagina=1&tamanhoPagina=10"
+          }
+        },
+        {
+          "name": "Detalhes Profissional",
+          "request": {
+            "method": "GET",
+            "url": "{{host}}/api/profissionais/{{profissional_id}}/detalhes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Impulsionamento",
+      "item": [
+        {
+          "name": "Contratar Plano",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_profissional}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"planoImpulsionamentoId\": \"{{plano_id}}\",\n  \"codigoReferenciaPagamento\": \"postman-ref-001\"\n}"
+            },
+            "url": "{{host}}/api/impulsionamentos/contratar"
+          }
+        },
+        {
+          "name": "Listar Meus Impulsionamentos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_profissional}}"
+              }
+            ],
+            "url": "{{host}}/api/impulsionamentos/meus"
+          }
+        },
+        {
+          "name": "Confirmar Pagamento Por Id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{host}}/api/impulsionamentos/{{impulsionamento_id}}/confirmar-pagamento"
+          }
+        },
+        {
+          "name": "Confirmar Pagamento Por Referencia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoReferenciaPagamento\": \"postman-ref-001\"\n}"
+            },
+            "url": "{{host}}/api/impulsionamentos/confirmar-pagamento"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Servicos e Avaliacoes",
+      "item": [
+        {
+          "name": "Criar Servico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profissionalId\": \"{{profissional_id}}\",\n  \"profissaoId\": \"{{profissao_id}}\",\n  \"especialidadeId\": \"{{especialidade_id}}\",\n  \"cidadeId\": \"{{cidade_id}}\",\n  \"bairroId\": \"{{bairro_id}}\",\n  \"titulo\": \"Servico via Postman\",\n  \"descricao\": \"Descricao do servico criado pela colecao Postman\",\n  \"valorCombinado\": 120.00\n}"
+            },
+            "url": "{{host}}/api/servicos"
+          }
+        },
+        {
+          "name": "Aceitar Servico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_profissional}}"
+              }
+            ],
+            "url": "{{host}}/api/servicos/{{servico_id}}/aceitar"
+          }
+        },
+        {
+          "name": "Iniciar Servico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_profissional}}"
+              }
+            ],
+            "url": "{{host}}/api/servicos/{{servico_id}}/iniciar"
+          }
+        },
+        {
+          "name": "Concluir Servico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_profissional}}"
+              }
+            ],
+            "url": "{{host}}/api/servicos/{{servico_id}}/concluir"
+          }
+        },
+        {
+          "name": "Obter Servico",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              }
+            ],
+            "url": "{{host}}/api/servicos/{{servico_id}}"
+          }
+        },
+        {
+          "name": "Criar Avaliacao",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_cliente}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"servicoId\": \"{{servico_id}}\",\n  \"notaAtendimento\": 5,\n  \"notaServico\": 5,\n  \"notaPreco\": 4,\n  \"comentario\": \"Servico muito bom e profissional pontual\"\n}"
+            },
+            "url": "{{host}}/api/avaliacoes"
+          }
+        },
+        {
+          "name": "Listar Avaliacoes Pendentes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{host}}/api/avaliacoes/pendentes"
+          }
+        },
+        {
+          "name": "Moderar Avaliacao",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"acao\": 1\n}"
+            },
+            "url": "{{host}}/api/avaliacoes/{{avaliacao_id}}/moderar"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks e Operacao",
+      "item": [
+        {
+          "name": "Webhook Padrao",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Webhook-Signature",
+                "value": "{{webhook_signature}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigoReferenciaPagamento\": \"postman-ref-001\",\n  \"statusPagamento\": \"pago\",\n  \"eventoExternoId\": \"evt-postman-001\"\n}"
+            },
+            "url": "{{host}}/api/webhooks/pagamentos/impulsionamentos"
+          }
+        },
+        {
+          "name": "Webhook Asaas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Asaas-Signature",
+                "value": "{{webhook_asaas_signature}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt-asaas-postman-001\",\n  \"event\": \"PAYMENT_RECEIVED\",\n  \"payment\": {\n    \"externalReference\": \"postman-ref-001\",\n    \"status\": \"RECEIVED\"\n  }\n}"
+            },
+            "url": "{{host}}/api/webhooks/pagamentos/asaas/impulsionamentos"
+          }
+        },
+        {
+          "name": "Listar Historico Webhooks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{host}}/api/impulsionamentos/webhooks?provedor=asaas&pagina=1&tamanhoPagina=20"
+          }
+        },
+        {
+          "name": "Listar Metricas Webhooks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{host}}/api/impulsionamentos/webhooks/metricas"
+          }
+        },
+        {
+          "name": "Importar Geografia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "url": "{{host}}/api/importacao/geografia"
+          }
+        }
+      ]
+    }
+  ]
+}

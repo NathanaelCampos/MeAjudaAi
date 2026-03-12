@@ -1,6 +1,9 @@
 using System.Text;
 using MeAjudaAi.Application.Common;
+using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Api.Middlewares;
+using MeAjudaAi.Api.Swagger;
+using MeAjudaAi.Api.Webhooks;
 using MeAjudaAi.Infrastructure.DependencyInjection;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using MeAjudaAi.Infrastructure.Persistence.Seed;
@@ -18,6 +21,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
+    options.OperationFilter<SwaggerExamplesOperationFilter>();
+
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "Digite: Bearer {seu token}",
@@ -78,6 +83,8 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddScoped<IWebhookPagamentoPayloadAdapter, DefaultWebhookPagamentoPayloadAdapter>();
+builder.Services.AddScoped<IWebhookPagamentoPayloadAdapter, AsaasWebhookPagamentoPayloadAdapter>();
 
 builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
 {
@@ -85,17 +92,17 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options 
     {
         var erros = context.ModelState
             .Where(x => x.Value?.Errors.Count > 0)
-            .Select(x => new
+            .Select(x => new CampoErroValidacaoResponse
             {
                 Campo = x.Key,
                 Mensagens = x.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
             })
             .ToArray();
 
-        return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new
+        return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new ErroValidacaoResponse
         {
-            mensagem = "Erro de validação.",
-            erros
+            Mensagem = "Erro de validação.",
+            Erros = erros
         });
     };
 });

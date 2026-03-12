@@ -703,6 +703,94 @@ namespace MeAjudaAi.Infrastructure.Persistence.Migrations
                     b.ToTable("usuarios", (string)null);
                 });
 
+            modelBuilder.Entity("MeAjudaAi.Domain.Entities.WebhookPagamentoImpulsionamentoEvento", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("CodigoReferenciaPagamento")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime?>("DataAtualizacao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EventoExternoId")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("HeadersJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ImpulsionamentoProfissionalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("IpOrigem")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("MensagemResultado")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("ProcessadoComSucesso")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Provedor")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("RequestId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("StatusImpulsionamentoResultado")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StatusPagamento")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodigoReferenciaPagamento");
+
+                    b.HasIndex("EventoExternoId")
+                        .IsUnique();
+
+                    b.HasIndex("ImpulsionamentoProfissionalId");
+
+                    b.HasIndex("Provedor");
+
+                    b.HasIndex("RequestId");
+
+                    b.ToTable("webhooks_pagamentos_impulsionamentos_eventos", (string)null);
+                });
+
             modelBuilder.Entity("MeAjudaAi.Domain.Entities.AreaAtendimento", b =>
                 {
                     b.HasOne("MeAjudaAi.Domain.Entities.Bairro", "Bairro")
@@ -936,6 +1024,16 @@ namespace MeAjudaAi.Infrastructure.Persistence.Migrations
                     b.Navigation("Profissao");
 
                     b.Navigation("Profissional");
+                });
+
+            modelBuilder.Entity("MeAjudaAi.Domain.Entities.WebhookPagamentoImpulsionamentoEvento", b =>
+                {
+                    b.HasOne("MeAjudaAi.Domain.Entities.ImpulsionamentoProfissional", "ImpulsionamentoProfissional")
+                        .WithMany()
+                        .HasForeignKey("ImpulsionamentoProfissionalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ImpulsionamentoProfissional");
                 });
 
             modelBuilder.Entity("MeAjudaAi.Domain.Entities.Bairro", b =>

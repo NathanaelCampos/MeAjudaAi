@@ -1,5 +1,6 @@
 using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
+using MeAjudaAi.Application.Interfaces.Impulsionamentos;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
@@ -54,7 +55,11 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>, IAsyncL
                 ["Jwt:Issuer"] = "MeAjudaAi.Api.Tests",
                 ["Jwt:Audience"] = "MeAjudaAi.Tests",
                 ["Jwt:Key"] = "me-ajuda-ai-chave-de-teste-com-no-minimo-32-caracteres",
-                ["Jwt:ExpiracaoEmMinutos"] = "120"
+                ["Jwt:ExpiracaoEmMinutos"] = "120",
+                ["Webhooks:Pagamentos:Segredo"] = "segredo-webhook-teste",
+                ["Webhooks:Pagamentos:HeaderAssinatura"] = "X-Webhook-Signature",
+                ["Webhooks:Pagamentos:Provedores:asaas:Segredo"] = "segredo-webhook-asaas-teste",
+                ["Webhooks:Pagamentos:Provedores:asaas:HeaderAssinatura"] = "X-Asaas-Signature"
             });
         });
 
@@ -128,6 +133,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>, IAsyncL
         await context.Database.EnsureCreatedAsync();
 
         SeedDadosBase(context);
+
+        var metricsService = scope.ServiceProvider.GetRequiredService<IWebhookPagamentoMetricsService>();
+        metricsService.Reset();
 
         var uploadsPath = Path.Combine(_contentRootPath, "Uploads");
         if (Directory.Exists(uploadsPath))

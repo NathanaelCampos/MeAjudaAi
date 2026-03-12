@@ -1,3 +1,4 @@
+using MeAjudaAi.Application.DTOs.Cidades;
 using MeAjudaAi.Application.Interfaces.Cidades;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,7 @@ public class CidadesController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
+    [ProducesResponseType(typeof(IReadOnlyList<CidadeResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Listar(CancellationToken cancellationToken)
     {
         var response = await _cidadeService.ListarAsync(cancellationToken);
@@ -25,6 +27,7 @@ public class CidadesController : ControllerBase
 
     [HttpGet("{cidadeId:guid}/bairros")]
     [AllowAnonymous]
+    [ProducesResponseType(typeof(IReadOnlyList<BairroResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListarBairros(
         Guid cidadeId,
         CancellationToken cancellationToken)

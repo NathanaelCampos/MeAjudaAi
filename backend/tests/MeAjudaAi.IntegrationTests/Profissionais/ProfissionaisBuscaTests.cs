@@ -86,6 +86,7 @@ public class ProfissionaisBuscaTests : IntegrationTestBase, IClassFixture<TestWe
     {
         using var impulsionadoClient = _factory.CreateClient();
         using var comumClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
         using var client = _factory.CreateClient();
 
         var cidadeId = await _factory.ObterCidadeIdAsync();
@@ -94,6 +95,7 @@ public class ProfissionaisBuscaTests : IntegrationTestBase, IClassFixture<TestWe
 
         var authImpulsionado = await RegistrarProfissionalAsync(impulsionadoClient, "impulsionado", "Prioridade Zeta");
         var authComum = await RegistrarProfissionalAsync(comumClient, "comum", "Prioridade Alfa");
+        var authAdmin = await LoginAdminAsync(adminClient);
 
         await ConfigurarProfissionalAsync(impulsionadoClient, authImpulsionado.Token, profissaoId, especialidadeId, cidadeId, bairroId, false);
         await ConfigurarProfissionalAsync(comumClient, authComum.Token, profissaoId, especialidadeId, cidadeId, bairroId, false);
@@ -114,6 +116,14 @@ public class ProfissionaisBuscaTests : IntegrationTestBase, IClassFixture<TestWe
         });
 
         Assert.Equal(HttpStatusCode.OK, contratarResponse.StatusCode);
+        var contratado = await contratarResponse.Content.ReadFromJsonAsync<ImpulsionamentoProfissionalResponse>();
+        Assert.NotNull(contratado);
+
+        adminClient.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var confirmarResponse = await adminClient.PutAsync($"/api/impulsionamentos/{contratado!.Id}/confirmar-pagamento", null);
+        Assert.Equal(HttpStatusCode.OK, confirmarResponse.StatusCode);
 
         var response = await client.GetFromJsonAsync<PaginacaoResponse<ProfissionalResumoResponse>>(
             $"/api/profissionais/buscar?nome=Prioridade&profissaoId={profissaoId}&ordenacao=Relevancia&pagina=1&tamanhoPagina=10");
@@ -160,6 +170,22 @@ public class ProfissionaisBuscaTests : IntegrationTestBase, IClassFixture<TestWe
         });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    private static async Task<AuthResponse> LoginAdminAsync(HttpClient client)
+    {
+        var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Email = TestWebApplicationFactory.EmailAdmin,
+            Senha = TestWebApplicationFactory.SenhaAdmin
+        });
+
+        response.EnsureSuccessStatusCode();
+
+        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        Assert.NotNull(auth);
+
+        return auth!;
     }
 
     private static async Task ConfigurarProfissionalAsync(

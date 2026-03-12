@@ -1,5 +1,6 @@
 using MeAjudaAi.Api.Extensions;
 using MeAjudaAi.Application.DTOs.Avaliacoes;
+using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.Interfaces.Avaliacoes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +21,7 @@ public class AvaliacoesController : ControllerBase
     [HttpPost]
     [Authorize]
     [ProducesResponseType(typeof(AvaliacaoResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Criar(
         [FromBody] CriarAvaliacaoRequest request,
@@ -56,6 +57,7 @@ public class AvaliacoesController : ControllerBase
     [HttpGet("pendentes")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(IReadOnlyList<AvaliacaoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ListarPendentes(
         CancellationToken cancellationToken = default)
     {
@@ -66,6 +68,8 @@ public class AvaliacoesController : ControllerBase
     [HttpPut("{avaliacaoId:guid}/moderar")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(AvaliacaoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Moderar(
         Guid avaliacaoId,

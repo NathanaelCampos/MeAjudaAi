@@ -1,4 +1,5 @@
 using MeAjudaAi.Api.Extensions;
+using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.DTOs.Profissionais;
 using MeAjudaAi.Application.Interfaces.Profissionais;
 using Microsoft.AspNetCore.Authorization;
@@ -51,7 +52,7 @@ public class ProfissionaisController : ControllerBase
         var response = await _profissionalService.ObterPorIdAsync(id, cancellationToken);
 
         if (response is null)
-            return NotFound();
+            return NotFound(new MensagemErroResponse { Mensagem = "Profissional não encontrado." });
 
         return Ok(response);
     }
@@ -59,8 +60,9 @@ public class ProfissionaisController : ControllerBase
     [HttpPut("me")]
     [Authorize]
     [ProducesResponseType(typeof(ProfissionalResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AtualizarMeuPerfil(
         [FromBody] AtualizarProfissionalRequest request,
         CancellationToken cancellationToken = default)
@@ -82,6 +84,9 @@ public class ProfissionaisController : ControllerBase
     }
     [HttpPut("me/profissoes")]
     [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> AtualizarProfissoes(
     [FromBody] AtualizarProfissoesProfissionalRequest request,
     CancellationToken cancellationToken = default)
@@ -102,12 +107,15 @@ public class ProfissionaisController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return NotFound(new { mensagem = ex.Message });
+            return NotFound(new MensagemErroResponse { Mensagem = ex.Message });
         }
     }
 
     [HttpPut("me/especialidades")]
     [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> AtualizarEspecialidades(
         [FromBody] AtualizarEspecialidadesProfissionalRequest request,
         CancellationToken cancellationToken = default)
@@ -128,12 +136,15 @@ public class ProfissionaisController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return NotFound(new { mensagem = ex.Message });
+            return NotFound(new MensagemErroResponse { Mensagem = ex.Message });
         }
     }
 
     [HttpPut("me/areas-atendimento")]
     [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> AtualizarAreasAtendimento(
     [FromBody] AtualizarAreasAtendimentoRequest request,
     CancellationToken cancellationToken = default)
@@ -154,13 +165,13 @@ public class ProfissionaisController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return NotFound(new { mensagem = ex.Message });
+            return NotFound(new MensagemErroResponse { Mensagem = ex.Message });
         }
     }
 
     [HttpGet("buscar")]
     [AllowAnonymous]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MeAjudaAi.Application.DTOs.Common.PaginacaoResponse<ProfissionalResumoResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Buscar(
      [FromQuery] string? nome,
      [FromQuery] Guid? profissaoId,
@@ -198,6 +209,7 @@ public class ProfissionaisController : ControllerBase
 
     [HttpGet("{id:guid}/portfolio")]
     [AllowAnonymous]
+    [ProducesResponseType(typeof(IReadOnlyList<PortfolioFotoResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListarPortfolio(
     Guid id,
     CancellationToken cancellationToken = default)
@@ -208,6 +220,10 @@ public class ProfissionaisController : ControllerBase
 
     [HttpPut("me/portfolio")]
     [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> AtualizarPortfolio(
         [FromBody] AtualizarPortfolioRequest request,
         CancellationToken cancellationToken = default)
@@ -228,12 +244,13 @@ public class ProfissionaisController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return NotFound(new { mensagem = ex.Message });
+            return NotFound(new MensagemErroResponse { Mensagem = ex.Message });
         }
     }
 
     [HttpGet("{id:guid}/formas-recebimento")]
     [AllowAnonymous]
+    [ProducesResponseType(typeof(IReadOnlyList<FormaRecebimentoResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ListarFormasRecebimento(
     Guid id,
     CancellationToken cancellationToken = default)
@@ -244,6 +261,10 @@ public class ProfissionaisController : ControllerBase
 
     [HttpPut("me/formas-recebimento")]
     [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> AtualizarFormasRecebimento(
         [FromBody] AtualizarFormasRecebimentoRequest request,
         CancellationToken cancellationToken = default)
@@ -264,14 +285,14 @@ public class ProfissionaisController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return NotFound(new { mensagem = ex.Message });
+            return NotFound(new MensagemErroResponse { Mensagem = ex.Message });
         }
     }
 
     [HttpGet("{id:guid}/detalhes")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ProfissionalDetalhesResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ObterDetalhesPorId(
     Guid id,
     CancellationToken cancellationToken = default)
@@ -279,7 +300,7 @@ public class ProfissionaisController : ControllerBase
         var response = await _profissionalService.ObterDetalhesPorIdAsync(id, cancellationToken);
 
         if (response is null)
-            return NotFound();
+            return NotFound(new MensagemErroResponse { Mensagem = "Profissional não encontrado." });
 
         return Ok(response);
     }
@@ -288,7 +309,7 @@ public class ProfissionaisController : ControllerBase
     [Authorize]
     [RequestSizeLimit(10_000_000)]
     [ProducesResponseType(typeof(UploadPortfolioResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> UploadPortfolio(
     IFormFile arquivo,
@@ -300,7 +321,7 @@ public class ProfissionaisController : ControllerBase
             return Unauthorized();
 
         if (arquivo is null || arquivo.Length == 0)
-            return BadRequest(new { mensagem = "Arquivo é obrigatório." });
+            return BadRequest(new MensagemErroResponse { Mensagem = "Arquivo é obrigatório." });
 
         try
         {
@@ -321,7 +342,7 @@ public class ProfissionaisController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { mensagem = ex.Message });
+            return BadRequest(new MensagemErroResponse { Mensagem = ex.Message });
         }
     }
 }

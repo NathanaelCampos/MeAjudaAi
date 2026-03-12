@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MeAjudaAi.Application.DTOs.Common;
 
 namespace MeAjudaAi.Api.Middlewares;
 
@@ -39,9 +40,9 @@ public class ExceptionHandlingMiddleware
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
 
-        var payload = JsonSerializer.Serialize(new
+        var payload = JsonSerializer.Serialize(new MensagemErroResponse
         {
-            mensagem
+            Mensagem = mensagem
         });
 
         await context.Response.WriteAsync(payload);

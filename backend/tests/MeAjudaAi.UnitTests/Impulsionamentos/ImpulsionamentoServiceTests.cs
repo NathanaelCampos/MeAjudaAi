@@ -5,6 +5,8 @@ using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using Microsoft.Data.Sqlite;
 using MeAjudaAi.Infrastructure.Services.Impulsionamentos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using MeAjudaAi.Application.Interfaces.Impulsionamentos;
 
 namespace MeAjudaAi.UnitTests.Impulsionamentos;
 
@@ -64,7 +66,10 @@ public class ImpulsionamentoServiceTests
 
         await context.SaveChangesAsync();
 
-        var service = new ImpulsionamentoService(context);
+        var service = new ImpulsionamentoService(
+            context,
+            NullLogger<ImpulsionamentoService>.Instance,
+            new WebhookPagamentoMetricsService());
 
         var response = await service.ContratarPlanoAsync(usuarioId, new ContratarPlanoImpulsionamentoRequest
         {
@@ -78,7 +83,7 @@ public class ImpulsionamentoServiceTests
     }
 
     [Fact]
-    public async Task ListarMeusImpulsionamentosAsync_DeveExpirarOAnteriorEAtivarOFuturoNaVirada()
+    public async Task ListarMeusImpulsionamentosAsync_DeveExpirarOAnteriorEManterOFuturoAtivoNaVirada()
     {
         await using var context = CriarContexto();
 
@@ -124,7 +129,7 @@ public class ImpulsionamentoServiceTests
             PlanoImpulsionamentoId = plano.Id,
             DataInicio = instanteVirada,
             DataFim = instanteVirada.AddDays(1),
-            Status = StatusImpulsionamento.PendentePagamento,
+            Status = StatusImpulsionamento.Ativo,
             ValorPago = plano.Valor
         };
 
@@ -135,7 +140,10 @@ public class ImpulsionamentoServiceTests
 
         await context.SaveChangesAsync();
 
-        var service = new ImpulsionamentoService(context);
+        var service = new ImpulsionamentoService(
+            context,
+            NullLogger<ImpulsionamentoService>.Instance,
+            new WebhookPagamentoMetricsService());
 
         var response = await service.ListarMeusImpulsionamentosAsync(usuarioId);
 
@@ -149,6 +157,278 @@ public class ImpulsionamentoServiceTests
         Assert.Equal(StatusImpulsionamento.Ativo, atualizadoAgendado.Status);
         Assert.Contains(response, x => x.Id == impulsionamentoEncerrando.Id && x.Status == StatusImpulsionamento.Expirado);
         Assert.Contains(response, x => x.Id == impulsionamentoAgendado.Id && x.Status == StatusImpulsionamento.Ativo);
+    }
+
+    [Fact]
+    public async Task ConfirmarPagamentoAsync_DeveAtivarImpulsionamentoPendente()
+    {
+        await using var context = CriarContexto();
+
+        var usuarioId = Guid.NewGuid();
+        var usuario = new Usuario
+        {
+            Id = usuarioId,
+            Nome = "Profissional Teste",
+            Email = "profissional3@teste.local",
+            Telefone = string.Empty,
+            SenhaHash = "hash",
+            TipoPerfil = TipoPerfil.Profissional
+        };
+        var profissional = new Profissional
+        {
+            UsuarioId = usuarioId,
+            NomeExibicao = "Profissional Teste"
+        };
+
+        var plano = new PlanoImpulsionamento
+        {
+            Nome = "Plano",
+            TipoPeriodo = TipoPeriodoImpulsionamento.Dia,
+            QuantidadePeriodo = 1,
+            Valor = 10m
+        };
+
+        var impulsionamento = new ImpulsionamentoProfissional
+        {
+            ProfissionalId = profissional.Id,
+            PlanoImpulsionamentoId = plano.Id,
+            DataInicio = DateTime.UtcNow,
+            DataFim = DateTime.UtcNow.AddDays(1),
+            Status = StatusImpulsionamento.PendentePagamento,
+            ValorPago = plano.Valor
+        };
+
+        context.Usuarios.Add(usuario);
+        context.Profissionais.Add(profissional);
+        context.PlanosImpulsionamento.Add(plano);
+        context.ImpulsionamentosProfissionais.Add(impulsionamento);
+
+        await context.SaveChangesAsync();
+
+        var service = new ImpulsionamentoService(
+            context,
+            NullLogger<ImpulsionamentoService>.Instance,
+            new WebhookPagamentoMetricsService());
+
+        var response = await service.ConfirmarPagamentoAsync(impulsionamento.Id);
+
+        Assert.Equal(StatusImpulsionamento.Ativo, response.Status);
+
+        var atualizado = await context.ImpulsionamentosProfissionais
+            .FirstAsync(x => x.Id == impulsionamento.Id);
+
+        Assert.Equal(StatusImpulsionamento.Ativo, atualizado.Status);
+    }
+
+    [Fact]
+    public async Task ConfirmarPagamentoPorCodigoReferenciaAsync_DeveAtivarImpulsionamentoPendente()
+    {
+        await using var context = CriarContexto();
+
+        var usuarioId = Guid.NewGuid();
+        var usuario = new Usuario
+        {
+            Id = usuarioId,
+            Nome = "Profissional Teste",
+            Email = "profissional4@teste.local",
+            Telefone = string.Empty,
+            SenhaHash = "hash",
+            TipoPerfil = TipoPerfil.Profissional
+        };
+        var profissional = new Profissional
+        {
+            UsuarioId = usuarioId,
+            NomeExibicao = "Profissional Teste"
+        };
+
+        var plano = new PlanoImpulsionamento
+        {
+            Nome = "Plano",
+            TipoPeriodo = TipoPeriodoImpulsionamento.Dia,
+            QuantidadePeriodo = 1,
+            Valor = 10m
+        };
+
+        var impulsionamento = new ImpulsionamentoProfissional
+        {
+            ProfissionalId = profissional.Id,
+            PlanoImpulsionamentoId = plano.Id,
+            DataInicio = DateTime.UtcNow,
+            DataFim = DateTime.UtcNow.AddDays(1),
+            Status = StatusImpulsionamento.PendentePagamento,
+            ValorPago = plano.Valor,
+            CodigoReferenciaPagamento = "pagamento-ref-001"
+        };
+
+        context.Usuarios.Add(usuario);
+        context.Profissionais.Add(profissional);
+        context.PlanosImpulsionamento.Add(plano);
+        context.ImpulsionamentosProfissionais.Add(impulsionamento);
+
+        await context.SaveChangesAsync();
+
+        var service = new ImpulsionamentoService(
+            context,
+            NullLogger<ImpulsionamentoService>.Instance,
+            new WebhookPagamentoMetricsService());
+
+        var response = await service.ConfirmarPagamentoPorCodigoReferenciaAsync("pagamento-ref-001");
+
+        Assert.Equal(StatusImpulsionamento.Ativo, response.Status);
+        Assert.Equal("pagamento-ref-001", response.CodigoReferenciaPagamento);
+    }
+
+    [Fact]
+    public async Task CancelarPorCodigoReferenciaAsync_DeveCancelarImpulsionamentoPendente()
+    {
+        await using var context = CriarContexto();
+
+        var usuarioId = Guid.NewGuid();
+        var usuario = new Usuario
+        {
+            Id = usuarioId,
+            Nome = "Profissional Teste",
+            Email = "profissional5@teste.local",
+            Telefone = string.Empty,
+            SenhaHash = "hash",
+            TipoPerfil = TipoPerfil.Profissional
+        };
+        var profissional = new Profissional
+        {
+            UsuarioId = usuarioId,
+            NomeExibicao = "Profissional Teste"
+        };
+
+        var plano = new PlanoImpulsionamento
+        {
+            Nome = "Plano",
+            TipoPeriodo = TipoPeriodoImpulsionamento.Dia,
+            QuantidadePeriodo = 1,
+            Valor = 10m
+        };
+
+        var impulsionamento = new ImpulsionamentoProfissional
+        {
+            ProfissionalId = profissional.Id,
+            PlanoImpulsionamentoId = plano.Id,
+            DataInicio = DateTime.UtcNow,
+            DataFim = DateTime.UtcNow.AddDays(1),
+            Status = StatusImpulsionamento.PendentePagamento,
+            ValorPago = plano.Valor,
+            CodigoReferenciaPagamento = "pagamento-ref-002"
+        };
+
+        context.Usuarios.Add(usuario);
+        context.Profissionais.Add(profissional);
+        context.PlanosImpulsionamento.Add(plano);
+        context.ImpulsionamentosProfissionais.Add(impulsionamento);
+
+        await context.SaveChangesAsync();
+
+        var service = new ImpulsionamentoService(
+            context,
+            NullLogger<ImpulsionamentoService>.Instance,
+            new WebhookPagamentoMetricsService());
+
+        var response = await service.CancelarPorCodigoReferenciaAsync("pagamento-ref-002");
+
+        Assert.Equal(StatusImpulsionamento.Cancelado, response.Status);
+        Assert.Equal("pagamento-ref-002", response.CodigoReferenciaPagamento);
+    }
+
+    [Fact]
+    public async Task ProcessarWebhookPagamentoAsync_DeveSerIdempotenteParaMesmoEventoExterno()
+    {
+        await using var context = CriarContexto();
+
+        var usuarioId = Guid.NewGuid();
+        var usuario = new Usuario
+        {
+            Id = usuarioId,
+            Nome = "Profissional Teste",
+            Email = "profissional6@teste.local",
+            Telefone = string.Empty,
+            SenhaHash = "hash",
+            TipoPerfil = TipoPerfil.Profissional
+        };
+        var profissional = new Profissional
+        {
+            UsuarioId = usuarioId,
+            NomeExibicao = "Profissional Teste"
+        };
+
+        var plano = new PlanoImpulsionamento
+        {
+            Nome = "Plano",
+            TipoPeriodo = TipoPeriodoImpulsionamento.Dia,
+            QuantidadePeriodo = 1,
+            Valor = 10m
+        };
+
+        var impulsionamento = new ImpulsionamentoProfissional
+        {
+            ProfissionalId = profissional.Id,
+            PlanoImpulsionamentoId = plano.Id,
+            DataInicio = DateTime.UtcNow,
+            DataFim = DateTime.UtcNow.AddDays(1),
+            Status = StatusImpulsionamento.PendentePagamento,
+            ValorPago = plano.Valor,
+            CodigoReferenciaPagamento = "pagamento-ref-003"
+        };
+
+        context.Usuarios.Add(usuario);
+        context.Profissionais.Add(profissional);
+        context.PlanosImpulsionamento.Add(plano);
+        context.ImpulsionamentosProfissionais.Add(impulsionamento);
+
+        await context.SaveChangesAsync();
+
+        var metrics = new WebhookPagamentoMetricsService();
+        var service = new ImpulsionamentoService(
+            context,
+            NullLogger<ImpulsionamentoService>.Instance,
+            metrics);
+        var request = new WebhookPagamentoImpulsionamentoRequest
+        {
+            CodigoReferenciaPagamento = "pagamento-ref-003",
+            StatusPagamento = "pago",
+            EventoExternoId = "evt-unit-001"
+        };
+
+        var primeiro = await service.ProcessarWebhookPagamentoAsync(
+            "padrao",
+            request,
+            "{\"codigoReferenciaPagamento\":\"pagamento-ref-003\"}",
+            "{\"X-Webhook-Signature\":[\"abc\"]}",
+            "127.0.0.1",
+            "req-unit-001",
+            "unit-test-agent/1.0");
+        var segundo = await service.ProcessarWebhookPagamentoAsync(
+            "padrao",
+            request,
+            "{\"codigoReferenciaPagamento\":\"pagamento-ref-003\"}",
+            "{\"X-Webhook-Signature\":[\"abc\"]}",
+            "127.0.0.1",
+            "req-unit-001",
+            "unit-test-agent/1.0");
+
+        Assert.False(primeiro.Duplicado);
+        Assert.Equal("padrao", primeiro.Provedor);
+        Assert.True(segundo.Duplicado);
+        Assert.NotNull(segundo.Impulsionamento);
+        Assert.Equal(StatusImpulsionamento.Ativo, segundo.Impulsionamento!.Status);
+        Assert.Equal(1, await context.WebhookPagamentoImpulsionamentoEventos.CountAsync());
+
+        var evento = await context.WebhookPagamentoImpulsionamentoEventos.SingleAsync();
+        Assert.Equal("{\"X-Webhook-Signature\":[\"abc\"]}", evento.HeadersJson);
+        Assert.Equal("127.0.0.1", evento.IpOrigem);
+        Assert.Equal("req-unit-001", evento.RequestId);
+        Assert.Equal("unit-test-agent/1.0", evento.UserAgent);
+
+        var metricas = metrics.ObterSnapshot();
+        Assert.Contains(metricas.Itens, x => x.Resultado == "recebido" && x.Provedor == "padrao" && x.StatusRecebido == "pago" && x.Quantidade == 2);
+        Assert.Contains(metricas.Itens, x => x.Resultado == "processado" && x.Provedor == "padrao" && x.StatusRecebido == "pago" && x.Quantidade == 1);
+        Assert.Contains(metricas.Itens, x => x.Resultado == "duplicado" && x.Provedor == "padrao" && x.StatusRecebido == "pago" && x.Quantidade == 1);
     }
 
     private static AppDbContext CriarContexto()

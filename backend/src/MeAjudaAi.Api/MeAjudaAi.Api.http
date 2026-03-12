@@ -1,6 +1,319 @@
-@MeAjudaAi.Api_HostAddress = http://localhost:5231
+@host = http://localhost:5231
+@json = application/json
 
-GET {{MeAjudaAi.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+@admin_email = admin@meajudaai.local
+@admin_password = Admin@123
+
+@profissional_nome = Profissional Http
+@profissional_email = profissional.http@teste.local
+@profissional_telefone = 11999999999
+@profissional_senha = Senha@123
+
+@cliente_nome = Cliente Http
+@cliente_email = cliente.http@teste.local
+@cliente_telefone = 11988888888
+@cliente_senha = Senha@123
+
+# Preencha manualmente apos executar as requisicoes de login/registro.
+@token_admin = COLE_O_TOKEN_ADMIN_AQUI
+@token_profissional = COLE_O_TOKEN_PROFISSIONAL_AQUI
+@token_cliente = COLE_O_TOKEN_CLIENTE_AQUI
+
+# Preencha manualmente com IDs retornados pela API.
+@plano_id = COLE_O_PLANO_ID_AQUI
+@profissao_id = COLE_O_PROFISSAO_ID_AQUI
+@especialidade_id = COLE_A_ESPECIALIDADE_ID_AQUI
+@cidade_id = COLE_A_CIDADE_ID_AQUI
+@bairro_id = COLE_O_BAIRRO_ID_AQUI
+@profissional_id = COLE_O_PROFISSIONAL_ID_AQUI
+@impulsionamento_id = COLE_O_IMPULSIONAMENTO_ID_AQUI
+@servico_id = COLE_O_SERVICO_ID_AQUI
+@avaliacao_id = COLE_A_AVALIACAO_ID_AQUI
 
 ###
+### Auth
+###
+
+POST {{host}}/api/auth/login
+Content-Type: {{json}}
+
+{
+  "email": "{{admin_email}}",
+  "senha": "{{admin_password}}"
+}
+
+###
+
+POST {{host}}/api/auth/registrar
+Content-Type: {{json}}
+
+{
+  "nome": "{{profissional_nome}}",
+  "email": "{{profissional_email}}",
+  "telefone": "{{profissional_telefone}}",
+  "senha": "{{profissional_senha}}",
+  "tipoPerfil": 2
+}
+
+###
+
+POST {{host}}/api/auth/registrar
+Content-Type: {{json}}
+
+{
+  "nome": "{{cliente_nome}}",
+  "email": "{{cliente_email}}",
+  "telefone": "{{cliente_telefone}}",
+  "senha": "{{cliente_senha}}",
+  "tipoPerfil": 1
+}
+
+###
+### Catalogos
+###
+
+GET {{host}}/api/impulsionamentos/planos
+Accept: {{json}}
+
+###
+
+GET {{host}}/api/profissoes
+Accept: {{json}}
+
+###
+
+GET {{host}}/api/profissoes/especialidades?profissaoId={{profissao_id}}
+Accept: {{json}}
+
+###
+
+GET {{host}}/api/cidades
+Accept: {{json}}
+
+###
+
+GET {{host}}/api/cidades/{{cidade_id}}/bairros
+Accept: {{json}}
+
+###
+### Profissional
+###
+
+PUT {{host}}/api/profissionais/me
+Authorization: Bearer {{token_profissional}}
+Content-Type: {{json}}
+
+{
+  "nomeExibicao": "Profissional HTTP Colecao",
+  "descricao": "Atendimento residencial",
+  "whatsApp": "11999999999",
+  "instagram": "",
+  "facebook": "",
+  "outraFormaContato": "",
+  "aceitaContatoPeloApp": true
+}
+
+###
+
+PUT {{host}}/api/profissionais/me/profissoes
+Authorization: Bearer {{token_profissional}}
+Content-Type: {{json}}
+
+{
+  "profissaoIds": [
+    "{{profissao_id}}"
+  ]
+}
+
+###
+
+PUT {{host}}/api/profissionais/me/especialidades
+Authorization: Bearer {{token_profissional}}
+Content-Type: {{json}}
+
+{
+  "especialidadeIds": [
+    "{{especialidade_id}}"
+  ]
+}
+
+###
+
+PUT {{host}}/api/profissionais/me/areas-atendimento
+Authorization: Bearer {{token_profissional}}
+Content-Type: {{json}}
+
+{
+  "areas": [
+    {
+      "cidadeId": "{{cidade_id}}",
+      "bairroId": "{{bairro_id}}",
+      "cidadeInteira": false
+    }
+  ]
+}
+
+###
+
+GET {{host}}/api/profissionais/buscar?profissaoId={{profissao_id}}&cidadeId={{cidade_id}}&bairroId={{bairro_id}}&pagina=1&tamanhoPagina=10
+Accept: {{json}}
+
+###
+
+GET {{host}}/api/profissionais/{{profissional_id}}/detalhes
+Accept: {{json}}
+
+###
+### Impulsionamento
+###
+
+POST {{host}}/api/impulsionamentos/contratar
+Authorization: Bearer {{token_profissional}}
+Content-Type: {{json}}
+
+{
+  "planoImpulsionamentoId": "{{plano_id}}",
+  "codigoReferenciaPagamento": "http-ref-001"
+}
+
+###
+
+GET {{host}}/api/impulsionamentos/meus
+Authorization: Bearer {{token_profissional}}
+Accept: {{json}}
+
+###
+
+PUT {{host}}/api/impulsionamentos/{{impulsionamento_id}}/confirmar-pagamento
+Authorization: Bearer {{token_admin}}
+
+###
+
+POST {{host}}/api/impulsionamentos/confirmar-pagamento
+Authorization: Bearer {{token_admin}}
+Content-Type: {{json}}
+
+{
+  "codigoReferenciaPagamento": "http-ref-001"
+}
+
+###
+### Servicos e Avaliacoes
+###
+
+POST {{host}}/api/servicos
+Authorization: Bearer {{token_cliente}}
+Content-Type: {{json}}
+
+{
+  "profissionalId": "{{profissional_id}}",
+  "profissaoId": "{{profissao_id}}",
+  "especialidadeId": "{{especialidade_id}}",
+  "cidadeId": "{{cidade_id}}",
+  "bairroId": "{{bairro_id}}",
+  "titulo": "Servico via HTTP file",
+  "descricao": "Descricao do servico criado pela colecao HTTP",
+  "valorCombinado": 120.00
+}
+
+###
+
+POST {{host}}/api/servicos/{{servico_id}}/aceitar
+Authorization: Bearer {{token_profissional}}
+
+###
+
+POST {{host}}/api/servicos/{{servico_id}}/iniciar
+Authorization: Bearer {{token_profissional}}
+
+###
+
+POST {{host}}/api/servicos/{{servico_id}}/concluir
+Authorization: Bearer {{token_profissional}}
+
+###
+
+GET {{host}}/api/servicos/{{servico_id}}
+Authorization: Bearer {{token_cliente}}
+Accept: {{json}}
+
+###
+
+POST {{host}}/api/avaliacoes
+Authorization: Bearer {{token_cliente}}
+Content-Type: {{json}}
+
+{
+  "servicoId": "{{servico_id}}",
+  "notaAtendimento": 5,
+  "notaServico": 5,
+  "notaPreco": 4,
+  "comentario": "Servico muito bom e profissional pontual"
+}
+
+###
+
+GET {{host}}/api/avaliacoes/pendentes
+Authorization: Bearer {{token_admin}}
+Accept: {{json}}
+
+###
+
+PUT {{host}}/api/avaliacoes/{{avaliacao_id}}/moderar
+Authorization: Bearer {{token_admin}}
+Content-Type: {{json}}
+
+{
+  "acao": 1
+}
+
+###
+### Webhooks e Operacao
+###
+
+# Gere a assinatura HMAC fora do arquivo e substitua manualmente.
+@webhook_signature = COLE_A_ASSINATURA_AQUI
+@webhook_asaas_signature = COLE_A_ASSINATURA_ASAAS_AQUI
+
+POST {{host}}/api/webhooks/pagamentos/impulsionamentos
+X-Webhook-Signature: {{webhook_signature}}
+Content-Type: {{json}}
+
+{
+  "codigoReferenciaPagamento": "http-ref-001",
+  "statusPagamento": "pago",
+  "eventoExternoId": "evt-http-001"
+}
+
+###
+
+POST {{host}}/api/webhooks/pagamentos/asaas/impulsionamentos
+X-Asaas-Signature: {{webhook_asaas_signature}}
+Content-Type: {{json}}
+
+{
+  "id": "evt-asaas-http-001",
+  "event": "PAYMENT_RECEIVED",
+  "payment": {
+    "externalReference": "http-ref-001",
+    "status": "RECEIVED"
+  }
+}
+
+###
+
+GET {{host}}/api/impulsionamentos/webhooks?provedor=asaas&pagina=1&tamanhoPagina=20
+Authorization: Bearer {{token_admin}}
+Accept: {{json}}
+
+###
+
+GET {{host}}/api/impulsionamentos/webhooks/metricas
+Authorization: Bearer {{token_admin}}
+Accept: {{json}}
+
+###
+
+POST {{host}}/api/importacao/geografia
+Authorization: Bearer {{token_admin}}
+

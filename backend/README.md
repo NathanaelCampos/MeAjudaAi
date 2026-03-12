@@ -10,6 +10,12 @@ dotnet build MeAjudaAi.sln
 dotnet test MeAjudaAi.sln
 ```
 
+Para rodar apenas a regressao de contrato HTTP da API:
+
+```bash
+dotnet test tests/MeAjudaAi.IntegrationTests/MeAjudaAi.IntegrationTests.csproj --filter "Category=ApiContract"
+```
+
 ## API local
 
 Banco PostgreSQL via Docker:
@@ -23,6 +29,378 @@ API:
 ```bash
 dotnet run --project src/MeAjudaAi.Api
 ```
+
+Swagger UI em desenvolvimento:
+
+```text
+http://localhost:5231/swagger
+```
+
+O Swagger agora inclui exemplos de request e response para:
+
+- auth
+- profissionais
+- profissoes e especialidades
+- cidades e bairros
+- servicos
+- avaliacoes
+- webhooks
+- endpoints operacionais de historico e metricas
+
+O contrato OpenAPI tambem foi alinhado com os payloads reais da API:
+
+- respostas de erro simples usam `MensagemErroResponse`
+- erros de validacao usam `ErroValidacaoResponse`
+- respostas administrativas e operacionais estao tipadas no Swagger
+- endpoints de importacao, impulsionamento, servicos, avaliacoes e profissionais exibem contratos consistentes de `200`, `400`, `401` e `404` quando aplicavel
+
+## Contrato HTTP
+
+### Payload comum de erro simples
+
+Usado principalmente para erro de regra de negocio, autenticacao e alguns `404`:
+
+```json
+{
+  "mensagem": "Texto do erro."
+}
+```
+
+Esse payload corresponde ao DTO:
+
+- `MensagemErroResponse`
+
+### Payload comum de erro de validacao
+
+Usado quando o `ModelState` falha por request invalido:
+
+```json
+{
+  "mensagem": "Erro de validação.",
+  "erros": [
+    {
+      "campo": "Email",
+      "mensagens": [
+        "Email inválido."
+      ]
+    }
+  ]
+}
+```
+
+Esse payload corresponde aos DTOs:
+
+- `ErroValidacaoResponse`
+- `CampoErroValidacaoResponse`
+
+### Semantica de status mais usada
+
+- `200 OK`: operacao concluida com retorno de recurso ou resultado
+- `204 No Content`: operacao concluida sem corpo de resposta
+- `400 Bad Request`: validacao invalida ou regra de negocio violada
+- `401 Unauthorized`: token ausente, invalido ou webhook sem autenticacao valida
+- `403 Forbidden`: usuario autenticado sem role/permissao suficiente
+- `404 Not Found`: recurso inexistente ou nao acessivel no contexto esperado
+
+### Onde isso aparece
+
+Os contratos acima estao refletidos no Swagger para os principais grupos:
+
+- auth
+- profissionais
+- impulsionamentos
+- servicos
+- avaliacoes
+- importacao
+- webhooks e operacao
+
+## Colecoes de apoio
+
+O backend possui duas colecoes prontas para consumo manual:
+
+- HTTP client do VS Code / Rider em [src/MeAjudaAi.Api/MeAjudaAi.Api.http](/home/nathanael-campos/dev/src/me-ajuda-ai/backend/src/MeAjudaAi.Api/MeAjudaAi.Api.http)
+- Postman em [MeAjudaAi.postman_collection.json](/home/nathanael-campos/dev/src/me-ajuda-ai/backend/MeAjudaAi.postman_collection.json)
+- Insomnia em [MeAjudaAi.insomnia.json](/home/nathanael-campos/dev/src/me-ajuda-ai/backend/MeAjudaAi.insomnia.json)
+
+Ambas cobrem:
+
+- auth
+- catalogos
+- perfil profissional
+- impulsionamento
+- servicos e avaliacoes
+- webhooks
+- endpoints operacionais
+
+Quando usar cada artefato:
+
+- Swagger: exploracao rapida da API, exemplos de payload e testes interativos no navegador
+- `.http`: execucao manual versionada no editor
+- Postman: colecao compartilhavel para times que ja usam Postman
+- Insomnia: colecao compartilhavel para times que preferem Insomnia
+
+### Uso rapido da colecao Postman
+
+1. Importe [MeAjudaAi.postman_collection.json](/home/nathanael-campos/dev/src/me-ajuda-ai/backend/MeAjudaAi.postman_collection.json) no Postman
+2. Ajuste a variavel `host` se a API nao estiver em `http://localhost:5231`
+3. Preencha ou capture os tokens `token_admin`, `token_profissional` e `token_cliente`
+4. Preencha os IDs dependentes (`profissao_id`, `cidade_id`, `bairro_id`, `profissional_id`, etc.) conforme os requests anteriores
+
+Para webhooks HMAC, a colecao deixa variaveis dedicadas para assinatura:
+
+- `webhook_signature`
+- `webhook_asaas_signature`
+
+### Uso rapido da colecao Insomnia
+
+1. Importe [MeAjudaAi.insomnia.json](/home/nathanael-campos/dev/src/me-ajuda-ai/backend/MeAjudaAi.insomnia.json) no Insomnia
+2. Ajuste as variaveis do `Base Environment`
+3. Preencha tokens e IDs conforme os requests anteriores
+4. Para webhooks HMAC, informe `webhook_signature` e `webhook_asaas_signature` manualmente
+
+## Webhooks de pagamento
+
+### Rotas
+
+- Provedor padrao: `POST /api/webhooks/pagamentos/impulsionamentos`
+- Provedor especifico: `POST /api/webhooks/pagamentos/{provedor}/impulsionamentos`
+
+### Autenticacao
+
+- O provedor padrao usa o header `X-Webhook-Signature`
+- O provedor `asaas` usa o header `X-Asaas-Signature`
+- A assinatura e um HMAC-SHA256 do corpo bruto da requisicao
+
+### Exemplo: webhook padrao
+
+```bash
+WEBHOOK_SECRET='meajudaai-webhook-secret-dev'
+PAYLOAD='{"codigoReferenciaPagamento":"ref-001","statusPagamento":"pago","eventoExternoId":"evt-001"}'
+SIGNATURE=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" -binary | xxd -p -c 256)
+
+curl -i -X POST http://localhost:5231/api/webhooks/pagamentos/impulsionamentos \
+  -H "X-Webhook-Signature: $SIGNATURE" \
+  -H "Content-Type: application/json" \
+  -d "$PAYLOAD"
+```
+
+### Exemplo: webhook Asaas
+
+```bash
+WEBHOOK_SECRET='meajudaai-webhook-secret-asaas-dev'
+PAYLOAD='{"id":"evt-asaas-001","event":"PAYMENT_RECEIVED","payment":{"externalReference":"ref-asaas-001","status":"RECEIVED"}}'
+SIGNATURE=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" -binary | xxd -p -c 256)
+
+curl -i -X POST http://localhost:5231/api/webhooks/pagamentos/asaas/impulsionamentos \
+  -H "X-Asaas-Signature: $SIGNATURE" \
+  -H "Content-Type: application/json" \
+  -d "$PAYLOAD"
+```
+
+### Comportamento
+
+- Eventos sao idempotentes por `EventoExternoId`
+- `pago` confirma o impulsionamento
+- `cancelado`, `recusado`, `estornado` e `expirado` cancelam o impulsionamento
+- O backend persiste auditoria com:
+  - payload bruto
+  - headers recebidos
+  - IP de origem
+  - `RequestId`
+  - `UserAgent`
+  - provedor
+  - resultado do processamento
+
+## Endpoints operacionais
+
+Todos os endpoints abaixo exigem usuario com role `Administrador`.
+
+### Consultar historico de webhooks
+
+`GET /api/impulsionamentos/webhooks`
+
+Filtros suportados por query string:
+
+- `eventoExternoId`
+- `codigoReferenciaPagamento`
+- `provedor`
+- `pagina`
+- `tamanhoPagina`
+
+Exemplo:
+
+```bash
+curl -s "http://localhost:5231/api/impulsionamentos/webhooks?provedor=asaas&eventoExternoId=evt-asaas-001&pagina=1&tamanhoPagina=20" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
+### Consultar metricas de webhook
+
+`GET /api/impulsionamentos/webhooks/metricas`
+
+Exemplo:
+
+```bash
+curl -s http://localhost:5231/api/impulsionamentos/webhooks/metricas \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
+O snapshot de metricas retorna contagens em memoria por:
+
+- `provedor`
+- `resultado`
+- `statusRecebido`
+
+Resultados atualmente expostos:
+
+- `recebido`
+- `processado`
+- `duplicado`
+- `rejeitado`
+- `erro`
+
+## Troubleshooting
+
+### `401 Webhook não autorizado.`
+
+Verifique:
+
+- se o header de assinatura esta correto para o provedor
+- se o segredo configurado no ambiente bate com o usado para gerar o HMAC
+- se a assinatura foi calculada sobre o corpo bruto exato da requisicao
+
+Headers esperados:
+
+- padrao: `X-Webhook-Signature`
+- asaas: `X-Asaas-Signature`
+
+### `400 Payload inválido.`
+
+Verifique:
+
+- se o JSON enviado corresponde ao formato esperado pelo provedor
+- se `CodigoReferenciaPagamento` ou `payment.externalReference` foram enviados
+- se o status recebido e mapeavel para um status interno suportado
+
+Para `asaas`, o backend espera pelo menos:
+
+```json
+{
+  "id": "evt-001",
+  "event": "PAYMENT_RECEIVED",
+  "payment": {
+    "externalReference": "ref-001",
+    "status": "RECEIVED"
+  }
+}
+```
+
+### `Webhook já processado.`
+
+Isso significa que o mesmo `EventoExternoId` ja foi recebido antes.
+
+O comportamento e esperado:
+
+- a API responde `200`
+- o evento nao e reprocessado
+- a auditoria existente e reutilizada
+
+### Webhook processou mas o impulsionamento nao mudou como esperado
+
+Consulte primeiro:
+
+- `GET /api/impulsionamentos/webhooks`
+- `GET /api/impulsionamentos/webhooks/metricas`
+
+Cheque especialmente:
+
+- `CodigoReferenciaPagamento`
+- `EventoExternoId`
+- `StatusPagamento`
+- `MensagemResultado`
+- `StatusImpulsionamentoResultado`
+
+### Campos de auditoria vazios no banco
+
+Se `HeadersJson`, `IpOrigem`, `RequestId` ou `UserAgent` estiverem vazios:
+
+- confirme que a migration mais recente foi aplicada
+- reinicie a API para garantir que a instancia em execucao esta com o codigo novo
+
+### Warning de `apphost` no `dotnet build`
+
+Se aparecer aviso de arquivo em uso no `MeAjudaAi.Api` durante build:
+
+- a API provavelmente esta rodando em paralelo
+- isso nao indica erro funcional do codigo
+- pare a API antes do build se quiser eliminar o warning
+
+## Checklist de deploy
+
+### Antes do deploy
+
+- confirme que `dotnet build MeAjudaAi.sln` passa
+- confirme que `dotnet test MeAjudaAi.sln` passa
+- confirme que a CI do backend esta verde
+- confirme que a API local sobe sem aplicar migrations pendentes inesperadas
+
+### Configuracao obrigatoria
+
+Garanta no ambiente:
+
+- `ConnectionStrings:DefaultConnection`
+- `Jwt:Issuer`
+- `Jwt:Audience`
+- `Jwt:Key`
+- `Jwt:ExpiracaoEmMinutos`
+- `Webhooks:Pagamentos:Segredo`
+
+Se usar provedores especificos, configure tambem:
+
+- `Webhooks:Pagamentos:Provedores:asaas:Segredo`
+- `Webhooks:Pagamentos:Provedores:asaas:HeaderAssinatura`
+
+### Banco de dados
+
+Antes de subir a nova versao da API:
+
+```bash
+cd backend
+dotnet ef database update --project src/MeAjudaAi.Infrastructure --startup-project src/MeAjudaAi.Api
+```
+
+Depois valide:
+
+- migrations aplicadas em `__EFMigrationsHistory`
+- tabela `webhooks_pagamentos_impulsionamentos_eventos` existente
+- colunas de auditoria mais recentes presentes
+
+### Verificacoes depois do deploy
+
+Teste pelo menos:
+
+- login admin
+- listagem de planos de impulsionamento
+- contratacao de impulsionamento
+- webhook padrao com HMAC
+- webhook `asaas` com payload bruto
+- `GET /api/impulsionamentos/webhooks`
+- `GET /api/impulsionamentos/webhooks/metricas`
+
+### Itens de seguranca
+
+- nao use os segredos default de desenvolvimento em producao
+- use uma `Jwt:Key` forte e exclusiva do ambiente
+- restrinja quem pode chamar os endpoints admin
+- se houver proxy ou gateway, preserve IP e headers necessarios para auditoria
+
+### Rollback
+
+Se precisar voltar a versao da API:
+
+- confirme compatibilidade da versao anterior com o schema atual
+- se houver migration nova, avalie rollback do banco antes de voltar o binario
+- revalide login, webhook e endpoints admin apos o rollback
 
 ## Testes
 
