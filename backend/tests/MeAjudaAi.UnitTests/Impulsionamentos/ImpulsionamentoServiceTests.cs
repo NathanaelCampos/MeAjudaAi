@@ -473,6 +473,9 @@ public class ImpulsionamentoServiceTests
         public Task<IReadOnlyList<EmailNotificacaoOutboxResponse>> ListarEmailsOutboxAsync(StatusEmailNotificacao? status = null, Guid? usuarioId = null, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<EmailNotificacaoOutboxResponse>>(Array.Empty<EmailNotificacaoOutboxResponse>());
 
+        public Task<int> ReprocessarEmailsOutboxAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(0);
+
         public Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(Guid usuarioId, CancellationToken cancellationToken = default)
             => Task.FromResult(new QuantidadeNotificacoesNaoLidasResponse());
 

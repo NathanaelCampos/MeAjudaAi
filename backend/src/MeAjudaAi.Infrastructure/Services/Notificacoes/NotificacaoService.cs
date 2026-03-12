@@ -10,10 +10,12 @@ namespace MeAjudaAi.Infrastructure.Services.Notificacoes;
 public class NotificacaoService : INotificacaoService
 {
     private readonly AppDbContext _context;
+    private readonly IEmailNotificacaoSender _emailNotificacaoSender;
 
-    public NotificacaoService(AppDbContext context)
+    public NotificacaoService(AppDbContext context, IEmailNotificacaoSender emailNotificacaoSender)
     {
         _context = context;
+        _emailNotificacaoSender = emailNotificacaoSender;
     }
 
     public async Task CriarAsync(
@@ -196,6 +198,44 @@ public class NotificacaoService : INotificacaoService
                 UltimaMensagemErro = x.UltimaMensagemErro
             })
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<int> ReprocessarEmailsOutboxAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var emails = await _context.Set<EmailNotificacaoOutbox>()
+            .Where(x => x.Ativo && (x.Status == StatusEmailNotificacao.Pendente || x.Status == StatusEmailNotificacao.Falha))
+            .OrderBy(x => x.DataCriacao)
+            .Take(100)
+            .ToListAsync(cancellationToken);
+
+        if (emails.Count == 0)
+            return 0;
+
+        var agora = DateTime.UtcNow;
+
+        foreach (var email in emails)
+        {
+            try
+            {
+                await _emailNotificacaoSender.EnviarAsync(email, cancellationToken);
+                email.Status = StatusEmailNotificacao.Enviado;
+                email.DataProcessamento = agora;
+                email.UltimaMensagemErro = string.Empty;
+                email.DataAtualizacao = agora;
+            }
+            catch (Exception ex)
+            {
+                email.Status = StatusEmailNotificacao.Falha;
+                email.DataProcessamento = agora;
+                email.UltimaMensagemErro = ex.Message;
+                email.DataAtualizacao = agora;
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return emails.Count;
     }
 
     public async Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(

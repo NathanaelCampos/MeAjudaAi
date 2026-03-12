@@ -114,6 +114,21 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("emails/reprocessar")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(ReprocessarEmailsOutboxResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ReprocessarEmailsOutbox(
+        CancellationToken cancellationToken = default)
+    {
+        var quantidade = await _notificacaoService.ReprocessarEmailsOutboxAsync(cancellationToken);
+
+        return Ok(new ReprocessarEmailsOutboxResponse
+        {
+            QuantidadeProcessada = quantidade
+        });
+    }
+
     [HttpPut("{notificacaoId:guid}/marcar-lida")]
     [ProducesResponseType(typeof(NotificacaoResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]

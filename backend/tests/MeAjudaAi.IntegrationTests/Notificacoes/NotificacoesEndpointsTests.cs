@@ -190,12 +190,15 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     {
         using var clienteClient = _factory.CreateClient();
         using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
 
         var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-pref-sup");
         var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-pref-sup");
+        var authAdmin = await LoginAdminAsync(adminClient);
 
         clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
         profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
 
         var atualizarResponse = await profissionalClient.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
         {
@@ -227,9 +230,6 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
 
         var notificacoesProfissional = await profissionalClient.GetFromJsonAsync<List<NotificacaoResponse>>("/api/notificacoes/minhas");
-        var authAdmin = await LoginAdminAsync(clienteClient);
-        using var adminClient = _factory.CreateClient();
-        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
         var emailsOutbox = await adminClient.GetFromJsonAsync<List<EmailNotificacaoOutboxResponse>>($"/api/notificacoes/emails?status={StatusEmailNotificacao.Pendente}&usuarioId={authProfissional.UsuarioId}");
 
         Assert.NotNull(notificacoesProfissional);
@@ -284,6 +284,66 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         var response = await client.GetAsync("/api/notificacoes/emails");
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReprocessarEmailsOutbox_DeveMarcarEmailsPendentesComoEnviados()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-reprocessa-email");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-reprocessa-email");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var atualizarResponse = await profissionalClient.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias =
+            [
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = false,
+                    AtivoEmail = true
+                }
+            ]
+        });
+
+        Assert.Equal(HttpStatusCode.OK, atualizarResponse.StatusCode);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para outbox",
+            Descricao = "Teste de reprocessamento",
+            ValorCombinado = 55m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var pendentesAntes = await adminClient.GetFromJsonAsync<List<EmailNotificacaoOutboxResponse>>($"/api/notificacoes/emails?status={StatusEmailNotificacao.Pendente}&usuarioId={authProfissional.UsuarioId}");
+        Assert.NotNull(pendentesAntes);
+        Assert.Contains(pendentesAntes!, x => x.TipoNotificacao == TipoNotificacao.ServicoSolicitado);
+
+        var reprocessarResponse = await adminClient.PostAsync("/api/notificacoes/emails/reprocessar", null);
+        var reprocessado = await reprocessarResponse.Content.ReadFromJsonAsync<ReprocessarEmailsOutboxResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, reprocessarResponse.StatusCode);
+        Assert.NotNull(reprocessado);
+        Assert.True(reprocessado!.QuantidadeProcessada > 0);
+
+        var enviadosDepois = await adminClient.GetFromJsonAsync<List<EmailNotificacaoOutboxResponse>>($"/api/notificacoes/emails?status={StatusEmailNotificacao.Enviado}&usuarioId={authProfissional.UsuarioId}");
+        Assert.NotNull(enviadosDepois);
+        Assert.Contains(enviadosDepois!, x => x.TipoNotificacao == TipoNotificacao.ServicoSolicitado && x.DataProcessamento.HasValue);
     }
 
     private static async Task<AuthResponse> RegistrarUsuarioAsync(HttpClient client, TipoPerfil tipoPerfil, string prefixo)

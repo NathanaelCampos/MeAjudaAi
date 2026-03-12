@@ -32,6 +32,9 @@ public interface INotificacaoService
         Guid? usuarioId = null,
         CancellationToken cancellationToken = default);
 
+    Task<int> ReprocessarEmailsOutboxAsync(
+        CancellationToken cancellationToken = default);
+
     Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(
         Guid usuarioId,
         CancellationToken cancellationToken = default);
