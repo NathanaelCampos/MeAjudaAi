@@ -536,6 +536,76 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<EmailNotificacaoResumoOperacionalResponse> ObterResumoOperacionalEmailsOutboxAsync(
+        BuscarMetricasEmailsOutboxRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var agora = DateTime.UtcNow;
+        var query = AplicarFiltrosMetricasEmailsOutbox(request);
+
+        var totalRegistros = await query.CountAsync(cancellationToken);
+        var pendentes = await query.CountAsync(x => x.Status == StatusEmailNotificacao.Pendente, cancellationToken);
+        var enviados = await query.CountAsync(x => x.Status == StatusEmailNotificacao.Enviado, cancellationToken);
+        var falhas = await query.CountAsync(x => x.Status == StatusEmailNotificacao.Falha, cancellationToken);
+        var cancelados = await query.CountAsync(x => x.Status == StatusEmailNotificacao.Cancelado, cancellationToken);
+
+        var topTiposComFalha = await query
+            .Where(x => x.Status == StatusEmailNotificacao.Falha)
+            .GroupBy(x => x.TipoNotificacao)
+            .Select(x => new EmailNotificacaoResumoOperacionalTipoFalhaResponse
+            {
+                TipoNotificacao = x.Key,
+                QuantidadeFalhas = x.Count()
+            })
+            .OrderByDescending(x => x.QuantidadeFalhas)
+            .ThenBy(x => x.TipoNotificacao)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
+        var topDestinatariosComFalha = await query
+            .Where(x => x.Status == StatusEmailNotificacao.Falha)
+            .GroupBy(x => new { x.UsuarioId, x.EmailDestino })
+            .Select(x => new EmailNotificacaoResumoOperacionalDestinatarioFalhaResponse
+            {
+                UsuarioId = x.Key.UsuarioId,
+                EmailDestino = x.Key.EmailDestino,
+                QuantidadeFalhas = x.Count()
+            })
+            .OrderByDescending(x => x.QuantidadeFalhas)
+            .ThenBy(x => x.EmailDestino)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
+        var prontosParaProcessar = await query.CountAsync(
+            x => (x.Status == StatusEmailNotificacao.Pendente || x.Status == StatusEmailNotificacao.Falha) &&
+                 (!x.ProximaTentativaEm.HasValue || x.ProximaTentativaEm <= agora),
+            cancellationToken);
+
+        var aguardandoProximaTentativa = await query.CountAsync(
+            x => (x.Status == StatusEmailNotificacao.Pendente || x.Status == StatusEmailNotificacao.Falha) &&
+                 x.ProximaTentativaEm.HasValue &&
+                 x.ProximaTentativaEm > agora,
+            cancellationToken);
+
+        return new EmailNotificacaoResumoOperacionalResponse
+        {
+            UsuarioId = request.UsuarioId,
+            TipoNotificacao = request.TipoNotificacao,
+            EmailDestino = request.EmailDestino,
+            DataCriacaoInicial = request.DataCriacaoInicial,
+            DataCriacaoFinal = request.DataCriacaoFinal,
+            TotalRegistros = totalRegistros,
+            Pendentes = pendentes,
+            Enviados = enviados,
+            Falhas = falhas,
+            Cancelados = cancelados,
+            ProntosParaProcessar = prontosParaProcessar,
+            AguardandoProximaTentativa = aguardandoProximaTentativa,
+            TopTiposComFalha = topTiposComFalha,
+            TopDestinatariosComFalha = topDestinatariosComFalha
+        };
+    }
+
     public async Task<EmailNotificacaoMetricasSerieResponse> ObterMetricasSerieEmailsOutboxAsync(
         BuscarMetricasEmailsOutboxRequest request,
         CancellationToken cancellationToken = default)

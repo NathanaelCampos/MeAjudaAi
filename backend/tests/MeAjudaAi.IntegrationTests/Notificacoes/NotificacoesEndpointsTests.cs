@@ -818,6 +818,109 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ObterResumoOperacionalEmailsOutbox_DeveConsolidarFilaProntaEAguardandoRetry()
+    {
+        using var configuredFactory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, configurationBuilder) =>
+            {
+                configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Emails:Notificacoes:SimularEnvio"] = "false",
+                    ["Emails:Notificacoes:MaxTentativas"] = "2",
+                    ["Emails:Notificacoes:AtrasoBaseSegundos"] = "30"
+                });
+            });
+        });
+
+        using var clienteClient = configuredFactory.CreateClient();
+        using var profissionalClient = configuredFactory.CreateClient();
+        using var adminClient = configuredFactory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-resumo-operacional");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-resumo-operacional");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var atualizarResponse = await profissionalClient.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias =
+            [
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = false,
+                    AtivoEmail = true
+                }
+            ]
+        });
+
+        Assert.Equal(HttpStatusCode.OK, atualizarResponse.StatusCode);
+
+        Guid cidadeId;
+        Guid profissionalId;
+
+        await using (var scope = configuredFactory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            cidadeId = await context.Cidades.Select(x => x.Id).FirstAsync();
+            profissionalId = await context.Profissionais
+                .Where(x => x.UsuarioId == authProfissional.UsuarioId)
+                .Select(x => x.Id)
+                .FirstAsync();
+        }
+
+        var primeiroServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para falha",
+            Descricao = "Primeiro email vai falhar",
+            ValorCombinado = 71m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, primeiroServicoResponse.StatusCode);
+
+        var reprocessarResponse = await adminClient.PostAsync("/api/notificacoes/emails/reprocessar", null);
+        var reprocessado = await reprocessarResponse.Content.ReadFromJsonAsync<ReprocessarEmailsOutboxResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, reprocessarResponse.StatusCode);
+        Assert.NotNull(reprocessado);
+        Assert.Equal(1, reprocessado!.QuantidadeProcessada);
+
+        var segundoServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico pendente",
+            Descricao = "Segundo email fica pronto para processar",
+            ValorCombinado = 72m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, segundoServicoResponse.StatusCode);
+
+        var resumo = await adminClient.GetFromJsonAsync<EmailNotificacaoResumoOperacionalResponse>(
+            $"/api/notificacoes/emails/resumo-operacional?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
+
+        Assert.NotNull(resumo);
+        Assert.Equal(authProfissional.UsuarioId, resumo!.UsuarioId);
+        Assert.Equal(TipoNotificacao.ServicoSolicitado, resumo.TipoNotificacao);
+        Assert.True(resumo.TotalRegistros >= 2);
+        Assert.True(resumo.Pendentes >= 1);
+        Assert.True(resumo.Falhas >= 1);
+        Assert.True(resumo.ProntosParaProcessar >= 1);
+        Assert.True(resumo.AguardandoProximaTentativa >= 1);
+        Assert.Contains(resumo.TopTiposComFalha, x => x.TipoNotificacao == TipoNotificacao.ServicoSolicitado && x.QuantidadeFalhas > 0);
+        Assert.Contains(resumo.TopDestinatariosComFalha, x =>
+            x.UsuarioId == authProfissional.UsuarioId &&
+            x.EmailDestino.Contains("teste.local", StringComparison.OrdinalIgnoreCase) &&
+            x.QuantidadeFalhas > 0);
+    }
+
+    [Fact]
     public async Task ObterMetricasSerieEmailsOutbox_DeveAgruparPorDiaTipoEStatus()
     {
         using var clienteClient = _factory.CreateClient();

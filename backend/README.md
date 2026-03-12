@@ -390,6 +390,13 @@ curl -s "http://localhost:5231/api/notificacoes/emails/metricas?tipoNotificacao=
   -H "Authorization: Bearer SEU_TOKEN_ADMIN"
 ```
 
+Resumo operacional do outbox com fila pronta e aguardando retry:
+
+```bash
+curl -s "http://localhost:5231/api/notificacoes/emails/resumo-operacional?usuarioId=USUARIO_ID&tipoNotificacao=ServicoSolicitado&dataCriacaoInicial=2026-03-12T00:00:00Z&dataCriacaoFinal=2026-03-12T23:59:59Z" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
 Serie temporal agregada por dia, tipo e status:
 
 ```bash
