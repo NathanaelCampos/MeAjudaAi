@@ -81,6 +81,7 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<IArquivoStorageService, ArquivoStorageService>();
         services.AddScoped<IImpulsionamentoService, ImpulsionamentoService>();
         services.AddScoped<INotificacaoService, NotificacaoService>();
+        services.AddScoped<IEmailNotificacaoTemplateRenderer, EmailNotificacaoTemplateRenderer>();
         services.AddScoped<FakeEmailNotificacaoSender>();
         services.AddScoped<SmtpEmailNotificacaoSender>();
         services.AddScoped<IEmailNotificacaoSender, EmailNotificacaoSender>();

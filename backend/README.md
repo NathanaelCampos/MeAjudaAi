@@ -266,6 +266,8 @@ O backend suporta dois modos para o envio do outbox:
 - `SimularEnvio = true`: nao envia e-mail real, apenas registra log e permite validar o fluxo inteiro
 - `SimularEnvio = false`: usa SMTP real para processar a fila de `emails_notificacoes_outbox`
 
+Quando o SMTP real esta ativo, o backend renderiza um template HTML por `TipoNotificacao`, padronizando assunto, corpo e identificacao da referencia no e-mail enviado.
+
 ### Configuracao minima para SMTP real
 
 Em `Emails:Notificacoes`:

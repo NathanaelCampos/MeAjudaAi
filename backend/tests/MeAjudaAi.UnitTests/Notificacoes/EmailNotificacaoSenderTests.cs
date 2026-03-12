@@ -20,7 +20,10 @@ public class EmailNotificacaoSenderTests
         var sender = new EmailNotificacaoSender(
             options,
             new FakeEmailNotificacaoSender(NullLogger<FakeEmailNotificacaoSender>.Instance, options),
-            new SmtpEmailNotificacaoSender(NullLogger<SmtpEmailNotificacaoSender>.Instance, options));
+            new SmtpEmailNotificacaoSender(
+                NullLogger<SmtpEmailNotificacaoSender>.Instance,
+                options,
+                new EmailNotificacaoTemplateRenderer(options)));
 
         var email = CriarEmail();
 
@@ -39,7 +42,10 @@ public class EmailNotificacaoSenderTests
         var sender = new EmailNotificacaoSender(
             options,
             new FakeEmailNotificacaoSender(NullLogger<FakeEmailNotificacaoSender>.Instance, options),
-            new SmtpEmailNotificacaoSender(NullLogger<SmtpEmailNotificacaoSender>.Instance, options));
+            new SmtpEmailNotificacaoSender(
+                NullLogger<SmtpEmailNotificacaoSender>.Instance,
+                options,
+                new EmailNotificacaoTemplateRenderer(options)));
 
         var email = CriarEmail();
 

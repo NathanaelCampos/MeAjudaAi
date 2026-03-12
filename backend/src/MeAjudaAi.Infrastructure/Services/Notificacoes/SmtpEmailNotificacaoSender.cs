@@ -12,13 +12,16 @@ public class SmtpEmailNotificacaoSender : IEmailNotificacaoSender
 {
     private readonly ILogger<SmtpEmailNotificacaoSender> _logger;
     private readonly EmailNotificacaoOptions _options;
+    private readonly IEmailNotificacaoTemplateRenderer _templateRenderer;
 
     public SmtpEmailNotificacaoSender(
         ILogger<SmtpEmailNotificacaoSender> logger,
-        IOptions<EmailNotificacaoOptions> options)
+        IOptions<EmailNotificacaoOptions> options,
+        IEmailNotificacaoTemplateRenderer templateRenderer)
     {
         _logger = logger;
         _options = options.Value;
+        _templateRenderer = templateRenderer;
     }
 
     public async Task EnviarAsync(EmailNotificacaoOutbox email, CancellationToken cancellationToken = default)
@@ -29,8 +32,8 @@ public class SmtpEmailNotificacaoSender : IEmailNotificacaoSender
         {
             From = new MailAddress(_options.RemetenteEmail, _options.RemetenteNome),
             Subject = email.Assunto,
-            Body = email.Corpo,
-            IsBodyHtml = false
+            Body = _templateRenderer.RenderizarHtml(email),
+            IsBodyHtml = true
         };
 
         message.To.Add(email.EmailDestino);
