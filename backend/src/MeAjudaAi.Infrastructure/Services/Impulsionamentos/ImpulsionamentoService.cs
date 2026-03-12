@@ -3,6 +3,7 @@ using System.Text.Json;
 using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.DTOs.Impulsionamentos;
 using MeAjudaAi.Application.Interfaces.Impulsionamentos;
+using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
@@ -17,15 +18,18 @@ public class ImpulsionamentoService : IImpulsionamentoService
     private readonly AppDbContext _context;
     private readonly ILogger<ImpulsionamentoService> _logger;
     private readonly IWebhookPagamentoMetricsService _metricsService;
+    private readonly INotificacaoService _notificacaoService;
 
     public ImpulsionamentoService(
         AppDbContext context,
         ILogger<ImpulsionamentoService> logger,
-        IWebhookPagamentoMetricsService metricsService)
+        IWebhookPagamentoMetricsService metricsService,
+        INotificacaoService notificacaoService)
     {
         _context = context;
         _logger = logger;
         _metricsService = metricsService;
+        _notificacaoService = notificacaoService;
     }
 
     public async Task<IReadOnlyList<PlanoImpulsionamentoResponse>> ListarPlanosAsync(
@@ -281,7 +285,9 @@ public class ImpulsionamentoService : IImpulsionamentoService
 
         var eventoExistente = await _context.WebhookPagamentoImpulsionamentoEventos
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.EventoExternoId == eventoExternoId, cancellationToken);
+            .FirstOrDefaultAsync(
+                x => x.Provedor == provedorNormalizado && x.EventoExternoId == eventoExternoId,
+                cancellationToken);
 
         if (eventoExistente is not null)
         {
@@ -328,11 +334,13 @@ public class ImpulsionamentoService : IImpulsionamentoService
             }
             catch (DbUpdateException ex)
             {
-                if (await EventoJaPersistidoAsync(eventoExternoId, ex, cancellationToken))
+                if (await EventoJaPersistidoAsync(provedorNormalizado, eventoExternoId, ex, cancellationToken))
                 {
                     var eventoDuplicado = await _context.WebhookPagamentoImpulsionamentoEventos
                         .AsNoTracking()
-                        .FirstAsync(x => x.EventoExternoId == eventoExternoId, cancellationToken);
+                        .FirstAsync(
+                            x => x.Provedor == provedorNormalizado && x.EventoExternoId == eventoExternoId,
+                            cancellationToken);
 
                     return await ObterRespostaWebhookExistenteAsync(eventoDuplicado, cancellationToken);
                 }
@@ -385,11 +393,13 @@ public class ImpulsionamentoService : IImpulsionamentoService
             }
             catch (DbUpdateException dbEx)
             {
-                if (await EventoJaPersistidoAsync(eventoExternoId, dbEx, cancellationToken))
+                if (await EventoJaPersistidoAsync(provedorNormalizado, eventoExternoId, dbEx, cancellationToken))
                 {
                     var eventoDuplicado = await _context.WebhookPagamentoImpulsionamentoEventos
                         .AsNoTracking()
-                        .FirstAsync(x => x.EventoExternoId == eventoExternoId, cancellationToken);
+                        .FirstAsync(
+                            x => x.Provedor == provedorNormalizado && x.EventoExternoId == eventoExternoId,
+                            cancellationToken);
 
                     return await ObterRespostaWebhookExistenteAsync(eventoDuplicado, cancellationToken);
                 }
@@ -564,6 +574,7 @@ public class ImpulsionamentoService : IImpulsionamentoService
     }
 
     private async Task<bool> EventoJaPersistidoAsync(
+        string provedor,
         string eventoExternoId,
         DbUpdateException exception,
         CancellationToken cancellationToken)
@@ -579,7 +590,9 @@ public class ImpulsionamentoService : IImpulsionamentoService
 
         return await _context.WebhookPagamentoImpulsionamentoEventos
             .AsNoTracking()
-            .AnyAsync(x => x.EventoExternoId == eventoExternoId, cancellationToken);
+            .AnyAsync(
+                x => x.Provedor == provedor && x.EventoExternoId == eventoExternoId,
+                cancellationToken);
     }
 
     private async Task<ImpulsionamentoProfissionalResponse> AtivarImpulsionamentoAsync(
@@ -590,6 +603,19 @@ public class ImpulsionamentoService : IImpulsionamentoService
         impulsionamento.DataAtualizacao = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        var usuarioProfissionalId = await _context.Profissionais
+            .Where(x => x.Id == impulsionamento.ProfissionalId)
+            .Select(x => x.UsuarioId)
+            .FirstAsync(cancellationToken);
+
+        await _notificacaoService.CriarAsync(
+            usuarioProfissionalId,
+            TipoNotificacao.ImpulsionamentoAtivado,
+            "Impulsionamento ativado",
+            $"Seu plano \"{impulsionamento.PlanoImpulsionamento.Nome}\" foi ativado com sucesso.",
+            impulsionamento.Id,
+            cancellationToken);
 
         return MapearResponse(impulsionamento, impulsionamento.PlanoImpulsionamento.Nome);
     }

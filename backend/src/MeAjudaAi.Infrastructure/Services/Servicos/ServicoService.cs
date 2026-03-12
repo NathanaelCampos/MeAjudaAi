@@ -1,4 +1,5 @@
 using MeAjudaAi.Application.DTOs.Servicos;
+using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Application.Interfaces.Servicos;
 using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
@@ -10,10 +11,14 @@ namespace MeAjudaAi.Infrastructure.Services.Servicos;
 public class ServicoService : IServicoService
 {
     private readonly AppDbContext _context;
+    private readonly INotificacaoService _notificacaoService;
 
-    public ServicoService(AppDbContext context)
+    public ServicoService(
+        AppDbContext context,
+        INotificacaoService notificacaoService)
     {
         _context = context;
+        _notificacaoService = notificacaoService;
     }
 
     public async Task<ServicoResponse> CriarAsync(
@@ -64,6 +69,14 @@ public class ServicoService : IServicoService
 
         _context.Servicos.Add(servico);
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _notificacaoService.CriarAsync(
+            profissional.UsuarioId,
+            TipoNotificacao.ServicoSolicitado,
+            "Novo serviço solicitado",
+            $"Você recebeu uma nova solicitação de serviço: {servico.Titulo}.",
+            servico.Id,
+            cancellationToken);
 
         return await ObterInternoAsync(servico.Id, cancellationToken)
             ?? throw new InvalidOperationException("Não foi possível carregar o serviço criado.");
@@ -135,6 +148,19 @@ public class ServicoService : IServicoService
 
         await _context.SaveChangesAsync(cancellationToken);
 
+        var usuarioClienteId = await _context.Clientes
+            .Where(x => x.Id == servico.ClienteId)
+            .Select(x => x.UsuarioId)
+            .FirstAsync(cancellationToken);
+
+        await _notificacaoService.CriarAsync(
+            usuarioClienteId,
+            TipoNotificacao.ServicoAceito,
+            "Serviço aceito",
+            $"Seu serviço \"{servico.Titulo}\" foi aceito pelo profissional.",
+            servico.Id,
+            cancellationToken);
+
         return await ObterInternoAsync(servico.Id, cancellationToken);
     }
 
@@ -198,6 +224,19 @@ public class ServicoService : IServicoService
         servico.DataAtualizacao = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        var usuarioClienteId = await _context.Clientes
+            .Where(x => x.Id == servico.ClienteId)
+            .Select(x => x.UsuarioId)
+            .FirstAsync(cancellationToken);
+
+        await _notificacaoService.CriarAsync(
+            usuarioClienteId,
+            TipoNotificacao.ServicoConcluido,
+            "Serviço concluído",
+            $"O serviço \"{servico.Titulo}\" foi marcado como concluído.",
+            servico.Id,
+            cancellationToken);
 
         return await ObterInternoAsync(servico.Id, cancellationToken);
     }

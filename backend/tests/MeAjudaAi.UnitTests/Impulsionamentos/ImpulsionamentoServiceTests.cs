@@ -1,6 +1,8 @@
 using MeAjudaAi.Application.DTOs.Impulsionamentos;
+using MeAjudaAi.Application.DTOs.Notificacoes;
 using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
+using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using Microsoft.Data.Sqlite;
 using MeAjudaAi.Infrastructure.Services.Impulsionamentos;
@@ -12,6 +14,8 @@ namespace MeAjudaAi.UnitTests.Impulsionamentos;
 
 public class ImpulsionamentoServiceTests
 {
+    private static readonly INotificacaoService NotificacaoNula = new NotificacaoServiceNula();
+
     [Fact]
     public async Task ContratarPlanoAsync_DeveAgendarNovoImpulsionamentoAposOFimDoAtual()
     {
@@ -69,7 +73,8 @@ public class ImpulsionamentoServiceTests
         var service = new ImpulsionamentoService(
             context,
             NullLogger<ImpulsionamentoService>.Instance,
-            new WebhookPagamentoMetricsService());
+            new WebhookPagamentoMetricsService(),
+            NotificacaoNula);
 
         var response = await service.ContratarPlanoAsync(usuarioId, new ContratarPlanoImpulsionamentoRequest
         {
@@ -143,7 +148,8 @@ public class ImpulsionamentoServiceTests
         var service = new ImpulsionamentoService(
             context,
             NullLogger<ImpulsionamentoService>.Instance,
-            new WebhookPagamentoMetricsService());
+            new WebhookPagamentoMetricsService(),
+            NotificacaoNula);
 
         var response = await service.ListarMeusImpulsionamentosAsync(usuarioId);
 
@@ -208,7 +214,8 @@ public class ImpulsionamentoServiceTests
         var service = new ImpulsionamentoService(
             context,
             NullLogger<ImpulsionamentoService>.Instance,
-            new WebhookPagamentoMetricsService());
+            new WebhookPagamentoMetricsService(),
+            NotificacaoNula);
 
         var response = await service.ConfirmarPagamentoAsync(impulsionamento.Id);
 
@@ -270,7 +277,8 @@ public class ImpulsionamentoServiceTests
         var service = new ImpulsionamentoService(
             context,
             NullLogger<ImpulsionamentoService>.Instance,
-            new WebhookPagamentoMetricsService());
+            new WebhookPagamentoMetricsService(),
+            NotificacaoNula);
 
         var response = await service.ConfirmarPagamentoPorCodigoReferenciaAsync("pagamento-ref-001");
 
@@ -328,7 +336,8 @@ public class ImpulsionamentoServiceTests
         var service = new ImpulsionamentoService(
             context,
             NullLogger<ImpulsionamentoService>.Instance,
-            new WebhookPagamentoMetricsService());
+            new WebhookPagamentoMetricsService(),
+            NotificacaoNula);
 
         var response = await service.CancelarPorCodigoReferenciaAsync("pagamento-ref-002");
 
@@ -387,7 +396,8 @@ public class ImpulsionamentoServiceTests
         var service = new ImpulsionamentoService(
             context,
             NullLogger<ImpulsionamentoService>.Instance,
-            metrics);
+            metrics,
+            NotificacaoNula);
         var request = new WebhookPagamentoImpulsionamentoRequest
         {
             CodigoReferenciaPagamento = "pagamento-ref-003",
@@ -444,5 +454,23 @@ public class ImpulsionamentoServiceTests
         context.Database.EnsureCreated();
 
         return context;
+    }
+
+    private sealed class NotificacaoServiceNula : INotificacaoService
+    {
+        public Task CriarAsync(Guid usuarioId, TipoNotificacao tipo, string titulo, string mensagem, Guid? referenciaId = null, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task<IReadOnlyList<NotificacaoResponse>> ListarMinhasAsync(Guid usuarioId, bool somenteNaoLidas = false, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReadOnlyList<NotificacaoResponse>>(Array.Empty<NotificacaoResponse>());
+
+        public Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(Guid usuarioId, CancellationToken cancellationToken = default)
+            => Task.FromResult(new QuantidadeNotificacoesNaoLidasResponse());
+
+        public Task<NotificacaoResponse?> MarcarComoLidaAsync(Guid usuarioId, Guid notificacaoId, CancellationToken cancellationToken = default)
+            => Task.FromResult<NotificacaoResponse?>(null);
+
+        public Task<int> MarcarTodasComoLidasAsync(Guid usuarioId, CancellationToken cancellationToken = default)
+            => Task.FromResult(0);
     }
 }

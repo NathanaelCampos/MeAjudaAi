@@ -1,5 +1,6 @@
 using MeAjudaAi.Application.DTOs.Avaliacoes;
 using MeAjudaAi.Application.Interfaces.Avaliacoes;
+using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
@@ -10,10 +11,14 @@ namespace MeAjudaAi.Infrastructure.Services.Avaliacoes;
 public class AvaliacaoService : IAvaliacaoService
 {
     private readonly AppDbContext _context;
+    private readonly INotificacaoService _notificacaoService;
 
-    public AvaliacaoService(AppDbContext context)
+    public AvaliacaoService(
+        AppDbContext context,
+        INotificacaoService notificacaoService)
     {
         _context = context;
+        _notificacaoService = notificacaoService;
     }
 
     public async Task<AvaliacaoResponse> CriarAsync(
@@ -157,6 +162,22 @@ public class AvaliacaoService : IAvaliacaoService
 
         await _context.SaveChangesAsync(cancellationToken);
         await AtualizarMediasProfissionalAsync(avaliacao.ProfissionalId, cancellationToken);
+
+        if (avaliacao.StatusModeracaoComentario == StatusModeracaoComentario.Aprovado)
+        {
+            var usuarioProfissionalId = await _context.Profissionais
+                .Where(x => x.Id == avaliacao.ProfissionalId)
+                .Select(x => x.UsuarioId)
+                .FirstAsync(cancellationToken);
+
+            await _notificacaoService.CriarAsync(
+                usuarioProfissionalId,
+                TipoNotificacao.AvaliacaoAprovada,
+                "Nova avaliação aprovada",
+                "Uma nova avaliação do seu perfil foi aprovada pela moderação.",
+                avaliacao.Id,
+                cancellationToken);
+        }
 
         return new AvaliacaoResponse
         {

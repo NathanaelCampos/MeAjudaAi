@@ -18,7 +18,9 @@ using MeAjudaAi.Infrastructure.Importacao;
 using MeAjudaAi.Application.Interfaces.Storage;
 using MeAjudaAi.Infrastructure.Services.Storage;
 using MeAjudaAi.Application.Interfaces.Impulsionamentos;
+using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Infrastructure.Services.Impulsionamentos;
+using MeAjudaAi.Infrastructure.Services.Notificacoes;
 namespace MeAjudaAi.Infrastructure.DependencyInjection;
 
 public static class InfrastructureDependencyInjection
@@ -43,6 +45,7 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<ImportadorGeografiaService>();
         services.AddScoped<IArquivoStorageService, ArquivoStorageService>();
         services.AddScoped<IImpulsionamentoService, ImpulsionamentoService>();
+        services.AddScoped<INotificacaoService, NotificacaoService>();
         services.AddSingleton<IWebhookPagamentoMetricsService, WebhookPagamentoMetricsService>();
 
         return services;
