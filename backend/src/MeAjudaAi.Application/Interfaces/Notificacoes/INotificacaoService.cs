@@ -32,6 +32,10 @@ public interface INotificacaoService
         BuscarEmailsOutboxRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<EmailNotificacaoOutboxResponse?> ObterEmailOutboxPorIdAsync(
+        Guid emailId,
+        CancellationToken cancellationToken = default);
+
     Task<int> ReprocessarEmailsOutboxAsync(
         CancellationToken cancellationToken = default);
 

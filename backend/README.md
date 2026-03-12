@@ -337,6 +337,13 @@ curl -s "http://localhost:5231/api/notificacoes/emails?status=Pendente&tipoNotif
   -H "Authorization: Bearer SEU_TOKEN_ADMIN"
 ```
 
+Detalhe de um item especifico do outbox:
+
+```bash
+curl -s "http://localhost:5231/api/notificacoes/emails/EMAIL_ID" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
 ## Troubleshooting
 
 ### `401 Webhook não autorizado.`

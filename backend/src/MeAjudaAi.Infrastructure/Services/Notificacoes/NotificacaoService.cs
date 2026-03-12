@@ -240,6 +240,32 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<EmailNotificacaoOutboxResponse?> ObterEmailOutboxPorIdAsync(
+        Guid emailId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Set<EmailNotificacaoOutbox>()
+            .AsNoTracking()
+            .Where(x => x.Id == emailId && x.Ativo)
+            .Select(x => new EmailNotificacaoOutboxResponse
+            {
+                Id = x.Id,
+                UsuarioId = x.UsuarioId,
+                TipoNotificacao = x.TipoNotificacao,
+                EmailDestino = x.EmailDestino,
+                Assunto = x.Assunto,
+                Corpo = x.Corpo,
+                ReferenciaId = x.ReferenciaId,
+                Status = x.Status,
+                TentativasProcessamento = x.TentativasProcessamento,
+                ProximaTentativaEm = x.ProximaTentativaEm,
+                DataCriacao = x.DataCriacao,
+                DataProcessamento = x.DataProcessamento,
+                UltimaMensagemErro = x.UltimaMensagemErro
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<int> ReprocessarEmailsOutboxAsync(
         CancellationToken cancellationToken = default)
     {
