@@ -19,6 +19,10 @@ public interface INotificacaoService
         bool somenteNaoLidas = false,
         CancellationToken cancellationToken = default);
 
+    Task<PaginacaoResponse<NotificacaoAdminResponse>> ListarNotificacoesAsync(
+        BuscarNotificacoesRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesAsync(
         Guid? usuarioId = null,
         TipoNotificacao? tipoNotificacao = null,

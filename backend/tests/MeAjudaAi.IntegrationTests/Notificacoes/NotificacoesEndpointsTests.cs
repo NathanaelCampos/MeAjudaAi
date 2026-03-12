@@ -199,6 +199,65 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ListarNotificacoesAdmin_DevePermitirFiltrarPorUsuarioTipoELidaComPaginacao()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-lista-admin-notif");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-lista-admin-notif");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para listagem admin",
+            Descricao = "Gera notificacao interna filtravel",
+            ValorCombinado = 101m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var notificacoesProfissional = await profissionalClient.GetFromJsonAsync<List<NotificacaoResponse>>("/api/notificacoes/minhas");
+        var notificacao = Assert.Single(notificacoesProfissional!.Where(x => x.Tipo == TipoNotificacao.ServicoSolicitado));
+
+        var naoLidas = await adminClient.GetFromJsonAsync<PaginacaoResponse<NotificacaoAdminResponse>>(
+            $"/api/notificacoes?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}&lida=false&pagina=1&tamanhoPagina=10");
+
+        Assert.NotNull(naoLidas);
+        Assert.Equal(1, naoLidas!.PaginaAtual);
+        Assert.Equal(10, naoLidas.TamanhoPagina);
+        Assert.True(naoLidas.TotalRegistros >= 1);
+        Assert.Contains(naoLidas.Itens, x =>
+            x.UsuarioId == authProfissional.UsuarioId &&
+            x.Tipo == TipoNotificacao.ServicoSolicitado &&
+            !x.Lida &&
+            x.EmailUsuario.Contains("teste.local", StringComparison.OrdinalIgnoreCase));
+
+        var marcarLidaResponse = await profissionalClient.PutAsync($"/api/notificacoes/{notificacao.Id}/marcar-lida", null);
+        Assert.Equal(HttpStatusCode.OK, marcarLidaResponse.StatusCode);
+
+        var lidas = await adminClient.GetFromJsonAsync<PaginacaoResponse<NotificacaoAdminResponse>>(
+            $"/api/notificacoes?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}&lida=true&pagina=1&tamanhoPagina=10");
+
+        Assert.NotNull(lidas);
+        Assert.True(lidas!.TotalRegistros >= 1);
+        Assert.Contains(lidas.Itens, x =>
+            x.Id == notificacao.Id &&
+            x.Lida &&
+            x.DataLeitura.HasValue);
+    }
+
+    [Fact]
     public async Task Preferencias_DeveListarDefaultsEPermitirAtualizacao()
     {
         using var client = _factory.CreateClient();

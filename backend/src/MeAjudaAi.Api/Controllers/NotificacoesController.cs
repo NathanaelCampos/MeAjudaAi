@@ -44,6 +44,36 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(PaginacaoResponse<NotificacaoAdminResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Listar(
+        [FromQuery] Guid? usuarioId = null,
+        [FromQuery] TipoNotificacao? tipoNotificacao = null,
+        [FromQuery] bool? lida = null,
+        [FromQuery] DateTime? dataCriacaoInicial = null,
+        [FromQuery] DateTime? dataCriacaoFinal = null,
+        [FromQuery] int pagina = 1,
+        [FromQuery] int tamanhoPagina = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.ListarNotificacoesAsync(
+            new BuscarNotificacoesRequest
+            {
+                UsuarioId = usuarioId,
+                TipoNotificacao = tipoNotificacao,
+                Lida = lida,
+                DataCriacaoInicial = dataCriacaoInicial,
+                DataCriacaoFinal = dataCriacaoFinal,
+                Pagina = pagina,
+                TamanhoPagina = tamanhoPagina
+            },
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     [HttpGet("minhas/nao-lidas/quantidade")]
     [ProducesResponseType(typeof(QuantidadeNotificacoesNaoLidasResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

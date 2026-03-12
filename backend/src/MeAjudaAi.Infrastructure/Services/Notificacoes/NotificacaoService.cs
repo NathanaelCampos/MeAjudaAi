@@ -110,6 +110,64 @@ public class NotificacaoService : INotificacaoService
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<PaginacaoResponse<NotificacaoAdminResponse>> ListarNotificacoesAsync(
+        BuscarNotificacoesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var pagina = request.Pagina <= 0 ? 1 : request.Pagina;
+        var tamanhoPagina = request.TamanhoPagina <= 0 ? 20 : Math.Min(request.TamanhoPagina, 100);
+
+        var query = _context.Set<NotificacaoUsuario>()
+            .AsNoTracking()
+            .Where(x => x.Ativo);
+
+        if (request.UsuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
+
+        if (request.TipoNotificacao.HasValue)
+            query = query.Where(x => x.Tipo == request.TipoNotificacao.Value);
+
+        if (request.Lida.HasValue)
+            query = request.Lida.Value ? query.Where(x => x.DataLeitura != null) : query.Where(x => x.DataLeitura == null);
+
+        if (request.DataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= request.DataCriacaoInicial.Value);
+
+        if (request.DataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
+
+        var totalRegistros = await query.CountAsync(cancellationToken);
+
+        var itens = await query
+            .OrderByDescending(x => x.DataCriacao)
+            .Skip((pagina - 1) * tamanhoPagina)
+            .Take(tamanhoPagina)
+            .Select(x => new NotificacaoAdminResponse
+            {
+                Id = x.Id,
+                UsuarioId = x.UsuarioId,
+                NomeUsuario = x.Usuario.Nome,
+                EmailUsuario = x.Usuario.Email,
+                Tipo = x.Tipo,
+                Titulo = x.Titulo,
+                Mensagem = x.Mensagem,
+                ReferenciaId = x.ReferenciaId,
+                Lida = x.DataLeitura != null,
+                DataCriacao = x.DataCriacao,
+                DataLeitura = x.DataLeitura
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PaginacaoResponse<NotificacaoAdminResponse>
+        {
+            PaginaAtual = pagina,
+            TamanhoPagina = tamanhoPagina,
+            TotalRegistros = totalRegistros,
+            TotalPaginas = totalRegistros == 0 ? 0 : (int)Math.Ceiling(totalRegistros / (double)tamanhoPagina),
+            Itens = itens
+        };
+    }
+
     public async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesAsync(
         Guid? usuarioId = null,
         TipoNotificacao? tipoNotificacao = null,

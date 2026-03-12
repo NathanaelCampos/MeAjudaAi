@@ -275,6 +275,13 @@ O resumo consolida:
 - top tipos
 - top usuarios com notificacoes nao lidas
 
+Listagem admin de notificacoes internas com filtros e paginacao:
+
+```bash
+curl -s "http://localhost:5231/api/notificacoes?usuarioId=USUARIO_ID&tipoNotificacao=ServicoSolicitado&lida=false&pagina=1&tamanhoPagina=20" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
 ## Emails de notificacao
 
 O backend suporta dois modos para o envio do outbox:
