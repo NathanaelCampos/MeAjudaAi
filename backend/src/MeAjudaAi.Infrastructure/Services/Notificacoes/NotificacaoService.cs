@@ -623,6 +623,56 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<EmailNotificacaoUsuarioDashboardResponse> ObterDashboardEmailsOutboxPorUsuarioAsync(
+        Guid usuarioId,
+        BuscarMetricasEmailsOutboxRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        request.UsuarioId = usuarioId;
+
+        var resumo = await ObterMetricasEmailsOutboxAsync(request, cancellationToken);
+        var serie = await ObterMetricasSerieEmailsOutboxAsync(request, cancellationToken);
+        var tipos = await ObterMetricasTiposEmailsOutboxAsync(request, cancellationToken);
+
+        var recentes = await _context.Set<EmailNotificacaoOutbox>()
+            .AsNoTracking()
+            .Where(x => x.Ativo && x.UsuarioId == usuarioId)
+            .Where(x => !request.TipoNotificacao.HasValue || x.TipoNotificacao == request.TipoNotificacao.Value)
+            .Where(x => !request.DataCriacaoInicial.HasValue || x.DataCriacao >= request.DataCriacaoInicial.Value)
+            .Where(x => !request.DataCriacaoFinal.HasValue || x.DataCriacao <= request.DataCriacaoFinal.Value)
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(20)
+            .Select(x => new EmailNotificacaoOutboxResponse
+            {
+                Id = x.Id,
+                UsuarioId = x.UsuarioId,
+                TipoNotificacao = x.TipoNotificacao,
+                EmailDestino = x.EmailDestino,
+                Assunto = x.Assunto,
+                Corpo = x.Corpo,
+                ReferenciaId = x.ReferenciaId,
+                Status = x.Status,
+                TentativasProcessamento = x.TentativasProcessamento,
+                ProximaTentativaEm = x.ProximaTentativaEm,
+                DataCriacao = x.DataCriacao,
+                DataProcessamento = x.DataProcessamento,
+                UltimaMensagemErro = x.UltimaMensagemErro
+            })
+            .ToListAsync(cancellationToken);
+
+        return new EmailNotificacaoUsuarioDashboardResponse
+        {
+            UsuarioId = usuarioId,
+            TipoNotificacao = request.TipoNotificacao,
+            DataCriacaoInicial = request.DataCriacaoInicial,
+            DataCriacaoFinal = request.DataCriacaoFinal,
+            Resumo = resumo,
+            Serie = serie,
+            Tipos = tipos,
+            Recentes = recentes
+        };
+    }
+
     private void AtualizarFalha(EmailNotificacaoOutbox email, string mensagemErro, DateTime agora)
     {
         if (email.TentativasProcessamento >= Math.Max(1, _emailOptions.MaxTentativas))
@@ -646,6 +696,9 @@ public class NotificacaoService : INotificacaoService
         var query = _context.Set<EmailNotificacaoOutbox>()
             .AsNoTracking()
             .Where(x => x.Ativo);
+
+        if (request.UsuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
 
         if (request.TipoNotificacao.HasValue)
             query = query.Where(x => x.TipoNotificacao == request.TipoNotificacao.Value);

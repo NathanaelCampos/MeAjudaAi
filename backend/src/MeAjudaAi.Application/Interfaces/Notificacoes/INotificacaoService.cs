@@ -79,6 +79,11 @@ public interface INotificacaoService
         BuscarMetricasEmailsOutboxRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<EmailNotificacaoUsuarioDashboardResponse> ObterDashboardEmailsOutboxPorUsuarioAsync(
+        Guid usuarioId,
+        BuscarMetricasEmailsOutboxRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(
         Guid usuarioId,
         CancellationToken cancellationToken = default);

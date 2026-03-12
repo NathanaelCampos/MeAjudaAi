@@ -413,6 +413,13 @@ curl -s "http://localhost:5231/api/notificacoes/emails/dashboard?tipoNotificacao
   -H "Authorization: Bearer SEU_TOKEN_ADMIN"
 ```
 
+Drill-down do outbox por usuario:
+
+```bash
+curl -s "http://localhost:5231/api/notificacoes/emails/usuarios/USUARIO_ID/dashboard?tipoNotificacao=ServicoSolicitado&dataCriacaoInicial=2026-03-12T00:00:00Z&dataCriacaoFinal=2026-03-12T23:59:59Z" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
 ## Troubleshooting
 
 ### `401 Webhook não autorizado.`

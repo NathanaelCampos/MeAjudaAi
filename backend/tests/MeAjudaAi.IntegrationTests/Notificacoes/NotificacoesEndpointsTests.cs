@@ -1233,6 +1233,66 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.Contains(erro!.Erros, x => x.Campo == string.Empty || x.Campo == "request");
     }
 
+    [Fact]
+    public async Task ObterDashboardEmailsOutboxPorUsuario_DeveRetornarDrillDownDoDestinatario()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-dashboard-user-email");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-dashboard-user-email");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var atualizarResponse = await profissionalClient.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias =
+            [
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = false,
+                    AtivoEmail = true
+                }
+            ]
+        });
+
+        Assert.Equal(HttpStatusCode.OK, atualizarResponse.StatusCode);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para dashboard por usuario",
+            Descricao = "Teste de drill-down por usuario",
+            ValorCombinado = 140m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var inicioJanela = Uri.EscapeDataString(DateTime.UtcNow.AddMinutes(-1).ToString("O"));
+        var fimJanela = Uri.EscapeDataString(DateTime.UtcNow.AddMinutes(1).ToString("O"));
+
+        var dashboard = await adminClient.GetFromJsonAsync<EmailNotificacaoUsuarioDashboardResponse>(
+            $"/api/notificacoes/emails/usuarios/{authProfissional.UsuarioId}/dashboard?tipoNotificacao={TipoNotificacao.ServicoSolicitado}&dataCriacaoInicial={inicioJanela}&dataCriacaoFinal={fimJanela}");
+
+        Assert.NotNull(dashboard);
+        Assert.Equal(authProfissional.UsuarioId, dashboard!.UsuarioId);
+        Assert.Equal(TipoNotificacao.ServicoSolicitado, dashboard.TipoNotificacao);
+        Assert.True(dashboard.Resumo.TotalRegistros > 0);
+        Assert.NotEmpty(dashboard.Serie.Itens);
+        Assert.NotEmpty(dashboard.Tipos.Itens);
+        Assert.NotEmpty(dashboard.Recentes);
+        Assert.All(dashboard.Recentes, x => Assert.Equal(authProfissional.UsuarioId, x.UsuarioId));
+    }
+
     private static async Task<AuthResponse> RegistrarUsuarioAsync(HttpClient client, TipoPerfil tipoPerfil, string prefixo)
     {
         var response = await client.PostAsJsonAsync("/api/auth/registrar", new RegistrarUsuarioRequest
