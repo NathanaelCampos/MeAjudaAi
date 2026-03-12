@@ -14,10 +14,14 @@ namespace MeAjudaAi.Api.Controllers;
 public class NotificacoesController : ControllerBase
 {
     private readonly INotificacaoService _notificacaoService;
+    private readonly IEmailNotificacaoTemplateRenderer _emailTemplateRenderer;
 
-    public NotificacoesController(INotificacaoService notificacaoService)
+    public NotificacoesController(
+        INotificacaoService notificacaoService,
+        IEmailNotificacaoTemplateRenderer emailTemplateRenderer)
     {
         _notificacaoService = notificacaoService;
+        _emailTemplateRenderer = emailTemplateRenderer;
     }
 
     [HttpGet("minhas")]
@@ -137,6 +141,31 @@ public class NotificacoesController : ControllerBase
         return Ok(new ReprocessarEmailsOutboxResponse
         {
             QuantidadeProcessada = quantidade
+        });
+    }
+
+    [HttpPost("emails/preview")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(PreviewEmailNotificacaoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult PreviewEmail([FromBody] PreviewEmailNotificacaoRequest request)
+    {
+        var email = new Domain.Entities.EmailNotificacaoOutbox
+        {
+            TipoNotificacao = request.TipoNotificacao,
+            Assunto = request.Assunto.Trim(),
+            Corpo = request.Corpo.Trim(),
+            ReferenciaId = request.ReferenciaId,
+            EmailDestino = "preview@local.test"
+        };
+
+        return Ok(new PreviewEmailNotificacaoResponse
+        {
+            TipoNotificacao = request.TipoNotificacao,
+            Assunto = email.Assunto,
+            ReferenciaId = request.ReferenciaId,
+            Html = _emailTemplateRenderer.RenderizarHtml(email)
         });
     }
 

@@ -297,6 +297,26 @@ Em `Emails:Notificacoes`:
 - ao exceder `MaxTentativas`, o item vai para `Cancelado`
 - o endpoint admin de metricas continua refletindo o status atual do outbox
 
+### Preview de template de email
+
+Admins podem renderizar o HTML final de um email sem enviar nada:
+
+`POST /api/notificacoes/emails/preview`
+
+Exemplo:
+
+```bash
+curl -s -X POST http://localhost:5231/api/notificacoes/emails/preview \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tipoNotificacao": 1,
+    "assunto": "Servico solicitado",
+    "corpo": "Um novo servico foi criado para voce.",
+    "referenciaId": "11111111-1111-1111-1111-111111111111"
+  }'
+```
+
 ## Troubleshooting
 
 ### `401 Webhook não autorizado.`

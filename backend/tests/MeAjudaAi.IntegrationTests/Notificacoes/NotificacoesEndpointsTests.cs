@@ -466,6 +466,47 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.Contains(metricas!.Itens, x => x.Status == StatusEmailNotificacao.Cancelado && x.Quantidade > 0);
     }
 
+    [Fact]
+    public async Task PreviewEmail_DeveExigirAdminERenderizarHtml()
+    {
+        using var client = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(client, TipoPerfil.Cliente, "preview-email-nao-admin");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var forbiddenResponse = await client.PostAsJsonAsync("/api/notificacoes/emails/preview", new PreviewEmailNotificacaoRequest
+        {
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Assunto = "Servico solicitado",
+            Corpo = "Um novo servico foi criado para voce."
+        });
+
+        Assert.Equal(HttpStatusCode.Forbidden, forbiddenResponse.StatusCode);
+
+        var referenciaId = Guid.NewGuid();
+        var previewResponse = await adminClient.PostAsJsonAsync("/api/notificacoes/emails/preview", new PreviewEmailNotificacaoRequest
+        {
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Assunto = "Servico solicitado",
+            Corpo = "Um novo servico foi criado para voce.",
+            ReferenciaId = referenciaId
+        });
+
+        var preview = await previewResponse.Content.ReadFromJsonAsync<PreviewEmailNotificacaoResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, previewResponse.StatusCode);
+        Assert.NotNull(preview);
+        Assert.Equal(TipoNotificacao.ServicoSolicitado, preview!.TipoNotificacao);
+        Assert.Equal("Servico solicitado", preview.Assunto);
+        Assert.Equal(referenciaId, preview.ReferenciaId);
+        Assert.Contains("Um novo servico foi criado para voce.", preview.Html);
+        Assert.Contains("Referencia:", preview.Html);
+    }
+
     private static async Task<AuthResponse> RegistrarUsuarioAsync(HttpClient client, TipoPerfil tipoPerfil, string prefixo)
     {
         var response = await client.PostAsJsonAsync("/api/auth/registrar", new RegistrarUsuarioRequest
