@@ -259,6 +259,22 @@ Resultados atualmente expostos:
 - `rejeitado`
 - `erro`
 
+## Notificacoes internas
+
+Resumo operacional das notificacoes internas com filtros por usuario, tipo e periodo:
+
+```bash
+curl -s "http://localhost:5231/api/notificacoes/resumo-operacional?usuarioId=USUARIO_ID&tipoNotificacao=ServicoSolicitado&dataCriacaoInicial=2026-03-12T00:00:00Z&dataCriacaoFinal=2026-03-12T23:59:59Z" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
+O resumo consolida:
+- total
+- lidas
+- nao lidas
+- top tipos
+- top usuarios com notificacoes nao lidas
+
 ## Emails de notificacao
 
 O backend suporta dois modos para o envio do outbox:

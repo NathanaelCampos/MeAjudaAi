@@ -110,6 +110,83 @@ public class NotificacaoService : INotificacaoService
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesAsync(
+        Guid? usuarioId = null,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Set<NotificacaoUsuario>()
+            .AsNoTracking()
+            .Where(x => x.Ativo);
+
+        if (usuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == usuarioId.Value);
+
+        if (tipoNotificacao.HasValue)
+            query = query.Where(x => x.Tipo == tipoNotificacao.Value);
+
+        if (dataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= dataCriacaoInicial.Value);
+
+        if (dataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= dataCriacaoFinal.Value);
+
+        var totalRegistros = await query.CountAsync(cancellationToken);
+        var lidas = await query.CountAsync(x => x.DataLeitura != null, cancellationToken);
+        var naoLidas = await query.CountAsync(x => x.DataLeitura == null, cancellationToken);
+
+        var topTipos = await query
+            .GroupBy(x => x.Tipo)
+            .Select(x => new NotificacaoResumoOperacionalTipoItemResponse
+            {
+                TipoNotificacao = x.Key,
+                Total = x.Count(),
+                Lidas = x.Count(y => y.DataLeitura != null),
+                NaoLidas = x.Count(y => y.DataLeitura == null)
+            })
+            .OrderByDescending(x => x.Total)
+            .ThenBy(x => x.TipoNotificacao)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
+        var topUsuariosComNaoLidas = await query
+            .Where(x => x.DataLeitura == null)
+            .GroupBy(x => new
+            {
+                x.UsuarioId,
+                x.Usuario.Nome,
+                x.Usuario.Email
+            })
+            .Select(x => new NotificacaoResumoOperacionalUsuarioItemResponse
+            {
+                UsuarioId = x.Key.UsuarioId,
+                Nome = x.Key.Nome,
+                Email = x.Key.Email,
+                Total = x.Count(),
+                Lidas = 0,
+                NaoLidas = x.Count()
+            })
+            .OrderByDescending(x => x.NaoLidas)
+            .ThenBy(x => x.Email)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
+        return new NotificacaoResumoOperacionalResponse
+        {
+            UsuarioId = usuarioId,
+            TipoNotificacao = tipoNotificacao,
+            DataCriacaoInicial = dataCriacaoInicial,
+            DataCriacaoFinal = dataCriacaoFinal,
+            TotalRegistros = totalRegistros,
+            Lidas = lidas,
+            NaoLidas = naoLidas,
+            TopTipos = topTipos,
+            TopUsuariosComNaoLidas = topUsuariosComNaoLidas
+        };
+    }
+
     public async Task<IReadOnlyList<PreferenciaNotificacaoResponse>> ListarPreferenciasAsync(
         Guid usuarioId,
         CancellationToken cancellationToken = default)

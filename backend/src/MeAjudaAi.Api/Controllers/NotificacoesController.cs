@@ -62,6 +62,27 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("resumo-operacional")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(NotificacaoResumoOperacionalResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterResumoOperacional(
+        [FromQuery] Guid? usuarioId = null,
+        [FromQuery] TipoNotificacao? tipoNotificacao = null,
+        [FromQuery] DateTime? dataCriacaoInicial = null,
+        [FromQuery] DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.ObterResumoOperacionalNotificacoesAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     [HttpGet("minhas/preferencias")]
     [ProducesResponseType(typeof(IReadOnlyList<PreferenciaNotificacaoResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

@@ -149,6 +149,56 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ObterResumoOperacionalNotificacoes_DeveConsolidarLidasENaoLidasPorTipoEUsuario()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-resumo-interno");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-resumo-interno");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para resumo interno",
+            Descricao = "Gera notificacao interna para o profissional",
+            ValorCombinado = 93m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var notificacoesProfissional = await profissionalClient.GetFromJsonAsync<List<NotificacaoResponse>>("/api/notificacoes/minhas");
+        var notificacao = Assert.Single(notificacoesProfissional!.Where(x => x.Tipo == TipoNotificacao.ServicoSolicitado));
+
+        var marcarLidaResponse = await profissionalClient.PutAsync($"/api/notificacoes/{notificacao.Id}/marcar-lida", null);
+        Assert.Equal(HttpStatusCode.OK, marcarLidaResponse.StatusCode);
+
+        var resumo = await adminClient.GetFromJsonAsync<NotificacaoResumoOperacionalResponse>(
+            $"/api/notificacoes/resumo-operacional?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
+
+        Assert.NotNull(resumo);
+        Assert.Equal(authProfissional.UsuarioId, resumo!.UsuarioId);
+        Assert.Equal(TipoNotificacao.ServicoSolicitado, resumo.TipoNotificacao);
+        Assert.True(resumo.TotalRegistros >= 1);
+        Assert.True(resumo.Lidas >= 1);
+        Assert.True(resumo.NaoLidas == 0);
+        Assert.Contains(resumo.TopTipos, x =>
+            x.TipoNotificacao == TipoNotificacao.ServicoSolicitado &&
+            x.Total >= 1 &&
+            x.Lidas >= 1);
+    }
+
+    [Fact]
     public async Task Preferencias_DeveListarDefaultsEPermitirAtualizacao()
     {
         using var client = _factory.CreateClient();
