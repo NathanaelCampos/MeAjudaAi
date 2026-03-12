@@ -779,12 +779,12 @@ namespace MeAjudaAi.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CodigoReferenciaPagamento");
 
-                    b.HasIndex("EventoExternoId")
-                        .IsUnique();
-
                     b.HasIndex("ImpulsionamentoProfissionalId");
 
                     b.HasIndex("Provedor");
+
+                    b.HasIndex("Provedor", "EventoExternoId")
+                        .IsUnique();
 
                     b.HasIndex("RequestId");
 

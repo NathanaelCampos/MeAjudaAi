@@ -59,7 +59,7 @@ public class WebhookPagamentoImpulsionamentoEventoConfiguration : IEntityTypeCon
         builder.Property(x => x.DataCriacao)
             .IsRequired();
 
-        builder.HasIndex(x => x.EventoExternoId)
+        builder.HasIndex(x => new { x.Provedor, x.EventoExternoId })
             .IsUnique();
 
         builder.HasIndex(x => x.Provedor);

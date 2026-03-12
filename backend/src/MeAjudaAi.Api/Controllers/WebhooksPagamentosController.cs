@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using MeAjudaAi.Api.Configurations;
 using MeAjudaAi.Api.Webhooks;
+using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.DTOs.Impulsionamentos;
 using MeAjudaAi.Application.Interfaces.Impulsionamentos;
 using FluentValidation;
@@ -61,19 +62,32 @@ public class WebhooksPagamentosController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(configuracao.Segredo) ||
             !AssinaturaValida(corpoBruto, configuracao.Segredo, assinaturaRecebida))
-            return Unauthorized(new { mensagem = "Webhook não autorizado." });
+            return Unauthorized(new MensagemErroResponse
+            {
+                Mensagem = "Webhook não autorizado."
+            });
 
         if (!_payloadAdapters.TryGetValue(provedorNormalizado, out var payloadAdapter))
-            return BadRequest(new { mensagem = "Provedor de webhook não suportado." });
+            return BadRequest(new MensagemErroResponse
+            {
+                Mensagem = "Provedor de webhook não suportado."
+            });
 
         var request = payloadAdapter.Parse(corpoBruto) ?? new WebhookPagamentoImpulsionamentoRequest();
 
         var validationResult = await _validator.ValidateAsync(request, cancellationToken);
         if (!validationResult.IsValid)
-            return BadRequest(new
+            return BadRequest(new ErroValidacaoResponse
             {
-                mensagem = "Payload inválido.",
-                erros = validationResult.Errors.Select(x => x.ErrorMessage).ToArray()
+                Mensagem = "Payload inválido.",
+                Erros = validationResult.Errors
+                    .GroupBy(x => x.PropertyName)
+                    .Select(x => new CampoErroValidacaoResponse
+                    {
+                        Campo = x.Key,
+                        Mensagens = x.Select(y => y.ErrorMessage).Distinct().ToArray()
+                    })
+                    .ToArray()
             });
 
         var response = await _impulsionamentoService.ProcessarWebhookPagamentoAsync(

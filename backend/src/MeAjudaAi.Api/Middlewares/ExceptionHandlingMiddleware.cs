@@ -6,10 +6,14 @@ namespace MeAjudaAi.Api.Middlewares;
 public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
-    public ExceptionHandlingMiddleware(RequestDelegate next)
+    public ExceptionHandlingMiddleware(
+        RequestDelegate next,
+        ILogger<ExceptionHandlingMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -25,6 +29,11 @@ public class ExceptionHandlingMiddleware
         catch (UnauthorizedAccessException ex)
         {
             await EscreverRespostaAsync(context, StatusCodes.Status401Unauthorized, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro não tratado durante o processamento da requisição {Method} {Path}.", context.Request.Method, context.Request.Path);
+            await EscreverRespostaAsync(context, StatusCodes.Status500InternalServerError, "Erro interno.");
         }
     }
 

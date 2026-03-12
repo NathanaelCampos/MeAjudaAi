@@ -78,7 +78,10 @@ public class ProfissionaisController : ControllerBase
             cancellationToken);
 
         if (response is null)
-            return NotFound(new { mensagem = "Perfil profissional não encontrado para o usuário autenticado." });
+            return NotFound(new MensagemErroResponse
+            {
+                Mensagem = "Perfil profissional não encontrado para o usuário autenticado."
+            });
 
         return Ok(response);
     }
