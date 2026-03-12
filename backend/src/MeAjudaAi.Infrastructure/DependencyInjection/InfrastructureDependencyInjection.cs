@@ -56,6 +56,17 @@ public static class InfrastructureDependencyInjection
             options.SimularEnvio = bool.TryParse(emailSection["SimularEnvio"], out var simularEnvio)
                 ? simularEnvio
                 : true;
+            options.RemetenteEmail = emailSection["RemetenteEmail"] ?? string.Empty;
+            options.RemetenteNome = emailSection["RemetenteNome"] ?? string.Empty;
+            options.SmtpHost = emailSection["SmtpHost"] ?? string.Empty;
+            options.SmtpPort = int.TryParse(emailSection["SmtpPort"], out var smtpPort)
+                ? smtpPort
+                : 25;
+            options.SmtpUsuario = emailSection["SmtpUsuario"] ?? string.Empty;
+            options.SmtpSenha = emailSection["SmtpSenha"] ?? string.Empty;
+            options.SmtpSsl = bool.TryParse(emailSection["SmtpSsl"], out var smtpSsl)
+                ? smtpSsl
+                : true;
         });
 
         services.AddScoped<IHashSenhaService, HashSenhaService>();
@@ -70,7 +81,9 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<IArquivoStorageService, ArquivoStorageService>();
         services.AddScoped<IImpulsionamentoService, ImpulsionamentoService>();
         services.AddScoped<INotificacaoService, NotificacaoService>();
-        services.AddScoped<IEmailNotificacaoSender, FakeEmailNotificacaoSender>();
+        services.AddScoped<FakeEmailNotificacaoSender>();
+        services.AddScoped<SmtpEmailNotificacaoSender>();
+        services.AddScoped<IEmailNotificacaoSender, EmailNotificacaoSender>();
         services.AddSingleton<IWebhookPagamentoMetricsService, WebhookPagamentoMetricsService>();
         services.AddHostedService<EmailNotificacaoOutboxProcessor>();
 

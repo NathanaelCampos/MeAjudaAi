@@ -259,6 +259,42 @@ Resultados atualmente expostos:
 - `rejeitado`
 - `erro`
 
+## Emails de notificacao
+
+O backend suporta dois modos para o envio do outbox:
+
+- `SimularEnvio = true`: nao envia e-mail real, apenas registra log e permite validar o fluxo inteiro
+- `SimularEnvio = false`: usa SMTP real para processar a fila de `emails_notificacoes_outbox`
+
+### Configuracao minima para SMTP real
+
+Em `Emails:Notificacoes`:
+
+```json
+{
+  "ProcessadorHabilitado": true,
+  "SimularEnvio": false,
+  "RemetenteEmail": "noreply@seu-dominio.com",
+  "RemetenteNome": "Me Ajuda AI",
+  "SmtpHost": "smtp.seu-provedor.com",
+  "SmtpPort": 587,
+  "SmtpUsuario": "smtp-user",
+  "SmtpSenha": "smtp-password",
+  "SmtpSsl": true,
+  "LoteProcessamento": 20,
+  "IntervaloSegundos": 60,
+  "AtrasoBaseSegundos": 60,
+  "MaxTentativas": 3
+}
+```
+
+### Comportamento do retry
+
+- e-mail novo entra com `ProximaTentativaEm`
+- falha de envio agenda nova tentativa com backoff linear
+- ao exceder `MaxTentativas`, o item vai para `Cancelado`
+- o endpoint admin de metricas continua refletindo o status atual do outbox
+
 ## Troubleshooting
 
 ### `401 Webhook não autorizado.`
