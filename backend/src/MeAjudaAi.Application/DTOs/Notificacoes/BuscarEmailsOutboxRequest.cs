@@ -10,6 +10,8 @@ public class BuscarEmailsOutboxRequest
     public string? EmailDestino { get; set; }
     public DateTime? DataCriacaoInicial { get; set; }
     public DateTime? DataCriacaoFinal { get; set; }
+    public string? OrdenarPor { get; set; } = "dataCriacao";
+    public bool OrdemDesc { get; set; } = true;
     public int Pagina { get; set; } = 1;
     public int TamanhoPagina { get; set; } = 20;
 }

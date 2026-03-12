@@ -705,6 +705,61 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.Empty(foraDaJanela!.Itens);
     }
 
+    [Fact]
+    public async Task ListarEmailsOutbox_DevePermitirOrdenacaoConfiguravel()
+    {
+        using var adminClient = _factory.CreateClient();
+        var authAdmin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var usuarioId = Guid.NewGuid();
+
+            context.Usuarios.Add(new Domain.Entities.Usuario
+            {
+                Id = usuarioId,
+                Nome = "usuario ordenacao outbox",
+                Email = $"ordenacao-outbox-{Guid.NewGuid():N}@teste.local",
+                Telefone = "11999999999",
+                SenhaHash = "hash",
+                TipoPerfil = TipoPerfil.Cliente
+            });
+
+            context.EmailsNotificacoesOutbox.AddRange(
+                new Domain.Entities.EmailNotificacaoOutbox
+                {
+                    UsuarioId = usuarioId,
+                    TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+                    EmailDestino = "zzz@teste.local",
+                    Assunto = "z",
+                    Corpo = "z",
+                    Status = StatusEmailNotificacao.Pendente,
+                    ProximaTentativaEm = DateTime.UtcNow
+                },
+                new Domain.Entities.EmailNotificacaoOutbox
+                {
+                    UsuarioId = usuarioId,
+                    TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+                    EmailDestino = "aaa@teste.local",
+                    Assunto = "a",
+                    Corpo = "a",
+                    Status = StatusEmailNotificacao.Pendente,
+                    ProximaTentativaEm = DateTime.UtcNow
+                });
+
+            await context.SaveChangesAsync();
+        }
+
+        var response = await adminClient.GetFromJsonAsync<PaginacaoResponse<EmailNotificacaoOutboxResponse>>(
+            "/api/notificacoes/emails?ordenarPor=emailDestino&ordemDesc=false&pagina=1&tamanhoPagina=20");
+
+        Assert.NotNull(response);
+        Assert.True(response!.Itens.Count >= 2);
+        Assert.True(string.Compare(response.Itens[0].EmailDestino, response.Itens[1].EmailDestino, StringComparison.OrdinalIgnoreCase) <= 0);
+    }
+
     private static async Task<AuthResponse> RegistrarUsuarioAsync(HttpClient client, TipoPerfil tipoPerfil, string prefixo)
     {
         var response = await client.PostAsJsonAsync("/api/auth/registrar", new RegistrarUsuarioRequest

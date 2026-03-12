@@ -112,6 +112,8 @@ public class NotificacoesController : ControllerBase
         [FromQuery] string? emailDestino = null,
         [FromQuery] DateTime? dataCriacaoInicial = null,
         [FromQuery] DateTime? dataCriacaoFinal = null,
+        [FromQuery] string? ordenarPor = "dataCriacao",
+        [FromQuery] bool ordemDesc = true,
         [FromQuery] int pagina = 1,
         [FromQuery] int tamanhoPagina = 20,
         CancellationToken cancellationToken = default)
@@ -125,6 +127,8 @@ public class NotificacoesController : ControllerBase
                 EmailDestino = emailDestino,
                 DataCriacaoInicial = dataCriacaoInicial,
                 DataCriacaoFinal = dataCriacaoFinal,
+                OrdenarPor = ordenarPor,
+                OrdemDesc = ordemDesc,
                 Pagina = pagina,
                 TamanhoPagina = tamanhoPagina
             },

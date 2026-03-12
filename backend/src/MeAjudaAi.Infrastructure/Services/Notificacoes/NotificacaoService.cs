@@ -206,10 +206,11 @@ public class NotificacaoService : INotificacaoService
         if (request.DataCriacaoFinal.HasValue)
             query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
 
+        query = AplicarOrdenacaoOutbox(query, request.OrdenarPor, request.OrdemDesc);
+
         var totalRegistros = await query.CountAsync(cancellationToken);
 
         var itens = await query
-            .OrderByDescending(x => x.DataCriacao)
             .Skip((pagina - 1) * tamanhoPagina)
             .Take(tamanhoPagina)
             .Select(x => new EmailNotificacaoOutboxResponse
@@ -237,6 +238,36 @@ public class NotificacaoService : INotificacaoService
             TotalRegistros = totalRegistros,
             TotalPaginas = totalRegistros == 0 ? 0 : (int)Math.Ceiling(totalRegistros / (double)tamanhoPagina),
             Itens = itens
+        };
+    }
+
+    private static IQueryable<EmailNotificacaoOutbox> AplicarOrdenacaoOutbox(
+        IQueryable<EmailNotificacaoOutbox> query,
+        string? ordenarPor,
+        bool ordemDesc)
+    {
+        var campo = ordenarPor?.Trim().ToLowerInvariant();
+
+        return campo switch
+        {
+            "status" => ordemDesc
+                ? query.OrderByDescending(x => x.Status).ThenByDescending(x => x.DataCriacao)
+                : query.OrderBy(x => x.Status).ThenBy(x => x.DataCriacao),
+            "emaildestino" => ordemDesc
+                ? query.OrderByDescending(x => x.EmailDestino).ThenByDescending(x => x.DataCriacao)
+                : query.OrderBy(x => x.EmailDestino).ThenBy(x => x.DataCriacao),
+            "tiponotificacao" => ordemDesc
+                ? query.OrderByDescending(x => x.TipoNotificacao).ThenByDescending(x => x.DataCriacao)
+                : query.OrderBy(x => x.TipoNotificacao).ThenBy(x => x.DataCriacao),
+            "tentativasprocessamento" => ordemDesc
+                ? query.OrderByDescending(x => x.TentativasProcessamento).ThenByDescending(x => x.DataCriacao)
+                : query.OrderBy(x => x.TentativasProcessamento).ThenBy(x => x.DataCriacao),
+            "dataprocessamento" => ordemDesc
+                ? query.OrderByDescending(x => x.DataProcessamento).ThenByDescending(x => x.DataCriacao)
+                : query.OrderBy(x => x.DataProcessamento).ThenBy(x => x.DataCriacao),
+            _ => ordemDesc
+                ? query.OrderByDescending(x => x.DataCriacao)
+                : query.OrderBy(x => x.DataCriacao)
         };
     }
 

@@ -327,13 +327,15 @@ curl -s -X POST http://localhost:5231/api/notificacoes/emails/preview \
 - `emailDestino`
 - `dataCriacaoInicial`
 - `dataCriacaoFinal`
+- `ordenarPor`
+- `ordemDesc`
 - `pagina`
 - `tamanhoPagina`
 
 Exemplo:
 
 ```bash
-curl -s "http://localhost:5231/api/notificacoes/emails?status=Pendente&tipoNotificacao=ServicoSolicitado&emailDestino=teste.local&pagina=1&tamanhoPagina=20" \
+curl -s "http://localhost:5231/api/notificacoes/emails?status=Pendente&tipoNotificacao=ServicoSolicitado&emailDestino=teste.local&ordenarPor=emailDestino&ordemDesc=false&pagina=1&tamanhoPagina=20" \
   -H "Authorization: Bearer SEU_TOKEN_ADMIN"
 ```
 
