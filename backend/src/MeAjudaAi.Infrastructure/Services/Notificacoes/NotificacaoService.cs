@@ -393,24 +393,7 @@ public class NotificacaoService : INotificacaoService
         BuscarMetricasEmailsOutboxRequest request,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Set<EmailNotificacaoOutbox>()
-            .AsNoTracking()
-            .Where(x => x.Ativo);
-
-        if (request.TipoNotificacao.HasValue)
-            query = query.Where(x => x.TipoNotificacao == request.TipoNotificacao.Value);
-
-        if (!string.IsNullOrWhiteSpace(request.EmailDestino))
-        {
-            var emailNormalizado = request.EmailDestino.Trim().ToLowerInvariant();
-            query = query.Where(x => x.EmailDestino.ToLower().Contains(emailNormalizado));
-        }
-
-        if (request.DataCriacaoInicial.HasValue)
-            query = query.Where(x => x.DataCriacao >= request.DataCriacaoInicial.Value);
-
-        if (request.DataCriacaoFinal.HasValue)
-            query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
+        var query = AplicarFiltrosMetricasEmailsOutbox(request);
 
         var totalRegistros = await query.CountAsync(cancellationToken);
 
@@ -425,6 +408,43 @@ public class NotificacaoService : INotificacaoService
             .ToListAsync(cancellationToken);
 
         return new EmailNotificacaoMetricasResponse
+        {
+            TotalRegistros = totalRegistros,
+            TipoNotificacao = request.TipoNotificacao,
+            EmailDestino = request.EmailDestino,
+            DataCriacaoInicial = request.DataCriacaoInicial,
+            DataCriacaoFinal = request.DataCriacaoFinal,
+            Itens = itens
+        };
+    }
+
+    public async Task<EmailNotificacaoMetricasSerieResponse> ObterMetricasSerieEmailsOutboxAsync(
+        BuscarMetricasEmailsOutboxRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var query = AplicarFiltrosMetricasEmailsOutbox(request);
+        var totalRegistros = await query.CountAsync(cancellationToken);
+
+        var itens = await query
+            .GroupBy(x => new
+            {
+                Data = x.DataCriacao.Date,
+                x.TipoNotificacao,
+                x.Status
+            })
+            .Select(x => new EmailNotificacaoMetricaSerieItemResponse
+            {
+                Data = x.Key.Data,
+                TipoNotificacao = x.Key.TipoNotificacao,
+                Status = x.Key.Status,
+                Quantidade = x.Count()
+            })
+            .OrderBy(x => x.Data)
+            .ThenBy(x => x.TipoNotificacao)
+            .ThenBy(x => x.Status)
+            .ToListAsync(cancellationToken);
+
+        return new EmailNotificacaoMetricasSerieResponse
         {
             TotalRegistros = totalRegistros,
             TipoNotificacao = request.TipoNotificacao,
@@ -450,6 +470,31 @@ public class NotificacaoService : INotificacaoService
 
         email.UltimaMensagemErro = mensagemErro;
         email.DataAtualizacao = agora;
+    }
+
+    private IQueryable<EmailNotificacaoOutbox> AplicarFiltrosMetricasEmailsOutbox(
+        BuscarMetricasEmailsOutboxRequest request)
+    {
+        var query = _context.Set<EmailNotificacaoOutbox>()
+            .AsNoTracking()
+            .Where(x => x.Ativo);
+
+        if (request.TipoNotificacao.HasValue)
+            query = query.Where(x => x.TipoNotificacao == request.TipoNotificacao.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.EmailDestino))
+        {
+            var emailNormalizado = request.EmailDestino.Trim().ToLowerInvariant();
+            query = query.Where(x => x.EmailDestino.ToLower().Contains(emailNormalizado));
+        }
+
+        if (request.DataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= request.DataCriacaoInicial.Value);
+
+        if (request.DataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
+
+        return query;
     }
 
     public async Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(
