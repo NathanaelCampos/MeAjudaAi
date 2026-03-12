@@ -108,11 +108,19 @@ public class NotificacoesController : ControllerBase
     public async Task<IActionResult> ListarEmailsOutbox(
         [FromQuery] StatusEmailNotificacao? status = null,
         [FromQuery] Guid? usuarioId = null,
+        [FromQuery] TipoNotificacao? tipoNotificacao = null,
+        [FromQuery] string? emailDestino = null,
+        [FromQuery] DateTime? dataCriacaoInicial = null,
+        [FromQuery] DateTime? dataCriacaoFinal = null,
         CancellationToken cancellationToken = default)
     {
         var response = await _notificacaoService.ListarEmailsOutboxAsync(
             status,
             usuarioId,
+            tipoNotificacao,
+            emailDestino,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
             cancellationToken);
 
         return Ok(response);

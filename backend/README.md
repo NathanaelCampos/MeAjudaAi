@@ -317,6 +317,24 @@ curl -s -X POST http://localhost:5231/api/notificacoes/emails/preview \
   }'
 ```
 
+### Filtros do outbox de email
+
+`GET /api/notificacoes/emails` suporta filtros combinaveis por query string:
+
+- `status`
+- `usuarioId`
+- `tipoNotificacao`
+- `emailDestino`
+- `dataCriacaoInicial`
+- `dataCriacaoFinal`
+
+Exemplo:
+
+```bash
+curl -s "http://localhost:5231/api/notificacoes/emails?status=Pendente&tipoNotificacao=ServicoSolicitado&emailDestino=teste.local" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
 ## Troubleshooting
 
 ### `401 Webhook não autorizado.`

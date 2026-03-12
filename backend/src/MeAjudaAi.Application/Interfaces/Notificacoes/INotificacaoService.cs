@@ -30,6 +30,10 @@ public interface INotificacaoService
     Task<IReadOnlyList<EmailNotificacaoOutboxResponse>> ListarEmailsOutboxAsync(
         StatusEmailNotificacao? status = null,
         Guid? usuarioId = null,
+        TipoNotificacao? tipoNotificacao = null,
+        string? emailDestino = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
         CancellationToken cancellationToken = default);
 
     Task<int> ReprocessarEmailsOutboxAsync(

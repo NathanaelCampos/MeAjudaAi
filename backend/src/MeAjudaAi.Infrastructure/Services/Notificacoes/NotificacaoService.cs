@@ -176,6 +176,10 @@ public class NotificacaoService : INotificacaoService
     public async Task<IReadOnlyList<EmailNotificacaoOutboxResponse>> ListarEmailsOutboxAsync(
         StatusEmailNotificacao? status = null,
         Guid? usuarioId = null,
+        TipoNotificacao? tipoNotificacao = null,
+        string? emailDestino = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
         CancellationToken cancellationToken = default)
     {
         var query = _context.Set<EmailNotificacaoOutbox>()
@@ -187,6 +191,21 @@ public class NotificacaoService : INotificacaoService
 
         if (usuarioId.HasValue)
             query = query.Where(x => x.UsuarioId == usuarioId.Value);
+
+        if (tipoNotificacao.HasValue)
+            query = query.Where(x => x.TipoNotificacao == tipoNotificacao.Value);
+
+        if (!string.IsNullOrWhiteSpace(emailDestino))
+        {
+            var emailNormalizado = emailDestino.Trim().ToLowerInvariant();
+            query = query.Where(x => x.EmailDestino.ToLower().Contains(emailNormalizado));
+        }
+
+        if (dataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= dataCriacaoInicial.Value);
+
+        if (dataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= dataCriacaoFinal.Value);
 
         return await query
             .OrderByDescending(x => x.DataCriacao)
