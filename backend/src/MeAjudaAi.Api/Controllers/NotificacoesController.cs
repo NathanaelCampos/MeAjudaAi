@@ -256,6 +256,23 @@ public class NotificacoesController : ControllerBase
         });
     }
 
+    [HttpPost("emails/reprocessar-lote")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(AtualizarEmailsOutboxEmLoteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ReprocessarEmailsOutboxEmLote(
+        [FromBody] AtualizarEmailsOutboxEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var quantidade = await _notificacaoService.ReprocessarEmailsOutboxEmLoteAsync(request, cancellationToken);
+
+        return Ok(new AtualizarEmailsOutboxEmLoteResponse
+        {
+            QuantidadeAfetada = quantidade
+        });
+    }
+
     [HttpGet("emails/metricas")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(EmailNotificacaoMetricasResponse), StatusCodes.Status200OK)]

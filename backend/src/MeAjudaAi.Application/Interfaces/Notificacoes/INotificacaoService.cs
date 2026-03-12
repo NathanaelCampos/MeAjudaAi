@@ -56,6 +56,10 @@ public interface INotificacaoService
         AtualizarEmailsOutboxEmLoteRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<int> ReprocessarEmailsOutboxEmLoteAsync(
+        AtualizarEmailsOutboxEmLoteRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<int> ReprocessarEmailsOutboxAsync(
         CancellationToken cancellationToken = default);
 

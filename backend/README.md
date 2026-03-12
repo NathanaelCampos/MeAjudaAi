@@ -368,6 +368,11 @@ curl -X PUT "http://localhost:5231/api/notificacoes/emails/reabrir-lote" \
   -H "Authorization: Bearer SEU_TOKEN_ADMIN" \
   -H "Content-Type: application/json" \
   -d '{"status":"Cancelado","tipoNotificacao":"ServicoSolicitado","limite":100}'
+
+curl -X POST "http://localhost:5231/api/notificacoes/emails/reprocessar-lote" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"Falha","tipoNotificacao":"ServicoSolicitado","limite":100}'
 ```
 
 Exportacao CSV filtrada do outbox:

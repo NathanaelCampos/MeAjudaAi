@@ -397,6 +397,49 @@ public class NotificacaoService : INotificacaoService
         return emails.Count;
     }
 
+    public async Task<int> ReprocessarEmailsOutboxEmLoteAsync(
+        AtualizarEmailsOutboxEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var emails = await AplicarFiltrosEmailsOutbox(request)
+            .Where(x =>
+                x.Status == StatusEmailNotificacao.Pendente ||
+                x.Status == StatusEmailNotificacao.Falha)
+            .Where(x => x.ProximaTentativaEm == null || x.ProximaTentativaEm <= DateTime.UtcNow)
+            .OrderBy(x => x.DataCriacao)
+            .Take(Math.Min(request.Limite, 500))
+            .ToListAsync(cancellationToken);
+
+        if (emails.Count == 0)
+            return 0;
+
+        var agora = DateTime.UtcNow;
+
+        foreach (var email in emails)
+        {
+            email.TentativasProcessamento++;
+
+            try
+            {
+                await _emailNotificacaoSender.EnviarAsync(email, cancellationToken);
+                email.Status = StatusEmailNotificacao.Enviado;
+                email.DataProcessamento = agora;
+                email.ProximaTentativaEm = null;
+                email.UltimaMensagemErro = string.Empty;
+                email.DataAtualizacao = agora;
+            }
+            catch (Exception ex)
+            {
+                email.DataProcessamento = agora;
+                AtualizarFalha(email, ex.Message, agora);
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return emails.Count;
+    }
+
     public async Task<EmailNotificacaoOutboxResponse?> ReabrirEmailOutboxAsync(
         Guid emailId,
         CancellationToken cancellationToken = default)
