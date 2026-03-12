@@ -1,0 +1,6 @@
+@MeAjudaAi.Api_HostAddress = http://localhost:5231
+
+GET {{MeAjudaAi.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,7 @@
+**/bin/
+**/obj/
+**/TestResults/
+**/*.user
+**/*.suo
+backend/test-output.txt
+backend/src/MeAjudaAi.Api/Uploads/

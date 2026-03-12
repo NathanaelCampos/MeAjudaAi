@@ -1,0 +1,43 @@
+name: Backend CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore MeAjudaAi.sln
+
+      - name: Build
+        run: dotnet build MeAjudaAi.sln --configuration Release --no-restore
+
+      - name: Test
+        env:
+          ASPNETCORE_ENVIRONMENT: Testing
+        run: dotnet test MeAjudaAi.sln --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/**/TestResults/*.trx
