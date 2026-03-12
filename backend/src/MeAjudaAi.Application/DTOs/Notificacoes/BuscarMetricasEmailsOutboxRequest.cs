@@ -2,12 +2,10 @@ using MeAjudaAi.Domain.Enums;
 
 namespace MeAjudaAi.Application.DTOs.Notificacoes;
 
-public class EmailNotificacaoMetricasResponse
+public class BuscarMetricasEmailsOutboxRequest
 {
-    public int TotalRegistros { get; set; }
     public TipoNotificacao? TipoNotificacao { get; set; }
     public string? EmailDestino { get; set; }
     public DateTime? DataCriacaoInicial { get; set; }
     public DateTime? DataCriacaoFinal { get; set; }
-    public IReadOnlyList<EmailNotificacaoMetricaItemResponse> Itens { get; set; } = Array.Empty<EmailNotificacaoMetricaItemResponse>();
 }
