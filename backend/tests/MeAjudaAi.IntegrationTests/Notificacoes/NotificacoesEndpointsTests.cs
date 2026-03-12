@@ -1059,6 +1059,108 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.NotEmpty(dashboard.Tipos.Itens);
     }
 
+    [Fact]
+    public async Task AtualizarEmailsOutboxEmLote_DeveCancelarEReabrirPorFiltro()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-lote-email");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-lote-email");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var atualizarResponse = await profissionalClient.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias =
+            [
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = false,
+                    AtivoEmail = true
+                }
+            ]
+        });
+
+        Assert.Equal(HttpStatusCode.OK, atualizarResponse.StatusCode);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para lote",
+            Descricao = "Teste de operacao em lote",
+            ValorCombinado = 123m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var cancelarResponse = await adminClient.PutAsJsonAsync("/api/notificacoes/emails/cancelar-lote", new AtualizarEmailsOutboxEmLoteRequest
+        {
+            Status = StatusEmailNotificacao.Pendente,
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Limite = 10
+        });
+
+        var cancelamento = await cancelarResponse.Content.ReadFromJsonAsync<AtualizarEmailsOutboxEmLoteResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, cancelarResponse.StatusCode);
+        Assert.NotNull(cancelamento);
+        Assert.True(cancelamento!.QuantidadeAfetada > 0);
+
+        var cancelados = await adminClient.GetFromJsonAsync<PaginacaoResponse<EmailNotificacaoOutboxResponse>>(
+            $"/api/notificacoes/emails?status={StatusEmailNotificacao.Cancelado}&usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
+        Assert.NotNull(cancelados);
+        Assert.NotEmpty(cancelados!.Itens);
+
+        var reabrirResponse = await adminClient.PutAsJsonAsync("/api/notificacoes/emails/reabrir-lote", new AtualizarEmailsOutboxEmLoteRequest
+        {
+            Status = StatusEmailNotificacao.Cancelado,
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Limite = 10
+        });
+
+        var reabertura = await reabrirResponse.Content.ReadFromJsonAsync<AtualizarEmailsOutboxEmLoteResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, reabrirResponse.StatusCode);
+        Assert.NotNull(reabertura);
+        Assert.True(reabertura!.QuantidadeAfetada > 0);
+
+        var pendentes = await adminClient.GetFromJsonAsync<PaginacaoResponse<EmailNotificacaoOutboxResponse>>(
+            $"/api/notificacoes/emails?status={StatusEmailNotificacao.Pendente}&usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
+        Assert.NotNull(pendentes);
+        Assert.NotEmpty(pendentes!.Itens);
+    }
+
+    [Fact]
+    public async Task AtualizarEmailsOutboxEmLote_SemFiltro_DeveRetornarErroValidacao()
+    {
+        using var adminClient = _factory.CreateClient();
+        var authAdmin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var response = await adminClient.PutAsJsonAsync("/api/notificacoes/emails/cancelar-lote", new AtualizarEmailsOutboxEmLoteRequest
+        {
+            Limite = 10
+        });
+
+        var erro = await response.Content.ReadFromJsonAsync<IntegrationTests.Infrastructure.ErroValidacaoResponse>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.NotNull(erro);
+        Assert.Contains(erro!.Erros, x => x.Campo == string.Empty || x.Campo == "request");
+    }
+
     private static async Task<AuthResponse> RegistrarUsuarioAsync(HttpClient client, TipoPerfil tipoPerfil, string prefixo)
     {
         var response = await client.PostAsJsonAsync("/api/auth/registrar", new RegistrarUsuarioRequest

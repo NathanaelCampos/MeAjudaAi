@@ -181,30 +181,7 @@ public class NotificacaoService : INotificacaoService
         var pagina = request.Pagina <= 0 ? 1 : request.Pagina;
         var tamanhoPagina = request.TamanhoPagina <= 0 ? 20 : Math.Min(request.TamanhoPagina, 100);
 
-        var query = _context.Set<EmailNotificacaoOutbox>()
-            .AsNoTracking()
-            .Where(x => x.Ativo);
-
-        if (request.Status.HasValue)
-            query = query.Where(x => x.Status == request.Status.Value);
-
-        if (request.UsuarioId.HasValue)
-            query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
-
-        if (request.TipoNotificacao.HasValue)
-            query = query.Where(x => x.TipoNotificacao == request.TipoNotificacao.Value);
-
-        if (!string.IsNullOrWhiteSpace(request.EmailDestino))
-        {
-            var emailNormalizado = request.EmailDestino.Trim().ToLowerInvariant();
-            query = query.Where(x => x.EmailDestino.ToLower().Contains(emailNormalizado));
-        }
-
-        if (request.DataCriacaoInicial.HasValue)
-            query = query.Where(x => x.DataCriacao >= request.DataCriacaoInicial.Value);
-
-        if (request.DataCriacaoFinal.HasValue)
-            query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
+        var query = AplicarFiltrosEmailsOutbox(request).AsNoTracking();
 
         query = AplicarOrdenacaoOutbox(query, request.OrdenarPor, request.OrdemDesc);
 
@@ -320,6 +297,54 @@ public class NotificacaoService : INotificacaoService
         }
 
         return await ObterEmailOutboxPorIdAsync(emailId, cancellationToken);
+    }
+
+    public async Task<int> CancelarEmailsOutboxEmLoteAsync(
+        AtualizarEmailsOutboxEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var agora = DateTime.UtcNow;
+        var emails = await AplicarFiltrosEmailsOutbox(request)
+            .Where(x => x.Status != StatusEmailNotificacao.Enviado && x.Status != StatusEmailNotificacao.Cancelado)
+            .OrderBy(x => x.DataCriacao)
+            .Take(Math.Min(request.Limite, 500))
+            .ToListAsync(cancellationToken);
+
+        foreach (var email in emails)
+        {
+            email.Status = StatusEmailNotificacao.Cancelado;
+            email.ProximaTentativaEm = null;
+            email.DataAtualizacao = agora;
+        }
+
+        if (emails.Count > 0)
+            await _context.SaveChangesAsync(cancellationToken);
+
+        return emails.Count;
+    }
+
+    public async Task<int> ReabrirEmailsOutboxEmLoteAsync(
+        AtualizarEmailsOutboxEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var agora = DateTime.UtcNow;
+        var emails = await AplicarFiltrosEmailsOutbox(request)
+            .Where(x => x.Status != StatusEmailNotificacao.Enviado && x.Status != StatusEmailNotificacao.Pendente)
+            .OrderBy(x => x.DataCriacao)
+            .Take(Math.Min(request.Limite, 500))
+            .ToListAsync(cancellationToken);
+
+        foreach (var email in emails)
+        {
+            email.Status = StatusEmailNotificacao.Pendente;
+            email.ProximaTentativaEm = agora;
+            email.DataAtualizacao = agora;
+        }
+
+        if (emails.Count > 0)
+            await _context.SaveChangesAsync(cancellationToken);
+
+        return emails.Count;
     }
 
     public async Task<EmailNotificacaoOutboxResponse?> ReabrirEmailOutboxAsync(
@@ -571,6 +596,64 @@ public class NotificacaoService : INotificacaoService
         var query = _context.Set<EmailNotificacaoOutbox>()
             .AsNoTracking()
             .Where(x => x.Ativo);
+
+        if (request.TipoNotificacao.HasValue)
+            query = query.Where(x => x.TipoNotificacao == request.TipoNotificacao.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.EmailDestino))
+        {
+            var emailNormalizado = request.EmailDestino.Trim().ToLowerInvariant();
+            query = query.Where(x => x.EmailDestino.ToLower().Contains(emailNormalizado));
+        }
+
+        if (request.DataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= request.DataCriacaoInicial.Value);
+
+        if (request.DataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
+
+        return query;
+    }
+
+    private IQueryable<EmailNotificacaoOutbox> AplicarFiltrosEmailsOutbox(BuscarEmailsOutboxRequest request)
+    {
+        var query = _context.Set<EmailNotificacaoOutbox>()
+            .Where(x => x.Ativo);
+
+        if (request.Status.HasValue)
+            query = query.Where(x => x.Status == request.Status.Value);
+
+        if (request.UsuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
+
+        if (request.TipoNotificacao.HasValue)
+            query = query.Where(x => x.TipoNotificacao == request.TipoNotificacao.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.EmailDestino))
+        {
+            var emailNormalizado = request.EmailDestino.Trim().ToLowerInvariant();
+            query = query.Where(x => x.EmailDestino.ToLower().Contains(emailNormalizado));
+        }
+
+        if (request.DataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= request.DataCriacaoInicial.Value);
+
+        if (request.DataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
+
+        return query;
+    }
+
+    private IQueryable<EmailNotificacaoOutbox> AplicarFiltrosEmailsOutbox(AtualizarEmailsOutboxEmLoteRequest request)
+    {
+        var query = _context.Set<EmailNotificacaoOutbox>()
+            .Where(x => x.Ativo);
+
+        if (request.Status.HasValue)
+            query = query.Where(x => x.Status == request.Status.Value);
+
+        if (request.UsuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
 
         if (request.TipoNotificacao.HasValue)
             query = query.Where(x => x.TipoNotificacao == request.TipoNotificacao.Value);

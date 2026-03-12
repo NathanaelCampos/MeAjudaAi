@@ -44,6 +44,14 @@ public interface INotificacaoService
         Guid emailId,
         CancellationToken cancellationToken = default);
 
+    Task<int> CancelarEmailsOutboxEmLoteAsync(
+        AtualizarEmailsOutboxEmLoteRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<int> ReabrirEmailsOutboxEmLoteAsync(
+        AtualizarEmailsOutboxEmLoteRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<int> ReprocessarEmailsOutboxAsync(
         CancellationToken cancellationToken = default);
 

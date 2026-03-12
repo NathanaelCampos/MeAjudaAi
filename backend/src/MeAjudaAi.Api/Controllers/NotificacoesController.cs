@@ -205,6 +205,40 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPut("emails/cancelar-lote")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(AtualizarEmailsOutboxEmLoteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CancelarEmailsOutboxEmLote(
+        [FromBody] AtualizarEmailsOutboxEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var quantidade = await _notificacaoService.CancelarEmailsOutboxEmLoteAsync(request, cancellationToken);
+
+        return Ok(new AtualizarEmailsOutboxEmLoteResponse
+        {
+            QuantidadeAfetada = quantidade
+        });
+    }
+
+    [HttpPut("emails/reabrir-lote")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(AtualizarEmailsOutboxEmLoteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ReabrirEmailsOutboxEmLote(
+        [FromBody] AtualizarEmailsOutboxEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var quantidade = await _notificacaoService.ReabrirEmailsOutboxEmLoteAsync(request, cancellationToken);
+
+        return Ok(new AtualizarEmailsOutboxEmLoteResponse
+        {
+            QuantidadeAfetada = quantidade
+        });
+    }
+
     [HttpGet("emails/metricas")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(EmailNotificacaoMetricasResponse), StatusCodes.Status200OK)]
