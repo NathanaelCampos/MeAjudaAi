@@ -168,6 +168,30 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<NotificacaoAdminResponse?> ObterNotificacaoPorIdAsync(
+        Guid notificacaoId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Set<NotificacaoUsuario>()
+            .AsNoTracking()
+            .Where(x => x.Ativo && x.Id == notificacaoId)
+            .Select(x => new NotificacaoAdminResponse
+            {
+                Id = x.Id,
+                UsuarioId = x.UsuarioId,
+                NomeUsuario = x.Usuario.Nome,
+                EmailUsuario = x.Usuario.Email,
+                Tipo = x.Tipo,
+                Titulo = x.Titulo,
+                Mensagem = x.Mensagem,
+                ReferenciaId = x.ReferenciaId,
+                Lida = x.DataLeitura != null,
+                DataCriacao = x.DataCriacao,
+                DataLeitura = x.DataLeitura
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesAsync(
         Guid? usuarioId = null,
         TipoNotificacao? tipoNotificacao = null,

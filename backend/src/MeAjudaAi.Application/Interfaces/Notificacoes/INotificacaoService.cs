@@ -23,6 +23,10 @@ public interface INotificacaoService
         BuscarNotificacoesRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<NotificacaoAdminResponse?> ObterNotificacaoPorIdAsync(
+        Guid notificacaoId,
+        CancellationToken cancellationToken = default);
+
     Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesAsync(
         Guid? usuarioId = null,
         TipoNotificacao? tipoNotificacao = null,

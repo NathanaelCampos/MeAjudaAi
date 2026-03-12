@@ -258,6 +258,57 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ObterNotificacaoAdminPorId_DeveRetornarDetalheOu404()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-detalhe-admin-notif");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-detalhe-admin-notif");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para detalhe admin",
+            Descricao = "Gera notificacao para detalhe admin",
+            ValorCombinado = 111m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var notificacoes = await adminClient.GetFromJsonAsync<PaginacaoResponse<NotificacaoAdminResponse>>(
+            $"/api/notificacoes?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}&pagina=1&tamanhoPagina=10");
+
+        var notificacao = Assert.Single(notificacoes!.Itens);
+
+        var detalheResponse = await adminClient.GetAsync($"/api/notificacoes/{notificacao.Id}");
+        var detalhe = await detalheResponse.Content.ReadFromJsonAsync<NotificacaoAdminResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, detalheResponse.StatusCode);
+        Assert.NotNull(detalhe);
+        Assert.Equal(notificacao.Id, detalhe!.Id);
+        Assert.Equal(authProfissional.UsuarioId, detalhe.UsuarioId);
+        Assert.Equal(TipoNotificacao.ServicoSolicitado, detalhe.Tipo);
+
+        var inexistenteResponse = await adminClient.GetAsync($"/api/notificacoes/{Guid.NewGuid()}");
+        var inexistente = await inexistenteResponse.Content.ReadFromJsonAsync<IntegrationTests.Infrastructure.MensagemErroResponse>();
+
+        Assert.Equal(HttpStatusCode.NotFound, inexistenteResponse.StatusCode);
+        Assert.NotNull(inexistente);
+        Assert.Equal("Notificação não encontrada.", inexistente!.Mensagem);
+    }
+
+    [Fact]
     public async Task Preferencias_DeveListarDefaultsEPermitirAtualizacao()
     {
         using var client = _factory.CreateClient();

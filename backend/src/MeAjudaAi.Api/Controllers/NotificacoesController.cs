@@ -74,6 +74,28 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("{notificacaoId:guid}")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(NotificacaoAdminResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterPorId(
+        Guid notificacaoId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.ObterNotificacaoPorIdAsync(notificacaoId, cancellationToken);
+
+        if (response is null)
+        {
+            return NotFound(new MensagemErroResponse
+            {
+                Mensagem = "Notificação não encontrada."
+            });
+        }
+
+        return Ok(response);
+    }
+
     [HttpGet("minhas/nao-lidas/quantidade")]
     [ProducesResponseType(typeof(QuantidadeNotificacoesNaoLidasResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
