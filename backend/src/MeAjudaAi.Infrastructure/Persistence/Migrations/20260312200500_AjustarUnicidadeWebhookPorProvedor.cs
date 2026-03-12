@@ -1,9 +1,13 @@
+using MeAjudaAi.Infrastructure.Persistence.Contexts;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace MeAjudaAi.Infrastructure.Persistence.Migrations
 {
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260312200500_AjustarUnicidadeWebhookPorProvedor")]
     public partial class AjustarUnicidadeWebhookPorProvedor : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
