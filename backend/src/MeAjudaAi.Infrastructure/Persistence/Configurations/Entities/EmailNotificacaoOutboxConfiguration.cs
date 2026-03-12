@@ -43,7 +43,7 @@ public class EmailNotificacaoOutboxConfiguration : IEntityTypeConfiguration<Emai
         builder.Property(x => x.DataCriacao)
             .IsRequired();
 
-        builder.HasIndex(x => new { x.Status, x.DataCriacao });
+        builder.HasIndex(x => new { x.Status, x.ProximaTentativaEm });
         builder.HasIndex(x => x.UsuarioId);
 
         builder.HasOne(x => x.Usuario)

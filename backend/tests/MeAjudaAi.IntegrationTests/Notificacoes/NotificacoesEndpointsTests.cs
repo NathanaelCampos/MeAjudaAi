@@ -4,7 +4,11 @@ using MeAjudaAi.Application.DTOs.Impulsionamentos;
 using MeAjudaAi.Application.DTOs.Notificacoes;
 using MeAjudaAi.Application.DTOs.Servicos;
 using MeAjudaAi.Domain.Enums;
+using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using MeAjudaAi.IntegrationTests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MeAjudaAi.IntegrationTests.Notificacoes;
 
@@ -235,7 +239,10 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.NotNull(notificacoesProfissional);
         Assert.DoesNotContain(notificacoesProfissional!, x => x.Tipo == TipoNotificacao.ServicoSolicitado);
         Assert.NotNull(emailsOutbox);
-        Assert.Contains(emailsOutbox!, x => x.TipoNotificacao == TipoNotificacao.ServicoSolicitado && x.UsuarioId == authProfissional.UsuarioId);
+        Assert.Contains(emailsOutbox!, x =>
+            x.TipoNotificacao == TipoNotificacao.ServicoSolicitado &&
+            x.UsuarioId == authProfissional.UsuarioId &&
+            x.ProximaTentativaEm.HasValue);
     }
 
     [Fact]
@@ -343,11 +350,120 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
 
         var enviadosDepois = await adminClient.GetFromJsonAsync<List<EmailNotificacaoOutboxResponse>>($"/api/notificacoes/emails?status={StatusEmailNotificacao.Enviado}&usuarioId={authProfissional.UsuarioId}");
         Assert.NotNull(enviadosDepois);
-        Assert.Contains(enviadosDepois!, x => x.TipoNotificacao == TipoNotificacao.ServicoSolicitado && x.DataProcessamento.HasValue && x.TentativasProcessamento == 1);
+        Assert.Contains(enviadosDepois!, x =>
+            x.TipoNotificacao == TipoNotificacao.ServicoSolicitado &&
+            x.DataProcessamento.HasValue &&
+            x.TentativasProcessamento == 1 &&
+            !x.ProximaTentativaEm.HasValue);
 
         var metricas = await adminClient.GetFromJsonAsync<EmailNotificacaoMetricasResponse>("/api/notificacoes/emails/metricas");
         Assert.NotNull(metricas);
         Assert.Contains(metricas!.Itens, x => x.Status == StatusEmailNotificacao.Enviado && x.Quantidade > 0);
+    }
+
+    [Fact]
+    public async Task ReprocessarEmailsOutbox_DeveAplicarBackoffECancelarAoExcederTentativas()
+    {
+        using var configuredFactory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, configurationBuilder) =>
+            {
+                configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Emails:Notificacoes:SimularEnvio"] = "false",
+                    ["Emails:Notificacoes:MaxTentativas"] = "2",
+                    ["Emails:Notificacoes:AtrasoBaseSegundos"] = "30"
+                });
+            });
+        });
+
+        using var clienteClient = configuredFactory.CreateClient();
+        using var profissionalClient = configuredFactory.CreateClient();
+        using var adminClient = configuredFactory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-retry-email");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-retry-email");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var atualizarResponse = await profissionalClient.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias =
+            [
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = false,
+                    AtivoEmail = true
+                }
+            ]
+        });
+
+        Assert.Equal(HttpStatusCode.OK, atualizarResponse.StatusCode);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico com retry",
+            Descricao = "Teste de backoff do outbox",
+            ValorCombinado = 65m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var pendentesAntes = await adminClient.GetFromJsonAsync<List<EmailNotificacaoOutboxResponse>>($"/api/notificacoes/emails?status={StatusEmailNotificacao.Pendente}&usuarioId={authProfissional.UsuarioId}");
+        var emailPendente = Assert.Single(pendentesAntes!);
+        Assert.True(emailPendente.ProximaTentativaEm.HasValue);
+
+        var primeiraTentativaResponse = await adminClient.PostAsync("/api/notificacoes/emails/reprocessar", null);
+        var primeiraTentativa = await primeiraTentativaResponse.Content.ReadFromJsonAsync<ReprocessarEmailsOutboxResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, primeiraTentativaResponse.StatusCode);
+        Assert.NotNull(primeiraTentativa);
+        Assert.Equal(1, primeiraTentativa!.QuantidadeProcessada);
+
+        var falhasDepoisDaPrimeiraTentativa = await adminClient.GetFromJsonAsync<List<EmailNotificacaoOutboxResponse>>($"/api/notificacoes/emails?status={StatusEmailNotificacao.Falha}&usuarioId={authProfissional.UsuarioId}");
+        var emailComFalha = Assert.Single(falhasDepoisDaPrimeiraTentativa!);
+
+        Assert.Equal(1, emailComFalha.TentativasProcessamento);
+        Assert.True(emailComFalha.ProximaTentativaEm.HasValue);
+        Assert.NotNull(emailComFalha.DataProcessamento);
+        Assert.NotEmpty(emailComFalha.UltimaMensagemErro);
+        Assert.True(emailComFalha.ProximaTentativaEm > emailComFalha.DataProcessamento);
+
+        await using (var scope = configuredFactory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var email = await context.EmailsNotificacoesOutbox.SingleAsync(x => x.Id == emailComFalha.Id);
+            email.ProximaTentativaEm = DateTime.UtcNow.AddMinutes(-1);
+            await context.SaveChangesAsync();
+        }
+
+        var segundaTentativaResponse = await adminClient.PostAsync("/api/notificacoes/emails/reprocessar", null);
+        var segundaTentativa = await segundaTentativaResponse.Content.ReadFromJsonAsync<ReprocessarEmailsOutboxResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, segundaTentativaResponse.StatusCode);
+        Assert.NotNull(segundaTentativa);
+        Assert.Equal(1, segundaTentativa!.QuantidadeProcessada);
+
+        var cancelados = await adminClient.GetFromJsonAsync<List<EmailNotificacaoOutboxResponse>>($"/api/notificacoes/emails?status={StatusEmailNotificacao.Cancelado}&usuarioId={authProfissional.UsuarioId}");
+        var emailCancelado = Assert.Single(cancelados!);
+
+        Assert.Equal(2, emailCancelado.TentativasProcessamento);
+        Assert.False(emailCancelado.ProximaTentativaEm.HasValue);
+        Assert.NotNull(emailCancelado.DataProcessamento);
+        Assert.NotEmpty(emailCancelado.UltimaMensagemErro);
+
+        var metricas = await adminClient.GetFromJsonAsync<EmailNotificacaoMetricasResponse>("/api/notificacoes/emails/metricas");
+        Assert.NotNull(metricas);
+        Assert.Contains(metricas!.Itens, x => x.Status == StatusEmailNotificacao.Cancelado && x.Quantidade > 0);
     }
 
     private static async Task<AuthResponse> RegistrarUsuarioAsync(HttpClient client, TipoPerfil tipoPerfil, string prefixo)

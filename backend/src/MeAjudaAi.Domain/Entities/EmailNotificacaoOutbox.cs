@@ -13,6 +13,7 @@ public class EmailNotificacaoOutbox : EntityBase
     public Guid? ReferenciaId { get; set; }
     public StatusEmailNotificacao Status { get; set; } = StatusEmailNotificacao.Pendente;
     public int TentativasProcessamento { get; set; }
+    public DateTime? ProximaTentativaEm { get; set; }
     public DateTime? DataProcessamento { get; set; }
     public string UltimaMensagemErro { get; set; } = string.Empty;
 

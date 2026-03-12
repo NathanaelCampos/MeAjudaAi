@@ -57,18 +57,21 @@ public class EmailNotificacaoOutboxProcessor : BackgroundService
         await using var scope = _scopeFactory.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var sender = scope.ServiceProvider.GetRequiredService<IEmailNotificacaoSender>();
-        var lote = Math.Max(1, _options.Value.LoteProcessamento);
+        var options = _options.Value;
+        var lote = Math.Max(1, options.LoteProcessamento);
+        var agora = DateTime.UtcNow;
 
         var emails = await context.EmailsNotificacoesOutbox
-            .Where(x => x.Ativo && (x.Status == StatusEmailNotificacao.Pendente || x.Status == StatusEmailNotificacao.Falha))
+            .Where(x =>
+                x.Ativo &&
+                (x.Status == StatusEmailNotificacao.Pendente || x.Status == StatusEmailNotificacao.Falha) &&
+                (x.ProximaTentativaEm == null || x.ProximaTentativaEm <= agora))
             .OrderBy(x => x.DataCriacao)
             .Take(lote)
             .ToListAsync(cancellationToken);
 
         if (emails.Count == 0)
             return 0;
-
-        var agora = DateTime.UtcNow;
 
         foreach (var email in emails)
         {
@@ -79,13 +82,24 @@ public class EmailNotificacaoOutboxProcessor : BackgroundService
                 await sender.EnviarAsync(email, cancellationToken);
                 email.Status = StatusEmailNotificacao.Enviado;
                 email.DataProcessamento = agora;
+                email.ProximaTentativaEm = null;
                 email.UltimaMensagemErro = string.Empty;
                 email.DataAtualizacao = agora;
             }
             catch (Exception ex)
             {
-                email.Status = StatusEmailNotificacao.Falha;
                 email.DataProcessamento = agora;
+                if (email.TentativasProcessamento >= Math.Max(1, options.MaxTentativas))
+                {
+                    email.Status = StatusEmailNotificacao.Cancelado;
+                    email.ProximaTentativaEm = null;
+                }
+                else
+                {
+                    email.Status = StatusEmailNotificacao.Falha;
+                    email.ProximaTentativaEm = agora.AddSeconds(Math.Max(5, options.AtrasoBaseSegundos) * email.TentativasProcessamento);
+                }
+
                 email.UltimaMensagemErro = ex.Message;
                 email.DataAtualizacao = agora;
             }

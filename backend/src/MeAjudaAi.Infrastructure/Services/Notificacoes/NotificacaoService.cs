@@ -2,8 +2,10 @@ using MeAjudaAi.Application.DTOs.Notificacoes;
 using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
+using MeAjudaAi.Infrastructure.Configurations;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace MeAjudaAi.Infrastructure.Services.Notificacoes;
 
@@ -11,11 +13,16 @@ public class NotificacaoService : INotificacaoService
 {
     private readonly AppDbContext _context;
     private readonly IEmailNotificacaoSender _emailNotificacaoSender;
+    private readonly EmailNotificacaoOptions _emailOptions;
 
-    public NotificacaoService(AppDbContext context, IEmailNotificacaoSender emailNotificacaoSender)
+    public NotificacaoService(
+        AppDbContext context,
+        IEmailNotificacaoSender emailNotificacaoSender,
+        IOptions<EmailNotificacaoOptions> emailOptions)
     {
         _context = context;
         _emailNotificacaoSender = emailNotificacaoSender;
+        _emailOptions = emailOptions.Value;
     }
 
     public async Task CriarAsync(
@@ -64,7 +71,8 @@ public class NotificacaoService : INotificacaoService
                 EmailDestino = usuario.Email,
                 Assunto = titulo.Trim(),
                 Corpo = mensagem.Trim(),
-                ReferenciaId = referenciaId
+                ReferenciaId = referenciaId,
+                ProximaTentativaEm = DateTime.UtcNow
             });
         }
 
@@ -194,6 +202,7 @@ public class NotificacaoService : INotificacaoService
                 ReferenciaId = x.ReferenciaId,
                 Status = x.Status,
                 TentativasProcessamento = x.TentativasProcessamento,
+                ProximaTentativaEm = x.ProximaTentativaEm,
                 DataCriacao = x.DataCriacao,
                 DataProcessamento = x.DataProcessamento,
                 UltimaMensagemErro = x.UltimaMensagemErro
@@ -205,7 +214,10 @@ public class NotificacaoService : INotificacaoService
         CancellationToken cancellationToken = default)
     {
         var emails = await _context.Set<EmailNotificacaoOutbox>()
-            .Where(x => x.Ativo && (x.Status == StatusEmailNotificacao.Pendente || x.Status == StatusEmailNotificacao.Falha))
+            .Where(x =>
+                x.Ativo &&
+                (x.Status == StatusEmailNotificacao.Pendente || x.Status == StatusEmailNotificacao.Falha) &&
+                (x.ProximaTentativaEm == null || x.ProximaTentativaEm <= DateTime.UtcNow))
             .OrderBy(x => x.DataCriacao)
             .Take(100)
             .ToListAsync(cancellationToken);
@@ -224,15 +236,14 @@ public class NotificacaoService : INotificacaoService
                 await _emailNotificacaoSender.EnviarAsync(email, cancellationToken);
                 email.Status = StatusEmailNotificacao.Enviado;
                 email.DataProcessamento = agora;
+                email.ProximaTentativaEm = null;
                 email.UltimaMensagemErro = string.Empty;
                 email.DataAtualizacao = agora;
             }
             catch (Exception ex)
             {
-                email.Status = StatusEmailNotificacao.Falha;
                 email.DataProcessamento = agora;
-                email.UltimaMensagemErro = ex.Message;
-                email.DataAtualizacao = agora;
+                AtualizarFalha(email, ex.Message, agora);
             }
         }
 
@@ -260,6 +271,23 @@ public class NotificacaoService : INotificacaoService
         {
             Itens = itens
         };
+    }
+
+    private void AtualizarFalha(EmailNotificacaoOutbox email, string mensagemErro, DateTime agora)
+    {
+        if (email.TentativasProcessamento >= Math.Max(1, _emailOptions.MaxTentativas))
+        {
+            email.Status = StatusEmailNotificacao.Cancelado;
+            email.ProximaTentativaEm = null;
+        }
+        else
+        {
+            email.Status = StatusEmailNotificacao.Falha;
+            email.ProximaTentativaEm = agora.AddSeconds(Math.Max(5, _emailOptions.AtrasoBaseSegundos) * email.TentativasProcessamento);
+        }
+
+        email.UltimaMensagemErro = mensagemErro;
+        email.DataAtualizacao = agora;
     }
 
     public async Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(

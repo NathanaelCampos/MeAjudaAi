@@ -47,6 +47,12 @@ public static class InfrastructureDependencyInjection
             options.IntervaloSegundos = int.TryParse(emailSection["IntervaloSegundos"], out var intervaloSegundos)
                 ? intervaloSegundos
                 : 60;
+            options.AtrasoBaseSegundos = int.TryParse(emailSection["AtrasoBaseSegundos"], out var atrasoBaseSegundos)
+                ? atrasoBaseSegundos
+                : 60;
+            options.MaxTentativas = int.TryParse(emailSection["MaxTentativas"], out var maxTentativas)
+                ? maxTentativas
+                : 3;
             options.SimularEnvio = bool.TryParse(emailSection["SimularEnvio"], out var simularEnvio)
                 ? simularEnvio
                 : true;
