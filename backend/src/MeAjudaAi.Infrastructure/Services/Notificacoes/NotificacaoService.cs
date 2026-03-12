@@ -526,6 +526,28 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<EmailNotificacaoDashboardResponse> ObterDashboardEmailsOutboxAsync(
+        BuscarMetricasEmailsOutboxRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var resumo = await ObterMetricasEmailsOutboxAsync(request, cancellationToken);
+        var serie = await ObterMetricasSerieEmailsOutboxAsync(request, cancellationToken);
+        var destinatarios = await ObterMetricasDestinatariosEmailsOutboxAsync(request, cancellationToken);
+        var tipos = await ObterMetricasTiposEmailsOutboxAsync(request, cancellationToken);
+
+        return new EmailNotificacaoDashboardResponse
+        {
+            TipoNotificacao = request.TipoNotificacao,
+            EmailDestino = request.EmailDestino,
+            DataCriacaoInicial = request.DataCriacaoInicial,
+            DataCriacaoFinal = request.DataCriacaoFinal,
+            Resumo = resumo,
+            Serie = serie,
+            Destinatarios = destinatarios,
+            Tipos = tipos
+        };
+    }
+
     private void AtualizarFalha(EmailNotificacaoOutbox email, string mensagemErro, DateTime agora)
     {
         if (email.TentativasProcessamento >= Math.Max(1, _emailOptions.MaxTentativas))
