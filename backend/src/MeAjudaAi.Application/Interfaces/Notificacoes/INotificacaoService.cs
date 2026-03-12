@@ -1,4 +1,5 @@
 using MeAjudaAi.Application.DTOs.Notificacoes;
+using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Domain.Enums;
 
 namespace MeAjudaAi.Application.Interfaces.Notificacoes;
@@ -27,13 +28,8 @@ public interface INotificacaoService
         IReadOnlyList<PreferenciaNotificacaoItemRequest> preferencias,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<EmailNotificacaoOutboxResponse>> ListarEmailsOutboxAsync(
-        StatusEmailNotificacao? status = null,
-        Guid? usuarioId = null,
-        TipoNotificacao? tipoNotificacao = null,
-        string? emailDestino = null,
-        DateTime? dataCriacaoInicial = null,
-        DateTime? dataCriacaoFinal = null,
+    Task<PaginacaoResponse<EmailNotificacaoOutboxResponse>> ListarEmailsOutboxAsync(
+        BuscarEmailsOutboxRequest request,
         CancellationToken cancellationToken = default);
 
     Task<int> ReprocessarEmailsOutboxAsync(

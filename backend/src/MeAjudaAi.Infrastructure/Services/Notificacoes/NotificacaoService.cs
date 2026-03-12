@@ -1,4 +1,5 @@
 using MeAjudaAi.Application.DTOs.Notificacoes;
+using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
@@ -173,43 +174,44 @@ public class NotificacaoService : INotificacaoService
         return await ListarPreferenciasAsync(usuarioId, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<EmailNotificacaoOutboxResponse>> ListarEmailsOutboxAsync(
-        StatusEmailNotificacao? status = null,
-        Guid? usuarioId = null,
-        TipoNotificacao? tipoNotificacao = null,
-        string? emailDestino = null,
-        DateTime? dataCriacaoInicial = null,
-        DateTime? dataCriacaoFinal = null,
+    public async Task<PaginacaoResponse<EmailNotificacaoOutboxResponse>> ListarEmailsOutboxAsync(
+        BuscarEmailsOutboxRequest request,
         CancellationToken cancellationToken = default)
     {
+        var pagina = request.Pagina <= 0 ? 1 : request.Pagina;
+        var tamanhoPagina = request.TamanhoPagina <= 0 ? 20 : Math.Min(request.TamanhoPagina, 100);
+
         var query = _context.Set<EmailNotificacaoOutbox>()
             .AsNoTracking()
             .Where(x => x.Ativo);
 
-        if (status.HasValue)
-            query = query.Where(x => x.Status == status.Value);
+        if (request.Status.HasValue)
+            query = query.Where(x => x.Status == request.Status.Value);
 
-        if (usuarioId.HasValue)
-            query = query.Where(x => x.UsuarioId == usuarioId.Value);
+        if (request.UsuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
 
-        if (tipoNotificacao.HasValue)
-            query = query.Where(x => x.TipoNotificacao == tipoNotificacao.Value);
+        if (request.TipoNotificacao.HasValue)
+            query = query.Where(x => x.TipoNotificacao == request.TipoNotificacao.Value);
 
-        if (!string.IsNullOrWhiteSpace(emailDestino))
+        if (!string.IsNullOrWhiteSpace(request.EmailDestino))
         {
-            var emailNormalizado = emailDestino.Trim().ToLowerInvariant();
+            var emailNormalizado = request.EmailDestino.Trim().ToLowerInvariant();
             query = query.Where(x => x.EmailDestino.ToLower().Contains(emailNormalizado));
         }
 
-        if (dataCriacaoInicial.HasValue)
-            query = query.Where(x => x.DataCriacao >= dataCriacaoInicial.Value);
+        if (request.DataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= request.DataCriacaoInicial.Value);
 
-        if (dataCriacaoFinal.HasValue)
-            query = query.Where(x => x.DataCriacao <= dataCriacaoFinal.Value);
+        if (request.DataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
 
-        return await query
+        var totalRegistros = await query.CountAsync(cancellationToken);
+
+        var itens = await query
             .OrderByDescending(x => x.DataCriacao)
-            .Take(100)
+            .Skip((pagina - 1) * tamanhoPagina)
+            .Take(tamanhoPagina)
             .Select(x => new EmailNotificacaoOutboxResponse
             {
                 Id = x.Id,
@@ -227,6 +229,15 @@ public class NotificacaoService : INotificacaoService
                 UltimaMensagemErro = x.UltimaMensagemErro
             })
             .ToListAsync(cancellationToken);
+
+        return new PaginacaoResponse<EmailNotificacaoOutboxResponse>
+        {
+            PaginaAtual = pagina,
+            TamanhoPagina = tamanhoPagina,
+            TotalRegistros = totalRegistros,
+            TotalPaginas = totalRegistros == 0 ? 0 : (int)Math.Ceiling(totalRegistros / (double)tamanhoPagina),
+            Itens = itens
+        };
     }
 
     public async Task<int> ReprocessarEmailsOutboxAsync(

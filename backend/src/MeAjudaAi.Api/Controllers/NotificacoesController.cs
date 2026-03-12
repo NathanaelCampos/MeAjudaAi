@@ -103,7 +103,7 @@ public class NotificacoesController : ControllerBase
 
     [HttpGet("emails")]
     [Authorize(Roles = "Administrador")]
-    [ProducesResponseType(typeof(IReadOnlyList<EmailNotificacaoOutboxResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MeAjudaAi.Application.DTOs.Common.PaginacaoResponse<EmailNotificacaoOutboxResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ListarEmailsOutbox(
         [FromQuery] StatusEmailNotificacao? status = null,
@@ -112,15 +112,22 @@ public class NotificacoesController : ControllerBase
         [FromQuery] string? emailDestino = null,
         [FromQuery] DateTime? dataCriacaoInicial = null,
         [FromQuery] DateTime? dataCriacaoFinal = null,
+        [FromQuery] int pagina = 1,
+        [FromQuery] int tamanhoPagina = 20,
         CancellationToken cancellationToken = default)
     {
         var response = await _notificacaoService.ListarEmailsOutboxAsync(
-            status,
-            usuarioId,
-            tipoNotificacao,
-            emailDestino,
-            dataCriacaoInicial,
-            dataCriacaoFinal,
+            new BuscarEmailsOutboxRequest
+            {
+                Status = status,
+                UsuarioId = usuarioId,
+                TipoNotificacao = tipoNotificacao,
+                EmailDestino = emailDestino,
+                DataCriacaoInicial = dataCriacaoInicial,
+                DataCriacaoFinal = dataCriacaoFinal,
+                Pagina = pagina,
+                TamanhoPagina = tamanhoPagina
+            },
             cancellationToken);
 
         return Ok(response);
