@@ -940,6 +940,65 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
             x.Pendentes > 0);
     }
 
+    [Fact]
+    public async Task ObterMetricasTiposEmailsOutbox_DeveAgruparPorTipoEStatus()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-tipo-email");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-tipo-email");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var atualizarResponse = await profissionalClient.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias =
+            [
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = false,
+                    AtivoEmail = true
+                }
+            ]
+        });
+
+        Assert.Equal(HttpStatusCode.OK, atualizarResponse.StatusCode);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para tipo",
+            Descricao = "Teste de metricas por tipo",
+            ValorCombinado = 99m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var inicioJanela = Uri.EscapeDataString(DateTime.UtcNow.AddMinutes(-1).ToString("O"));
+        var fimJanela = Uri.EscapeDataString(DateTime.UtcNow.AddMinutes(1).ToString("O"));
+
+        var metricas = await adminClient.GetFromJsonAsync<EmailNotificacaoTiposMetricasResponse>(
+            $"/api/notificacoes/emails/metricas/tipos?emailDestino=teste.local&dataCriacaoInicial={inicioJanela}&dataCriacaoFinal={fimJanela}");
+
+        Assert.NotNull(metricas);
+        Assert.Equal("teste.local", metricas!.EmailDestino);
+        Assert.True(metricas.TotalRegistros > 0);
+        Assert.Contains(metricas.Itens, x =>
+            x.TipoNotificacao == TipoNotificacao.ServicoSolicitado &&
+            x.Total > 0 &&
+            x.Pendentes > 0);
+    }
+
     private static async Task<AuthResponse> RegistrarUsuarioAsync(HttpClient client, TipoPerfil tipoPerfil, string prefixo)
     {
         var response = await client.PostAsJsonAsync("/api/auth/registrar", new RegistrarUsuarioRequest

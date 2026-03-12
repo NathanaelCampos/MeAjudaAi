@@ -494,6 +494,38 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<EmailNotificacaoTiposMetricasResponse> ObterMetricasTiposEmailsOutboxAsync(
+        BuscarMetricasEmailsOutboxRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var query = AplicarFiltrosMetricasEmailsOutbox(request);
+        var totalRegistros = await query.CountAsync(cancellationToken);
+
+        var itens = await query
+            .GroupBy(x => x.TipoNotificacao)
+            .Select(x => new EmailNotificacaoTipoMetricaItemResponse
+            {
+                TipoNotificacao = x.Key,
+                Total = x.Count(),
+                Pendentes = x.Count(y => y.Status == StatusEmailNotificacao.Pendente),
+                Enviados = x.Count(y => y.Status == StatusEmailNotificacao.Enviado),
+                Falhas = x.Count(y => y.Status == StatusEmailNotificacao.Falha),
+                Cancelados = x.Count(y => y.Status == StatusEmailNotificacao.Cancelado)
+            })
+            .OrderByDescending(x => x.Total)
+            .ThenBy(x => x.TipoNotificacao)
+            .ToListAsync(cancellationToken);
+
+        return new EmailNotificacaoTiposMetricasResponse
+        {
+            TotalRegistros = totalRegistros,
+            EmailDestino = request.EmailDestino,
+            DataCriacaoInicial = request.DataCriacaoInicial,
+            DataCriacaoFinal = request.DataCriacaoFinal,
+            Itens = itens
+        };
+    }
+
     private void AtualizarFalha(EmailNotificacaoOutbox email, string mensagemErro, DateTime agora)
     {
         if (email.TentativasProcessamento >= Math.Max(1, _emailOptions.MaxTentativas))
