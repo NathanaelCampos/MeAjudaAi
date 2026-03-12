@@ -30,6 +30,9 @@ public class EmailNotificacaoOutboxConfiguration : IEntityTypeConfiguration<Emai
         builder.Property(x => x.Status)
             .IsRequired();
 
+        builder.Property(x => x.TentativasProcessamento)
+            .IsRequired();
+
         builder.Property(x => x.UltimaMensagemErro)
             .IsRequired()
             .HasMaxLength(500);

@@ -114,6 +114,17 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("emails/metricas")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(EmailNotificacaoMetricasResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterMetricasEmailsOutbox(
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.ObterMetricasEmailsOutboxAsync(cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPost("emails/reprocessar")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(ReprocessarEmailsOutboxResponse), StatusCodes.Status200OK)]

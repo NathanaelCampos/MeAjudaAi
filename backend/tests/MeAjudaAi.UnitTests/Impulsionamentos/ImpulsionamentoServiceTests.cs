@@ -476,6 +476,9 @@ public class ImpulsionamentoServiceTests
         public Task<int> ReprocessarEmailsOutboxAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(0);
 
+        public Task<EmailNotificacaoMetricasResponse> ObterMetricasEmailsOutboxAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new EmailNotificacaoMetricasResponse());
+
         public Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(Guid usuarioId, CancellationToken cancellationToken = default)
             => Task.FromResult(new QuantidadeNotificacoesNaoLidasResponse());
 

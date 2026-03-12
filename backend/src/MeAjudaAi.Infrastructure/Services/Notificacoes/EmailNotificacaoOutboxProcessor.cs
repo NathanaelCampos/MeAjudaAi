@@ -72,6 +72,8 @@ public class EmailNotificacaoOutboxProcessor : BackgroundService
 
         foreach (var email in emails)
         {
+            email.TentativasProcessamento++;
+
             try
             {
                 await sender.EnviarAsync(email, cancellationToken);

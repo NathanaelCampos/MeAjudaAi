@@ -193,6 +193,7 @@ public class NotificacaoService : INotificacaoService
                 Corpo = x.Corpo,
                 ReferenciaId = x.ReferenciaId,
                 Status = x.Status,
+                TentativasProcessamento = x.TentativasProcessamento,
                 DataCriacao = x.DataCriacao,
                 DataProcessamento = x.DataProcessamento,
                 UltimaMensagemErro = x.UltimaMensagemErro
@@ -216,6 +217,8 @@ public class NotificacaoService : INotificacaoService
 
         foreach (var email in emails)
         {
+            email.TentativasProcessamento++;
+
             try
             {
                 await _emailNotificacaoSender.EnviarAsync(email, cancellationToken);
@@ -236,6 +239,27 @@ public class NotificacaoService : INotificacaoService
         await _context.SaveChangesAsync(cancellationToken);
 
         return emails.Count;
+    }
+
+    public async Task<EmailNotificacaoMetricasResponse> ObterMetricasEmailsOutboxAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var itens = await _context.Set<EmailNotificacaoOutbox>()
+            .AsNoTracking()
+            .Where(x => x.Ativo)
+            .GroupBy(x => x.Status)
+            .Select(x => new EmailNotificacaoMetricaItemResponse
+            {
+                Status = x.Key,
+                Quantidade = x.Count()
+            })
+            .OrderBy(x => x.Status)
+            .ToListAsync(cancellationToken);
+
+        return new EmailNotificacaoMetricasResponse
+        {
+            Itens = itens
+        };
     }
 
     public async Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(

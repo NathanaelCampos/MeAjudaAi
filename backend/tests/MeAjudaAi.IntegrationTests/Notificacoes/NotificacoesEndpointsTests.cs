@@ -343,7 +343,11 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
 
         var enviadosDepois = await adminClient.GetFromJsonAsync<List<EmailNotificacaoOutboxResponse>>($"/api/notificacoes/emails?status={StatusEmailNotificacao.Enviado}&usuarioId={authProfissional.UsuarioId}");
         Assert.NotNull(enviadosDepois);
-        Assert.Contains(enviadosDepois!, x => x.TipoNotificacao == TipoNotificacao.ServicoSolicitado && x.DataProcessamento.HasValue);
+        Assert.Contains(enviadosDepois!, x => x.TipoNotificacao == TipoNotificacao.ServicoSolicitado && x.DataProcessamento.HasValue && x.TentativasProcessamento == 1);
+
+        var metricas = await adminClient.GetFromJsonAsync<EmailNotificacaoMetricasResponse>("/api/notificacoes/emails/metricas");
+        Assert.NotNull(metricas);
+        Assert.Contains(metricas!.Itens, x => x.Status == StatusEmailNotificacao.Enviado && x.Quantidade > 0);
     }
 
     private static async Task<AuthResponse> RegistrarUsuarioAsync(HttpClient client, TipoPerfil tipoPerfil, string prefixo)

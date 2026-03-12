@@ -35,6 +35,9 @@ public interface INotificacaoService
     Task<int> ReprocessarEmailsOutboxAsync(
         CancellationToken cancellationToken = default);
 
+    Task<EmailNotificacaoMetricasResponse> ObterMetricasEmailsOutboxAsync(
+        CancellationToken cancellationToken = default);
+
     Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(
         Guid usuarioId,
         CancellationToken cancellationToken = default);

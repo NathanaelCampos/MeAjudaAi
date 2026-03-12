@@ -12,6 +12,7 @@ public class EmailNotificacaoOutboxResponse
     public string Corpo { get; set; } = string.Empty;
     public Guid? ReferenciaId { get; set; }
     public StatusEmailNotificacao Status { get; set; }
+    public int TentativasProcessamento { get; set; }
     public DateTime DataCriacao { get; set; }
     public DateTime? DataProcessamento { get; set; }
     public string UltimaMensagemErro { get; set; } = string.Empty;
