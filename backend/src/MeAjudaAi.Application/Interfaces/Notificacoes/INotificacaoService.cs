@@ -36,6 +36,14 @@ public interface INotificacaoService
         Guid emailId,
         CancellationToken cancellationToken = default);
 
+    Task<EmailNotificacaoOutboxResponse?> CancelarEmailOutboxAsync(
+        Guid emailId,
+        CancellationToken cancellationToken = default);
+
+    Task<EmailNotificacaoOutboxResponse?> ReabrirEmailOutboxAsync(
+        Guid emailId,
+        CancellationToken cancellationToken = default);
+
     Task<int> ReprocessarEmailsOutboxAsync(
         CancellationToken cancellationToken = default);
 

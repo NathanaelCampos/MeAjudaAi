@@ -155,6 +155,52 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPut("emails/{emailId:guid}/cancelar")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(EmailNotificacaoOutboxResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CancelarEmailOutbox(
+        Guid emailId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.CancelarEmailOutboxAsync(emailId, cancellationToken);
+
+        if (response is null)
+        {
+            return NotFound(new MensagemErroResponse
+            {
+                Mensagem = "E-mail do outbox não encontrado."
+            });
+        }
+
+        return Ok(response);
+    }
+
+    [HttpPut("emails/{emailId:guid}/reabrir")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(EmailNotificacaoOutboxResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ReabrirEmailOutbox(
+        Guid emailId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.ReabrirEmailOutboxAsync(emailId, cancellationToken);
+
+        if (response is null)
+        {
+            return NotFound(new MensagemErroResponse
+            {
+                Mensagem = "E-mail do outbox não encontrado."
+            });
+        }
+
+        return Ok(response);
+    }
+
     [HttpGet("emails/metricas")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(EmailNotificacaoMetricasResponse), StatusCodes.Status200OK)]

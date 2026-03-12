@@ -266,6 +266,56 @@ public class NotificacaoService : INotificacaoService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<EmailNotificacaoOutboxResponse?> CancelarEmailOutboxAsync(
+        Guid emailId,
+        CancellationToken cancellationToken = default)
+    {
+        var email = await _context.Set<EmailNotificacaoOutbox>()
+            .FirstOrDefaultAsync(x => x.Id == emailId && x.Ativo, cancellationToken);
+
+        if (email is null)
+            return null;
+
+        if (email.Status == StatusEmailNotificacao.Enviado)
+            throw new InvalidOperationException("E-mail já enviado não pode ser cancelado.");
+
+        if (email.Status != StatusEmailNotificacao.Cancelado)
+        {
+            var agora = DateTime.UtcNow;
+            email.Status = StatusEmailNotificacao.Cancelado;
+            email.ProximaTentativaEm = null;
+            email.DataAtualizacao = agora;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        return await ObterEmailOutboxPorIdAsync(emailId, cancellationToken);
+    }
+
+    public async Task<EmailNotificacaoOutboxResponse?> ReabrirEmailOutboxAsync(
+        Guid emailId,
+        CancellationToken cancellationToken = default)
+    {
+        var email = await _context.Set<EmailNotificacaoOutbox>()
+            .FirstOrDefaultAsync(x => x.Id == emailId && x.Ativo, cancellationToken);
+
+        if (email is null)
+            return null;
+
+        if (email.Status == StatusEmailNotificacao.Enviado)
+            throw new InvalidOperationException("E-mail já enviado não pode ser reaberto.");
+
+        if (email.Status != StatusEmailNotificacao.Pendente)
+        {
+            var agora = DateTime.UtcNow;
+            email.Status = StatusEmailNotificacao.Pendente;
+            email.ProximaTentativaEm = agora;
+            email.DataAtualizacao = agora;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        return await ObterEmailOutboxPorIdAsync(emailId, cancellationToken);
+    }
+
     public async Task<int> ReprocessarEmailsOutboxAsync(
         CancellationToken cancellationToken = default)
     {

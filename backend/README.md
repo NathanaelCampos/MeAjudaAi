@@ -344,6 +344,16 @@ curl -s "http://localhost:5231/api/notificacoes/emails/EMAIL_ID" \
   -H "Authorization: Bearer SEU_TOKEN_ADMIN"
 ```
 
+Acoes operacionais no item do outbox:
+
+```bash
+curl -X PUT "http://localhost:5231/api/notificacoes/emails/EMAIL_ID/cancelar" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+
+curl -X PUT "http://localhost:5231/api/notificacoes/emails/EMAIL_ID/reabrir" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
 ## Troubleshooting
 
 ### `401 Webhook não autorizado.`

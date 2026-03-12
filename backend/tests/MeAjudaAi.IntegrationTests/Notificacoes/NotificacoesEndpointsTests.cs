@@ -360,6 +360,71 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task CancelarEReabrirEmailOutbox_DevePermitirControleAdminDaFila()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-cancelar-email");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-cancelar-email");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var atualizarResponse = await profissionalClient.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias =
+            [
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = false,
+                    AtivoEmail = true
+                }
+            ]
+        });
+
+        Assert.Equal(HttpStatusCode.OK, atualizarResponse.StatusCode);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para cancelar",
+            Descricao = "Teste de cancelamento do outbox",
+            ValorCombinado = 88m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var emails = await adminClient.GetFromJsonAsync<PaginacaoResponse<EmailNotificacaoOutboxResponse>>(
+            $"/api/notificacoes/emails?status={StatusEmailNotificacao.Pendente}&usuarioId={authProfissional.UsuarioId}");
+        var email = Assert.Single(emails!.Itens);
+
+        var cancelarResponse = await adminClient.PutAsync($"/api/notificacoes/emails/{email.Id}/cancelar", null);
+        var cancelado = await cancelarResponse.Content.ReadFromJsonAsync<EmailNotificacaoOutboxResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, cancelarResponse.StatusCode);
+        Assert.NotNull(cancelado);
+        Assert.Equal(StatusEmailNotificacao.Cancelado, cancelado!.Status);
+        Assert.False(cancelado.ProximaTentativaEm.HasValue);
+
+        var reabrirResponse = await adminClient.PutAsync($"/api/notificacoes/emails/{email.Id}/reabrir", null);
+        var reaberto = await reabrirResponse.Content.ReadFromJsonAsync<EmailNotificacaoOutboxResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, reabrirResponse.StatusCode);
+        Assert.NotNull(reaberto);
+        Assert.Equal(StatusEmailNotificacao.Pendente, reaberto!.Status);
+        Assert.True(reaberto.ProximaTentativaEm.HasValue);
+    }
+
+    [Fact]
     public async Task ReprocessarEmailsOutbox_DeveMarcarEmailsPendentesComoEnviados()
     {
         using var clienteClient = _factory.CreateClient();
