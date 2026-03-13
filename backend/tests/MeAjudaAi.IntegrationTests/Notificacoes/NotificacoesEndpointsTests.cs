@@ -522,9 +522,59 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.Equal(authProfissional.UsuarioId, dashboard!.UsuarioId);
         Assert.Equal(TipoNotificacao.ServicoSolicitado, dashboard.TipoNotificacao);
         Assert.True(dashboard.Resumo.TotalRegistros >= 1);
+        Assert.NotEmpty(dashboard.Serie.Itens);
         Assert.Equal(4, dashboard.Idade.Faixas.Count);
         Assert.NotEmpty(dashboard.Tipos.Tipos);
         Assert.NotEmpty(dashboard.Usuarios.Usuarios);
+    }
+
+    [Fact]
+    public async Task ObterSerieExclusaoNotificacoesArquivadas_DeveAgruparPorDia()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-serie-exclusao-arq");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-serie-exclusao-arq");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para serie de exclusao",
+            Descricao = "Gera notificacao arquivada para serie temporal",
+            ValorCombinado = 444m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var arquivarResponse = await adminClient.PutAsJsonAsync("/api/notificacoes/arquivar-lote", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = false,
+            Limite = 100
+        });
+
+        Assert.Equal(HttpStatusCode.OK, arquivarResponse.StatusCode);
+
+        var serie = await adminClient.GetFromJsonAsync<NotificacaoArquivadaMetricasSerieResponse>(
+            $"/api/notificacoes/arquivadas/excluir-lote/serie?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
+
+        Assert.NotNull(serie);
+        Assert.Equal(authProfissional.UsuarioId, serie!.UsuarioId);
+        Assert.Equal(TipoNotificacao.ServicoSolicitado, serie.TipoNotificacao);
+        Assert.True(serie.TotalRegistros >= 1);
+        Assert.NotEmpty(serie.Itens);
+        Assert.Contains(serie.Itens, x => x.Quantidade >= 1);
     }
 
     [Fact]

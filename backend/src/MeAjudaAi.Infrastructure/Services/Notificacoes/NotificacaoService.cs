@@ -679,6 +679,51 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<NotificacaoArquivadaMetricasSerieResponse> ObterSerieExclusaoNotificacoesArquivadasAsync(
+        Guid? usuarioId = null,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Set<NotificacaoUsuario>()
+            .AsNoTracking()
+            .Where(x => !x.Ativo);
+
+        if (usuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == usuarioId.Value);
+
+        if (tipoNotificacao.HasValue)
+            query = query.Where(x => x.Tipo == tipoNotificacao.Value);
+
+        if (dataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= dataCriacaoInicial.Value);
+
+        if (dataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= dataCriacaoFinal.Value);
+
+        var totalRegistros = await query.CountAsync(cancellationToken);
+        var itens = await query
+            .GroupBy(x => x.DataCriacao.Date)
+            .Select(x => new NotificacaoArquivadaMetricaSerieItemResponse
+            {
+                Data = x.Key,
+                Quantidade = x.Count()
+            })
+            .OrderBy(x => x.Data)
+            .ToListAsync(cancellationToken);
+
+        return new NotificacaoArquivadaMetricasSerieResponse
+        {
+            UsuarioId = usuarioId,
+            TipoNotificacao = tipoNotificacao,
+            DataCriacaoInicial = dataCriacaoInicial,
+            DataCriacaoFinal = dataCriacaoFinal,
+            TotalRegistros = totalRegistros,
+            Itens = itens
+        };
+    }
+
     public async Task<NotificacaoArquivadaExclusaoDashboardResponse> ObterDashboardExclusaoNotificacoesArquivadasAsync(
         Guid? usuarioId = null,
         TipoNotificacao? tipoNotificacao = null,
@@ -687,6 +732,13 @@ public class NotificacaoService : INotificacaoService
         CancellationToken cancellationToken = default)
     {
         var resumo = await ObterResumoOperacionalExclusaoNotificacoesArquivadasAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+
+        var serie = await ObterSerieExclusaoNotificacoesArquivadasAsync(
             usuarioId,
             tipoNotificacao,
             dataCriacaoInicial,
@@ -721,6 +773,7 @@ public class NotificacaoService : INotificacaoService
             DataCriacaoInicial = dataCriacaoInicial,
             DataCriacaoFinal = dataCriacaoFinal,
             Resumo = resumo,
+            Serie = serie,
             Idade = idade,
             Tipos = tipos,
             Usuarios = usuarios
