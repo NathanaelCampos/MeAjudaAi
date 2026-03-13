@@ -7,8 +7,12 @@ using MeAjudaAi.Application.DTOs.Admin;
 using MeAjudaAi.Application.DTOs.Auth;
 using MeAjudaAi.Application.DTOs.Impulsionamentos;
 using MeAjudaAi.Application.DTOs.Servicos;
+using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.IntegrationTests.Infrastructure;
+using MeAjudaAi.Infrastructure.Persistence.Contexts;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MeAjudaAi.IntegrationTests.Admin;
 
@@ -119,6 +123,8 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.True(payload.Pendencias.ServicosSolicitados >= 0);
         Assert.True(payload.Alertas.WebhooksFalhos >= 0);
         Assert.True(payload.Alertas.EmailsComFalha >= 0);
+        Assert.False(payload.Alertas.SemAcaoAdminRecenteSobRisco);
+        Assert.NotNull(payload.Alertas.UltimaAcaoAdminEm);
         Assert.Contains(payload.RiscoOperacional, ["baixo", "medio", "alto"]);
         Assert.NotNull(payload.ItensCriticosRecentes);
         Assert.True(payload.ItensCriticosRecentes.AvaliacoesPendentes.Count >= 1);
@@ -145,6 +151,62 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.False(string.IsNullOrWhiteSpace(payload.ResumoDecisorio.FocoPrincipal));
         Assert.False(string.IsNullOrWhiteSpace(payload.ResumoDecisorio.PrincipalGargalo));
         Assert.False(string.IsNullOrWhiteSpace(payload.ResumoDecisorio.RecomendacaoImediata));
+    }
+
+    [Fact]
+    public async Task Obter_DeveSinalizarRiscoAltoSemAcaoAdminRecente()
+    {
+        using var adminClient = _factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var adminUsuario = await context.Usuarios.FirstAsync(x => x.Id == admin.UsuarioId);
+            var dataAntiga = DateTime.UtcNow.AddDays(-2);
+
+            context.AuditoriasAdminAcoes.Add(new AuditoriaAdminAcao
+            {
+                AdminUsuarioId = adminUsuario.Id,
+                Entidade = "usuario",
+                EntidadeId = adminUsuario.Id,
+                Acao = "bloquear",
+                Descricao = "Acao antiga para teste",
+                PayloadJson = "{}",
+                DataCriacao = dataAntiga
+            });
+
+            context.WebhookPagamentoImpulsionamentoEventos.Add(new WebhookPagamentoImpulsionamentoEvento
+            {
+                Provedor = "manual",
+                EventoExternoId = $"evt-risco-{Guid.NewGuid():N}",
+                CodigoReferenciaPagamento = $"ref-risco-{Guid.NewGuid():N}",
+                StatusPagamento = "pago",
+                PayloadJson = "{}",
+                HeadersJson = "{}",
+                IpOrigem = "127.0.0.1",
+                RequestId = "req-risco-antigo",
+                UserAgent = "integration-test",
+                ProcessadoComSucesso = false,
+                MensagemResultado = "Falha simulada",
+                DataCriacao = DateTime.UtcNow
+            });
+
+            await context.SaveChangesAsync();
+        }
+
+        var response = await adminClient.GetAsync("/api/admin/dashboard");
+        var payload = await response.Content.ReadFromJsonAsync<AdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal("alto", payload!.RiscoOperacional);
+        Assert.True(payload.Alertas.SemAcaoAdminRecenteSobRisco);
+        Assert.NotNull(payload.Alertas.UltimaAcaoAdminEm);
+        Assert.Contains(payload.AcoesRecomendadas.Itens, x => x.Contains("Acionar administracao", StringComparison.Ordinal));
+        Assert.Contains("Sem acao administrativa recente", payload.ResumoDecisorio.PrincipalGargalo);
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)

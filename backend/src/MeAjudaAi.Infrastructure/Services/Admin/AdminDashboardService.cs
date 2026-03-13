@@ -8,6 +8,7 @@ namespace MeAjudaAi.Infrastructure.Services.Admin;
 
 public class AdminDashboardService : IAdminDashboardService
 {
+    private static readonly TimeSpan JanelaAcaoAdminRecente = TimeSpan.FromHours(24);
     private readonly AppDbContext _context;
 
     public AdminDashboardService(AppDbContext context)
@@ -77,6 +78,7 @@ public class AdminDashboardService : IAdminDashboardService
             .Select(x => (StatusEmailNotificacao?)x.Status)
             .FirstOrDefaultAsync(cancellationToken);
         var ultimaDataEmail = await _context.EmailsNotificacoesOutbox.MaxAsync(x => (DateTime?)x.DataCriacao, cancellationToken);
+        var ultimaAcaoAdminEm = await _context.AuditoriasAdminAcoes.MaxAsync(x => (DateTime?)x.DataCriacao, cancellationToken);
 
         var serieServicos = await _context.Servicos
             .AsNoTracking()
@@ -364,6 +366,17 @@ public class AdminDashboardService : IAdminDashboardService
             .Take(5)
             .ToListAsync(cancellationToken);
 
+        var riscoOperacional = CalcularRiscoOperacional(
+            totalWebhooks - webhooksSucesso,
+            emailsFalhas,
+            emailsPendentesAtrasados,
+            avaliacoesPendentes,
+            impulsionamentosPendentes,
+            servicosSolicitados);
+
+        var semAcaoAdminRecenteSobRisco = riscoOperacional == "alto" &&
+                                          (ultimaAcaoAdminEm == null || ultimaAcaoAdminEm <= agora.Subtract(JanelaAcaoAdminRecente));
+
         return new AdminDashboardResponse
         {
             Usuarios = new AdminDashboardUsuariosResponse
@@ -458,15 +471,11 @@ public class AdminDashboardService : IAdminDashboardService
             {
                 WebhooksFalhos = totalWebhooks - webhooksSucesso,
                 EmailsComFalha = emailsFalhas,
-                EmailsPendentesAtrasados = emailsPendentesAtrasados
+                EmailsPendentesAtrasados = emailsPendentesAtrasados,
+                SemAcaoAdminRecenteSobRisco = semAcaoAdminRecenteSobRisco,
+                UltimaAcaoAdminEm = ultimaAcaoAdminEm
             },
-            RiscoOperacional = CalcularRiscoOperacional(
-                totalWebhooks - webhooksSucesso,
-                emailsFalhas,
-                emailsPendentesAtrasados,
-                avaliacoesPendentes,
-                impulsionamentosPendentes,
-                servicosSolicitados),
+            RiscoOperacional = riscoOperacional,
             ItensCriticosRecentes = new AdminDashboardItensCriticosRecentesResponse
             {
                 WebhooksFalhos = webhooksFalhosRecentes,
@@ -481,7 +490,8 @@ public class AdminDashboardService : IAdminDashboardService
                     emailsPendentesAtrasados,
                     avaliacoesPendentes,
                     impulsionamentosPendentes,
-                    servicosSolicitados)
+                    servicosSolicitados,
+                    semAcaoAdminRecenteSobRisco)
             },
             TopProfissionaisEmAtencao = topProfissionaisEmAtencao,
             TopClientesEmAtencao = topClientesEmAtencao,
@@ -494,7 +504,8 @@ public class AdminDashboardService : IAdminDashboardService
                 emailsPendentesAtrasados,
                 avaliacoesPendentes,
                 impulsionamentosPendentes,
-                servicosSolicitados)
+                servicosSolicitados,
+                semAcaoAdminRecenteSobRisco)
         };
     }
 
@@ -538,9 +549,13 @@ public class AdminDashboardService : IAdminDashboardService
         int emailsPendentesAtrasados,
         int avaliacoesPendentes,
         int impulsionamentosPendentes,
-        int servicosSolicitados)
+        int servicosSolicitados,
+        bool semAcaoAdminRecenteSobRisco)
     {
         var itens = new List<string>();
+
+        if (semAcaoAdminRecenteSobRisco)
+            itens.Add("Acionar administracao para tratar backlog critico sem intervencao recente.");
 
         if (webhooksFalhos > 0)
             itens.Add("Revisar webhooks de pagamento com falha.");
@@ -572,7 +587,8 @@ public class AdminDashboardService : IAdminDashboardService
         int emailsPendentesAtrasados,
         int avaliacoesPendentes,
         int impulsionamentosPendentes,
-        int servicosSolicitados)
+        int servicosSolicitados,
+        bool semAcaoAdminRecenteSobRisco)
     {
         var situacaoGeral = CalcularRiscoOperacional(
             webhooksFalhos,
@@ -601,13 +617,17 @@ public class AdminDashboardService : IAdminDashboardService
             ? $"{principal.Valor} registro(s) em {principal.Nome}"
             : "Sem gargalo operacional relevante.";
 
+        if (semAcaoAdminRecenteSobRisco)
+            principalGargalo = $"{principalGargalo} Sem acao administrativa recente para esse nivel de risco.";
+
         var recomendacaoImediata = CriarAcoesRecomendadas(
             webhooksFalhos,
             emailsFalhas,
             emailsPendentesAtrasados,
             avaliacoesPendentes,
             impulsionamentosPendentes,
-            servicosSolicitados)[0];
+            servicosSolicitados,
+            semAcaoAdminRecenteSobRisco)[0];
 
         return new AdminDashboardResumoDecisorioResponse
         {
