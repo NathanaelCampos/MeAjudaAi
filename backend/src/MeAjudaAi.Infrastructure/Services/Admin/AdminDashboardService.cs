@@ -25,15 +25,18 @@ public class AdminDashboardService : IAdminDashboardService
     {
         var hoje = DateTime.UtcNow.Date;
         var agora = DateTime.UtcNow;
+        var presetPeriodo = NormalizarPresetPeriodo(request?.PresetPeriodo);
+        var (janelaQualidadePreset, janelaAcaoAdminPreset, janelaSeriePreset) = ObterJanelasDoPreset(presetPeriodo);
+
         var janelaQualidadeDias = request?.JanelaQualidadeDias is > 0
             ? request.JanelaQualidadeDias.Value
-            : _options.JanelaQualidadeDias;
+            : janelaQualidadePreset ?? _options.JanelaQualidadeDias;
         var janelaAcaoAdminRecenteHoras = request?.JanelaAcaoAdminRecenteHoras is > 0
             ? request.JanelaAcaoAdminRecenteHoras.Value
-            : _options.JanelaAcaoAdminRecenteHoras;
+            : janelaAcaoAdminPreset ?? _options.JanelaAcaoAdminRecenteHoras;
         var janelaSerieDias = request?.JanelaSerieDias is > 0
             ? request.JanelaSerieDias.Value
-            : _options.JanelaSerieDias;
+            : janelaSeriePreset ?? _options.JanelaSerieDias;
         var janelaAcaoAdminRecente = TimeSpan.FromHours(janelaAcaoAdminRecenteHoras);
         var janelaQualidadeOperacional = TimeSpan.FromDays(janelaQualidadeDias);
         var inicioJanelaQualidade = agora.Subtract(janelaQualidadeOperacional);
@@ -443,6 +446,7 @@ public class AdminDashboardService : IAdminDashboardService
         {
             Configuracao = new AdminDashboardConfiguracaoResponse
             {
+                PresetPeriodo = presetPeriodo ?? "custom",
                 JanelaQualidadeDias = janelaQualidadeDias,
                 JanelaAcaoAdminRecenteHoras = janelaAcaoAdminRecenteHoras,
                 JanelaSerieDias = janelaSerieDias
@@ -591,6 +595,33 @@ public class AdminDashboardService : IAdminDashboardService
                 impulsionamentosPendentes,
                 servicosSolicitados,
                 semAcaoAdminRecenteSobRisco)
+        };
+    }
+
+    private static string? NormalizarPresetPeriodo(string? presetPeriodo)
+    {
+        if (string.IsNullOrWhiteSpace(presetPeriodo))
+        {
+            return null;
+        }
+
+        return presetPeriodo.Trim().ToLowerInvariant() switch
+        {
+            "7d" => "7d",
+            "15d" => "15d",
+            "30d" => "30d",
+            _ => null
+        };
+    }
+
+    private static (int? JanelaQualidadeDias, int? JanelaAcaoAdminRecenteHoras, int? JanelaSerieDias) ObterJanelasDoPreset(string? presetPeriodo)
+    {
+        return presetPeriodo switch
+        {
+            "7d" => (7, 24, 7),
+            "15d" => (15, 48, 15),
+            "30d" => (30, 72, 30),
+            _ => (null, null, null)
         };
     }
 

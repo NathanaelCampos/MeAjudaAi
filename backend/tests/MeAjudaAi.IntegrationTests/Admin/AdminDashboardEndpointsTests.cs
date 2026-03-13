@@ -102,6 +102,7 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.NotNull(payload);
+        Assert.Equal("custom", payload!.Configuracao.PresetPeriodo);
         Assert.Equal(7, payload!.Configuracao.JanelaQualidadeDias);
         Assert.Equal(24, payload.Configuracao.JanelaAcaoAdminRecenteHoras);
         Assert.Equal(7, payload.Configuracao.JanelaSerieDias);
@@ -410,6 +411,25 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.NotNull(payload);
         Assert.Equal(15, payload!.Configuracao.JanelaSerieDias);
+    }
+
+    [Fact]
+    public async Task Obter_ComPresetPeriodo_DeveAplicarJanelasPadraoDoPreset()
+    {
+        using var adminClient = _factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var response = await adminClient.GetAsync("/api/admin/dashboard?presetPeriodo=30d");
+        var payload = await response.Content.ReadFromJsonAsync<AdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal("30d", payload!.Configuracao.PresetPeriodo);
+        Assert.Equal(30, payload.Configuracao.JanelaQualidadeDias);
+        Assert.Equal(72, payload.Configuracao.JanelaAcaoAdminRecenteHoras);
+        Assert.Equal(30, payload.Configuracao.JanelaSerieDias);
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
