@@ -36,7 +36,8 @@ public class AdminAvaliacoesEndpointsTests : IntegrationTestBase, IClassFixture<
         profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", profissional.Auth.Token);
         adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
 
-        var avaliacao = await CriarServicoEAvaliacaoAsync(clienteClient, profissionalClient, profissional.ProfissionalId, "avaliacao admin lista");
+        var resultado = await CriarServicoEAvaliacaoAsync(clienteClient, profissionalClient, profissional.ProfissionalId, "avaliacao admin lista");
+        var avaliacao = resultado.Avaliacao;
 
         var response = await adminClient.GetAsync($"/api/admin/avaliacoes?termo=avaliacao admin lista&profissionalId={profissional.ProfissionalId}&statusModeracaoComentario={StatusModeracaoComentario.Pendente}&pagina=1&tamanhoPagina=10");
         var payload = await response.Content.ReadFromJsonAsync<PaginacaoResponse<AvaliacaoAdminListItemResponse>>();
@@ -62,7 +63,8 @@ public class AdminAvaliacoesEndpointsTests : IntegrationTestBase, IClassFixture<
         profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", profissional.Auth.Token);
         adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
 
-        var avaliacao = await CriarServicoEAvaliacaoAsync(clienteClient, profissionalClient, profissional.ProfissionalId, "avaliacao admin detalhe");
+        var resultado = await CriarServicoEAvaliacaoAsync(clienteClient, profissionalClient, profissional.ProfissionalId, "avaliacao admin detalhe");
+        var avaliacao = resultado.Avaliacao;
 
         var response = await adminClient.GetAsync($"/api/admin/avaliacoes/{avaliacao.Id}");
         var payload = await response.Content.ReadFromJsonAsync<AvaliacaoAdminDetalheResponse>();
@@ -89,7 +91,44 @@ public class AdminAvaliacoesEndpointsTests : IntegrationTestBase, IClassFixture<
         Assert.Equal("Avaliação não encontrada.", payload!.Mensagem);
     }
 
-    private async Task<AvaliacaoResponse> CriarServicoEAvaliacaoAsync(
+    [Fact]
+    public async Task ObterDashboard_DeveRetornarConsolidadoDaAvaliacao()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var cliente = await RegistrarClienteAsync(clienteClient, "cliente-admin-avaliacoes-dashboard");
+        var profissional = await RegistrarProfissionalAsync(profissionalClient, "prof-admin-avaliacoes-dashboard");
+        var admin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cliente.Auth.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", profissional.Auth.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var resultado = await CriarServicoEAvaliacaoAsync(clienteClient, profissionalClient, profissional.ProfissionalId, "avaliacao admin dashboard");
+        var avaliacao = resultado.Avaliacao;
+        var servico = resultado.Servico;
+
+        var moderarResponse = await adminClient.PutAsJsonAsync($"/api/avaliacoes/{avaliacao.Id}/moderar", new ModerarAvaliacaoRequest
+        {
+            Acao = AcaoModeracaoAvaliacao.Aprovar
+        });
+        moderarResponse.EnsureSuccessStatusCode();
+
+        var response = await adminClient.GetAsync($"/api/admin/avaliacoes/{avaliacao.Id}/dashboard");
+        var payload = await response.Content.ReadFromJsonAsync<AvaliacaoAdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal(avaliacao.Id, payload!.Avaliacao.Id);
+        Assert.Equal(StatusModeracaoComentario.Aprovado, payload.Avaliacao.StatusModeracaoComentario);
+        Assert.Equal(servico.Id, payload.Servico.Id);
+        Assert.Equal("Servico avaliacao admin dashboard", payload.Servico.Titulo);
+        Assert.True(payload.Notificacoes.Total >= 1);
+    }
+
+    private async Task<ServicoEAvaliacaoCriados> CriarServicoEAvaliacaoAsync(
         HttpClient clienteClient,
         HttpClient profissionalClient,
         Guid profissionalId,
@@ -123,7 +162,8 @@ public class AdminAvaliacoesEndpointsTests : IntegrationTestBase, IClassFixture<
         });
 
         criarAvaliacaoResponse.EnsureSuccessStatusCode();
-        return (await criarAvaliacaoResponse.Content.ReadFromJsonAsync<AvaliacaoResponse>())!;
+        var avaliacao = (await criarAvaliacaoResponse.Content.ReadFromJsonAsync<AvaliacaoResponse>())!;
+        return new ServicoEAvaliacaoCriados(servico, avaliacao);
     }
 
     private static async Task<AuthResponse> LoginAdminAsync(HttpClient client)
@@ -179,4 +219,5 @@ public class AdminAvaliacoesEndpointsTests : IntegrationTestBase, IClassFixture<
 
     private sealed record ClienteRegistrado(AuthResponse Auth, string Email, string Senha);
     private sealed record ProfissionalRegistrado(AuthResponse Auth, Guid ProfissionalId, string Email, string Senha);
+    private sealed record ServicoEAvaliacaoCriados(ServicoResponse Servico, AvaliacaoResponse Avaliacao);
 }

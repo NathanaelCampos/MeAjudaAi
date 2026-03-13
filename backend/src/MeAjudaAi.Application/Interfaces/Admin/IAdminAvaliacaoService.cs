@@ -12,4 +12,8 @@ public interface IAdminAvaliacaoService
     Task<AvaliacaoAdminDetalheResponse?> ObterPorIdAsync(
         Guid avaliacaoId,
         CancellationToken cancellationToken = default);
+
+    Task<AvaliacaoAdminDashboardResponse?> ObterDashboardAsync(
+        Guid avaliacaoId,
+        CancellationToken cancellationToken = default);
 }

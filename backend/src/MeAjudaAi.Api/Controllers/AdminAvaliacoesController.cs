@@ -65,4 +65,20 @@ public class AdminAvaliacoesController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpGet("{avaliacaoId:guid}/dashboard")]
+    [ProducesResponseType(typeof(AvaliacaoAdminDashboardResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterDashboard(
+        Guid avaliacaoId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _adminAvaliacaoService.ObterDashboardAsync(avaliacaoId, cancellationToken);
+
+        if (response is null)
+            return NotFound(new MensagemErroResponse { Mensagem = "Avaliação não encontrada." });
+
+        return Ok(response);
+    }
 }

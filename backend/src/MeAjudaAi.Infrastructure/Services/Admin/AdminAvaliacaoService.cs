@@ -1,6 +1,7 @@
 using MeAjudaAi.Application.DTOs.Admin;
 using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.Interfaces.Admin;
+using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
 
@@ -120,5 +121,78 @@ public class AdminAvaliacaoService : IAdminAvaliacaoService
                 DataCriacao = x.DataCriacao
             })
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<AvaliacaoAdminDashboardResponse?> ObterDashboardAsync(
+        Guid avaliacaoId,
+        CancellationToken cancellationToken = default)
+    {
+        var avaliacao = await ObterPorIdAsync(avaliacaoId, cancellationToken);
+        if (avaliacao is null)
+            return null;
+
+        var servico = await _context.Servicos
+            .AsNoTracking()
+            .Include(x => x.Cliente).ThenInclude(x => x.Usuario)
+            .Include(x => x.Profissional).ThenInclude(x => x.Usuario)
+            .Include(x => x.Profissao)
+            .Include(x => x.Especialidade)
+            .Where(x => x.Id == avaliacao.ServicoId)
+            .Select(x => new AvaliacaoAdminDashboardServicoResponse
+            {
+                Id = x.Id,
+                Titulo = x.Titulo,
+                ClienteId = x.ClienteId,
+                ProfissionalId = x.ProfissionalId,
+                NomeCliente = x.Cliente.Usuario.Nome,
+                NomeProfissional = x.Profissional.NomeExibicao,
+                NomeProfissao = x.Profissao != null ? x.Profissao.Nome : null,
+                NomeEspecialidade = x.Especialidade != null ? x.Especialidade.Nome : null
+            })
+            .FirstAsync(cancellationToken);
+
+        var notificacoesQuery = _context.NotificacoesUsuarios
+            .AsNoTracking()
+            .Where(x => x.ReferenciaId == avaliacaoId);
+
+        var totalNotificacoes = await notificacoesQuery.CountAsync(cancellationToken);
+        var lidas = await notificacoesQuery.CountAsync(x => x.DataLeitura != null && x.Ativo, cancellationToken);
+        var naoLidas = await notificacoesQuery.CountAsync(x => x.DataLeitura == null && x.Ativo, cancellationToken);
+        var arquivadas = await notificacoesQuery.CountAsync(x => !x.Ativo, cancellationToken);
+        var ultimaDataNotificacao = await notificacoesQuery.MaxAsync(x => (DateTime?)x.DataCriacao, cancellationToken);
+
+        var emailsQuery = _context.EmailsNotificacoesOutbox
+            .AsNoTracking()
+            .Where(x => x.ReferenciaId == avaliacaoId);
+
+        var totalEmails = await emailsQuery.CountAsync(cancellationToken);
+        var pendentes = await emailsQuery.CountAsync(x => x.Status == StatusEmailNotificacao.Pendente, cancellationToken);
+        var enviados = await emailsQuery.CountAsync(x => x.Status == StatusEmailNotificacao.Enviado, cancellationToken);
+        var falhas = await emailsQuery.CountAsync(x => x.Status == StatusEmailNotificacao.Falha, cancellationToken);
+        var cancelados = await emailsQuery.CountAsync(x => x.Status == StatusEmailNotificacao.Cancelado, cancellationToken);
+        var ultimaDataEmail = await emailsQuery.MaxAsync(x => (DateTime?)x.DataCriacao, cancellationToken);
+
+        return new AvaliacaoAdminDashboardResponse
+        {
+            Avaliacao = avaliacao,
+            Servico = servico,
+            Notificacoes = new AvaliacaoAdminDashboardNotificacoesResponse
+            {
+                Total = totalNotificacoes,
+                Lidas = lidas,
+                NaoLidas = naoLidas,
+                Arquivadas = arquivadas,
+                UltimaDataCriacao = ultimaDataNotificacao
+            },
+            Emails = new AvaliacaoAdminDashboardEmailsResponse
+            {
+                Total = totalEmails,
+                Pendentes = pendentes,
+                Enviados = enviados,
+                Falhas = falhas,
+                Cancelados = cancelados,
+                UltimaDataCriacao = ultimaDataEmail
+            }
+        };
     }
 }
