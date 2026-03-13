@@ -522,6 +522,7 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.Equal(authProfissional.UsuarioId, dashboard!.UsuarioId);
         Assert.Equal(TipoNotificacao.ServicoSolicitado, dashboard.TipoNotificacao);
         Assert.Equal("baixo", dashboard.NivelOperacional);
+        Assert.Equal(20, dashboard.LimiteRecomendado);
         Assert.Equal(1, dashboard.QuantidadeLotesEstimados);
         Assert.True(dashboard.Resumo.TotalRegistros >= 1);
         Assert.True(dashboard.Leitura.TotalRegistros >= 1);

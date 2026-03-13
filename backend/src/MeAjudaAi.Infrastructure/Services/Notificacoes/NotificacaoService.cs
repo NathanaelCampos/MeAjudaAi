@@ -943,6 +943,7 @@ public class NotificacaoService : INotificacaoService
             DataCriacaoInicial = dataCriacaoInicial,
             DataCriacaoFinal = dataCriacaoFinal,
             NivelOperacional = limites.NivelOperacional,
+            LimiteRecomendado = limites.LimiteRecomendado,
             QuantidadeLotesEstimados = limites.QuantidadeLotesEstimados,
             Resumo = resumo,
             Leitura = leitura,
