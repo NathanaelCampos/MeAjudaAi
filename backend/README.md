@@ -296,6 +296,13 @@ curl -s "http://localhost:5231/api/notificacoes/arquivadas?usuarioId=USUARIO_ID&
   -H "Authorization: Bearer SEU_TOKEN_ADMIN"
 ```
 
+Detalhe admin de uma notificacao interna arquivada:
+
+```bash
+curl -s "http://localhost:5231/api/notificacoes/arquivadas/NOTIFICACAO_ID" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
 Dashboard de notificacoes internas por usuario:
 
 ```bash

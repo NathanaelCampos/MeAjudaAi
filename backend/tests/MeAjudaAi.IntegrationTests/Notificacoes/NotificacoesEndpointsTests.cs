@@ -309,6 +309,76 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ObterNotificacaoArquivadaPorId_DeveRetornarDetalheQuandoExistir()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-detalhe-arquivada");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-detalhe-arquivada");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para detalhe arquivado",
+            Descricao = "Gera notificacao interna arquivada detalhavel",
+            ValorCombinado = 104m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var arquivadasAntes = await adminClient.GetFromJsonAsync<PaginacaoResponse<NotificacaoAdminResponse>>(
+            $"/api/notificacoes?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}&lida=false&pagina=1&tamanhoPagina=10");
+
+        Assert.NotNull(arquivadasAntes);
+        var notificacao = Assert.Single(arquivadasAntes!.Itens);
+
+        var arquivarResponse = await adminClient.PutAsJsonAsync("/api/notificacoes/arquivar-lote", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = false,
+            Limite = 100
+        });
+
+        Assert.Equal(HttpStatusCode.OK, arquivarResponse.StatusCode);
+
+        var detalheResponse = await adminClient.GetAsync($"/api/notificacoes/arquivadas/{notificacao.Id}");
+        var detalhe = await detalheResponse.Content.ReadFromJsonAsync<NotificacaoAdminResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, detalheResponse.StatusCode);
+        Assert.NotNull(detalhe);
+        Assert.Equal(notificacao.Id, detalhe!.Id);
+        Assert.Equal(authProfissional.UsuarioId, detalhe.UsuarioId);
+        Assert.Equal(TipoNotificacao.ServicoSolicitado, detalhe.Tipo);
+    }
+
+    [Fact]
+    public async Task ObterNotificacaoArquivadaPorId_DeveRetornar404QuandoNaoExistir()
+    {
+        using var adminClient = _factory.CreateClient();
+        var authAdmin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var response = await adminClient.GetAsync($"/api/notificacoes/arquivadas/{Guid.NewGuid()}");
+        var erro = await response.Content.ReadFromJsonAsync<MeAjudaAi.Application.DTOs.Common.MensagemErroResponse>();
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.NotNull(erro);
+        Assert.Equal("Notificação arquivada não encontrada.", erro!.Mensagem);
+    }
+
+    [Fact]
     public async Task ListarNotificacoesAdmin_DevePermitirFiltrarPorUsuarioTipoELidaComPaginacao()
     {
         using var clienteClient = _factory.CreateClient();

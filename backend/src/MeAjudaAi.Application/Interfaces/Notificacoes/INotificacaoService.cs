@@ -35,6 +35,10 @@ public interface INotificacaoService
         Guid notificacaoId,
         CancellationToken cancellationToken = default);
 
+    Task<NotificacaoAdminResponse?> ObterNotificacaoArquivadaPorIdAsync(
+        Guid notificacaoId,
+        CancellationToken cancellationToken = default);
+
     Task<int> MarcarNotificacoesComoLidasEmLoteAsync(
         MarcarNotificacoesComoLidasEmLoteRequest request,
         CancellationToken cancellationToken = default);

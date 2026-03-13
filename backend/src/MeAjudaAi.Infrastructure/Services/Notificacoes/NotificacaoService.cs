@@ -257,9 +257,30 @@ public class NotificacaoService : INotificacaoService
         Guid notificacaoId,
         CancellationToken cancellationToken = default)
     {
+        return await ObterNotificacaoPorIdEAtividadeAsync(
+            notificacaoId,
+            ativo: true,
+            cancellationToken);
+    }
+
+    public async Task<NotificacaoAdminResponse?> ObterNotificacaoArquivadaPorIdAsync(
+        Guid notificacaoId,
+        CancellationToken cancellationToken = default)
+    {
+        return await ObterNotificacaoPorIdEAtividadeAsync(
+            notificacaoId,
+            ativo: false,
+            cancellationToken);
+    }
+
+    private async Task<NotificacaoAdminResponse?> ObterNotificacaoPorIdEAtividadeAsync(
+        Guid notificacaoId,
+        bool ativo,
+        CancellationToken cancellationToken)
+    {
         return await _context.Set<NotificacaoUsuario>()
             .AsNoTracking()
-            .Where(x => x.Ativo && x.Id == notificacaoId)
+            .Where(x => x.Ativo == ativo && x.Id == notificacaoId)
             .Select(x => new NotificacaoAdminResponse
             {
                 Id = x.Id,

@@ -149,6 +149,28 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("arquivadas/{notificacaoId:guid}")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(NotificacaoAdminResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterArquivadaPorId(
+        Guid notificacaoId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.ObterNotificacaoArquivadaPorIdAsync(notificacaoId, cancellationToken);
+
+        if (response is null)
+        {
+            return NotFound(new MensagemErroResponse
+            {
+                Mensagem = "Notificação arquivada não encontrada."
+            });
+        }
+
+        return Ok(response);
+    }
+
     [HttpPut("marcar-lidas-lote")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(AtualizarEmailsOutboxEmLoteResponse), StatusCodes.Status200OK)]
