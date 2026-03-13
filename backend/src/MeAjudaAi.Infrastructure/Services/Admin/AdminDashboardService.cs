@@ -694,6 +694,7 @@ public class AdminDashboardService : IAdminDashboardService
                 Status = "critico",
                 IndicadorCor = "vermelho",
                 PrioridadeVisual = "alta",
+                OrdemAtencao = 1,
                 Resumo = "Risco alto sem acao administrativa recente."
             };
         }
@@ -705,6 +706,7 @@ public class AdminDashboardService : IAdminDashboardService
                 Status = "critico",
                 IndicadorCor = "vermelho",
                 PrioridadeVisual = "alta",
+                OrdemAtencao = 1,
                 Resumo = "Operacao com falhas relevantes em canais ou backlog critico."
             };
         }
@@ -716,6 +718,7 @@ public class AdminDashboardService : IAdminDashboardService
                 Status = "atencao",
                 IndicadorCor = "amarelo",
                 PrioridadeVisual = "media",
+                OrdemAtencao = 2,
                 Resumo = "Operacao sob atencao com pendencias ou falhas pontuais."
             };
         }
@@ -725,6 +728,7 @@ public class AdminDashboardService : IAdminDashboardService
             Status = "saudavel",
             IndicadorCor = "verde",
             PrioridadeVisual = "baixa",
+            OrdemAtencao = 3,
             Resumo = "Operacao estavel com sinais controlados."
         };
     }
