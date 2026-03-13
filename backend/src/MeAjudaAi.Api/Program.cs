@@ -142,6 +142,7 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseAuthentication();
+app.UseMiddleware<UsuarioAtivoMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();

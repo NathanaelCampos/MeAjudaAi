@@ -83,6 +83,9 @@ public class AuthService : IAuthService
         if (usuario is null)
             throw new UnauthorizedAccessException("E-mail ou senha inválidos.");
 
+        if (!usuario.Ativo)
+            throw new UnauthorizedAccessException("Usuário inativo.");
+
         var senhaValida = _hashSenhaService.VerificarSenha(usuario, request.Senha, usuario.SenhaHash);
 
         if (!senhaValida)

@@ -1,7 +1,9 @@
 using MeAjudaAi.Application.Interfaces.Auth;
+using MeAjudaAi.Application.Interfaces.Admin;
 using MeAjudaAi.Application.Interfaces.Profissionais;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using MeAjudaAi.Infrastructure.Services.Auth;
+using MeAjudaAi.Infrastructure.Services.Admin;
 using MeAjudaAi.Infrastructure.Services.Profissionais;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -92,6 +94,7 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<IHashSenhaService, HashSenhaService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IAdminUsuarioService, AdminUsuarioService>();
         services.AddScoped<IProfissionalService, ProfissionalService>();
         services.AddScoped<IProfissaoService, ProfissaoService>();
         services.AddScoped<ICidadeService, CidadeService>();
