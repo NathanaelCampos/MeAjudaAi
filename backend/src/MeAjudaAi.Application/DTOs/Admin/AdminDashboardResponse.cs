@@ -19,6 +19,7 @@ public class AdminDashboardResponse
     public decimal? VariacaoComparativaPrincipal { get; set; }
     public string DirecaoComparativaPrincipal { get; set; } = "indisponivel";
     public string StatusComparativoPrincipal { get; set; } = "neutro";
+    public string IndicadorComparativoPrincipal { get; set; } = "amarelo";
     public AdminDashboardPendenciasResponse Pendencias { get; set; } = new();
     public AdminDashboardAlertasResponse Alertas { get; set; } = new();
     public string RiscoOperacional { get; set; } = "baixo";

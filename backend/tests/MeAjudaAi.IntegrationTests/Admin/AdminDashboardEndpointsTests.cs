@@ -448,6 +448,7 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.NotNull(payload.VariacaoComparativaPrincipal);
         Assert.Contains(payload.DirecaoComparativaPrincipal, ["alta", "queda", "estavel"]);
         Assert.Contains(payload.StatusComparativoPrincipal, ["positivo", "negativo", "neutro"]);
+        Assert.Contains(payload.IndicadorComparativoPrincipal, ["verde", "amarelo", "vermelho"]);
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
