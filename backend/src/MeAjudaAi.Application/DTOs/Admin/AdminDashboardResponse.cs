@@ -12,4 +12,7 @@ public class AdminDashboardResponse
     public AdminDashboardEmailsResponse Emails { get; set; } = new();
     public AdminDashboardSeriesResponse Series { get; set; } = new();
     public AdminDashboardTendenciasResponse Tendencias { get; set; } = new();
+    public AdminDashboardPendenciasResponse Pendencias { get; set; } = new();
+    public AdminDashboardAlertasResponse Alertas { get; set; } = new();
+    public string RiscoOperacional { get; set; } = "baixo";
 }

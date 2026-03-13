@@ -111,6 +111,12 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.True(payload.Tendencias.Servicos.Ultimos7Dias >= 1);
         Assert.True(payload.Tendencias.Avaliacoes.Ultimos7Dias >= 1);
         Assert.True(payload.Tendencias.Webhooks.Ultimos7Dias >= 1);
+        Assert.True(payload.Pendencias.AvaliacoesPendentesModeracao >= 1);
+        Assert.True(payload.Pendencias.ImpulsionamentosPendentesPagamento >= 0);
+        Assert.True(payload.Pendencias.ServicosSolicitados >= 0);
+        Assert.True(payload.Alertas.WebhooksFalhos >= 0);
+        Assert.True(payload.Alertas.EmailsComFalha >= 0);
+        Assert.Contains(payload.RiscoOperacional, ["baixo", "medio", "alto"]);
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)

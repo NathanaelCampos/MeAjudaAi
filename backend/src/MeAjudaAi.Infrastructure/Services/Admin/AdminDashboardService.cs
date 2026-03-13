@@ -18,6 +18,7 @@ public class AdminDashboardService : IAdminDashboardService
     public async Task<AdminDashboardResponse> ObterAsync(CancellationToken cancellationToken = default)
     {
         var hoje = DateTime.UtcNow.Date;
+        var agora = DateTime.UtcNow;
         var inicioUltimos7Dias = hoje.AddDays(-6);
         var inicioSeteDiasAnteriores = hoje.AddDays(-13);
         var fimSeteDiasAnteriores = hoje.AddDays(-7);
@@ -66,6 +67,11 @@ public class AdminDashboardService : IAdminDashboardService
         var emailsEnviados = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.Status == StatusEmailNotificacao.Enviado, cancellationToken);
         var emailsFalhas = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.Status == StatusEmailNotificacao.Falha, cancellationToken);
         var emailsCancelados = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.Status == StatusEmailNotificacao.Cancelado, cancellationToken);
+        var emailsPendentesAtrasados = await _context.EmailsNotificacoesOutbox.CountAsync(
+            x => x.Status == StatusEmailNotificacao.Pendente &&
+                 x.ProximaTentativaEm != null &&
+                 x.ProximaTentativaEm <= agora,
+            cancellationToken);
         var ultimoStatusEmail = await _context.EmailsNotificacoesOutbox
             .OrderByDescending(x => x.DataCriacao)
             .Select(x => (StatusEmailNotificacao?)x.Status)
@@ -209,7 +215,28 @@ public class AdminDashboardService : IAdminDashboardService
                 Avaliacoes = CriarTendencia(avaliacoesUltimos7Dias, avaliacoesSeteDiasAnteriores),
                 Webhooks = CriarTendencia(webhooksUltimos7Dias, webhooksSeteDiasAnteriores),
                 Emails = CriarTendencia(emailsUltimos7Dias, emailsSeteDiasAnteriores)
-            }
+            },
+            Pendencias = new AdminDashboardPendenciasResponse
+            {
+                AvaliacoesPendentesModeracao = avaliacoesPendentes,
+                ImpulsionamentosPendentesPagamento = impulsionamentosPendentes,
+                ServicosSolicitados = servicosSolicitados,
+                NotificacoesNaoLidas = notificacoesNaoLidas,
+                EmailsPendentes = emailsPendentes
+            },
+            Alertas = new AdminDashboardAlertasResponse
+            {
+                WebhooksFalhos = totalWebhooks - webhooksSucesso,
+                EmailsComFalha = emailsFalhas,
+                EmailsPendentesAtrasados = emailsPendentesAtrasados
+            },
+            RiscoOperacional = CalcularRiscoOperacional(
+                totalWebhooks - webhooksSucesso,
+                emailsFalhas,
+                emailsPendentesAtrasados,
+                avaliacoesPendentes,
+                impulsionamentosPendentes,
+                servicosSolicitados)
         };
     }
 
@@ -228,5 +255,22 @@ public class AdminDashboardService : IAdminDashboardService
             SeteDiasAnteriores = seteDiasAnteriores,
             VariacaoPercentual = variacaoPercentual
         };
+    }
+
+    private static string CalcularRiscoOperacional(
+        int webhooksFalhos,
+        int emailsFalhas,
+        int emailsPendentesAtrasados,
+        int avaliacoesPendentes,
+        int impulsionamentosPendentes,
+        int servicosSolicitados)
+    {
+        if (webhooksFalhos > 0 || emailsFalhas > 0 || emailsPendentesAtrasados > 0 || avaliacoesPendentes >= 5)
+            return "alto";
+
+        if (avaliacoesPendentes > 0 || impulsionamentosPendentes > 0 || servicosSolicitados > 0)
+            return "medio";
+
+        return "baixo";
     }
 }
