@@ -102,6 +102,8 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.NotNull(payload);
+        Assert.Equal(7, payload!.Configuracao.JanelaQualidadeDias);
+        Assert.Equal(24, payload.Configuracao.JanelaAcaoAdminRecenteHoras);
         Assert.True(payload!.Usuarios.Total >= 3);
         Assert.True(payload.Usuarios.Profissionais >= 1);
         Assert.True(payload.Usuarios.Clientes >= 1);

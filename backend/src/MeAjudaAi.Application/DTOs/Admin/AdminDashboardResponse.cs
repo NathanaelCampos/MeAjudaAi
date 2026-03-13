@@ -2,6 +2,7 @@ namespace MeAjudaAi.Application.DTOs.Admin;
 
 public class AdminDashboardResponse
 {
+    public AdminDashboardConfiguracaoResponse Configuracao { get; set; } = new();
     public AdminDashboardUsuariosResponse Usuarios { get; set; } = new();
     public AdminDashboardProfissionaisResponse Profissionais { get; set; } = new();
     public AdminDashboardServicosResponse Servicos { get; set; } = new();

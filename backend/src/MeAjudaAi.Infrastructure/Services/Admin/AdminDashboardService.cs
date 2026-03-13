@@ -1,27 +1,31 @@
 using MeAjudaAi.Application.DTOs.Admin;
 using MeAjudaAi.Application.Interfaces.Admin;
 using MeAjudaAi.Domain.Enums;
+using MeAjudaAi.Infrastructure.Configurations;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace MeAjudaAi.Infrastructure.Services.Admin;
 
 public class AdminDashboardService : IAdminDashboardService
 {
-    private static readonly TimeSpan JanelaAcaoAdminRecente = TimeSpan.FromHours(24);
-    private static readonly TimeSpan JanelaQualidadeOperacional = TimeSpan.FromDays(7);
     private readonly AppDbContext _context;
+    private readonly AdminDashboardOptions _options;
 
-    public AdminDashboardService(AppDbContext context)
+    public AdminDashboardService(AppDbContext context, IOptions<AdminDashboardOptions> options)
     {
         _context = context;
+        _options = options.Value;
     }
 
     public async Task<AdminDashboardResponse> ObterAsync(CancellationToken cancellationToken = default)
     {
         var hoje = DateTime.UtcNow.Date;
         var agora = DateTime.UtcNow;
-        var inicioJanelaQualidade = agora.Subtract(JanelaQualidadeOperacional);
+        var janelaAcaoAdminRecente = TimeSpan.FromHours(_options.JanelaAcaoAdminRecenteHoras);
+        var janelaQualidadeOperacional = TimeSpan.FromDays(_options.JanelaQualidadeDias);
+        var inicioJanelaQualidade = agora.Subtract(janelaQualidadeOperacional);
         var inicioUltimos7Dias = hoje.AddDays(-6);
         var inicioSeteDiasAnteriores = hoje.AddDays(-13);
         var fimSeteDiasAnteriores = hoje.AddDays(-7);
@@ -399,7 +403,7 @@ public class AdminDashboardService : IAdminDashboardService
             servicosSolicitados);
 
         var semAcaoAdminRecenteSobRisco = riscoOperacional == "alto" &&
-                                          (ultimaAcaoAdminEm == null || ultimaAcaoAdminEm <= agora.Subtract(JanelaAcaoAdminRecente));
+                                          (ultimaAcaoAdminEm == null || ultimaAcaoAdminEm <= agora.Subtract(janelaAcaoAdminRecente));
 
         var acoesRecomendadas = CriarAcoesRecomendadas(
             webhooksFalhosRecentesQuantidade,
@@ -422,6 +426,11 @@ public class AdminDashboardService : IAdminDashboardService
 
         return new AdminDashboardResponse
         {
+            Configuracao = new AdminDashboardConfiguracaoResponse
+            {
+                JanelaQualidadeDias = _options.JanelaQualidadeDias,
+                JanelaAcaoAdminRecenteHoras = _options.JanelaAcaoAdminRecenteHoras
+            },
             Usuarios = new AdminDashboardUsuariosResponse
             {
                 Total = totalUsuarios,

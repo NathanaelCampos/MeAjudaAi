@@ -91,6 +91,17 @@ public static class InfrastructureDependencyInjection
                 : true;
         });
 
+        var adminDashboardSection = configuration.GetSection("Admin:Dashboard");
+        services.Configure<AdminDashboardOptions>(options =>
+        {
+            options.JanelaQualidadeDias = int.TryParse(adminDashboardSection["JanelaQualidadeDias"], out var janelaQualidadeDias)
+                ? Math.Max(janelaQualidadeDias, 1)
+                : 7;
+            options.JanelaAcaoAdminRecenteHoras = int.TryParse(adminDashboardSection["JanelaAcaoAdminRecenteHoras"], out var janelaAcaoAdminRecenteHoras)
+                ? Math.Max(janelaAcaoAdminRecenteHoras, 1)
+                : 24;
+        });
+
         services.AddScoped<IHashSenhaService, HashSenhaService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthService, AuthService>();
