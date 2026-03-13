@@ -520,6 +520,11 @@ public class AdminDashboardService : IAdminDashboardService
                 PercentualSucessoEmails = CalcularPercentual(totalEmails, emailsEnviados),
                 PercentualFalhaEmails = CalcularPercentual(totalEmails, emailsFalhas)
             },
+            SaudeOperacional = CriarSaudeOperacional(
+                riscoOperacional,
+                semAcaoAdminRecenteSobRisco,
+                CalcularPercentual(totalWebhooks, totalWebhooks - webhooksSucesso),
+                CalcularPercentual(totalEmails, emailsFalhas)),
             ResumoDecisorio = CriarResumoDecisorio(
                 totalWebhooks - webhooksSucesso,
                 emailsFalhas,
@@ -674,5 +679,45 @@ public class AdminDashboardService : IAdminDashboardService
             return 0;
 
         return Math.Round((parcela / (decimal)total) * 100m, 2);
+    }
+
+    private static AdminDashboardSaudeOperacionalResponse CriarSaudeOperacional(
+        string riscoOperacional,
+        bool semAcaoAdminRecenteSobRisco,
+        decimal percentualFalhaWebhooks,
+        decimal percentualFalhaEmails)
+    {
+        if (semAcaoAdminRecenteSobRisco)
+        {
+            return new AdminDashboardSaudeOperacionalResponse
+            {
+                Status = "critico",
+                Resumo = "Risco alto sem acao administrativa recente."
+            };
+        }
+
+        if (riscoOperacional == "alto" || percentualFalhaWebhooks >= 20m || percentualFalhaEmails >= 20m)
+        {
+            return new AdminDashboardSaudeOperacionalResponse
+            {
+                Status = "critico",
+                Resumo = "Operacao com falhas relevantes em canais ou backlog critico."
+            };
+        }
+
+        if (riscoOperacional == "medio" || percentualFalhaWebhooks > 0m || percentualFalhaEmails > 0m)
+        {
+            return new AdminDashboardSaudeOperacionalResponse
+            {
+                Status = "atencao",
+                Resumo = "Operacao sob atencao com pendencias ou falhas pontuais."
+            };
+        }
+
+        return new AdminDashboardSaudeOperacionalResponse
+        {
+            Status = "saudavel",
+            Resumo = "Operacao estavel com sinais controlados."
+        };
     }
 }

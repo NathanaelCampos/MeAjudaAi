@@ -24,5 +24,6 @@ public class AdminDashboardResponse
     public List<AdminDashboardAdminAtivoItemResponse> TopAdminsAtivos { get; set; } = [];
     public AdminDashboardSlaOperacionalResponse SlaOperacional { get; set; } = new();
     public AdminDashboardDisponibilidadeOperacionalResponse DisponibilidadeOperacional { get; set; } = new();
+    public AdminDashboardSaudeOperacionalResponse SaudeOperacional { get; set; } = new();
     public AdminDashboardResumoDecisorioResponse ResumoDecisorio { get; set; } = new();
 }
