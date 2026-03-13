@@ -74,6 +74,25 @@ public class AdminAuditoriaEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal("Auditoria não encontrada.", payload!.Mensagem);
     }
 
+    [Fact]
+    public async Task ExecutarAcaoAdminForaDoModuloAdmin_DeveGerarAuditoria()
+    {
+        using var adminClient = _factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var importacaoResponse = await adminClient.PostAsync("/api/importacao/geografia", null);
+        Assert.Equal(HttpStatusCode.OK, importacaoResponse.StatusCode);
+
+        var buscaResponse = await adminClient.GetAsync($"/api/admin/auditoria?adminUsuarioId={admin.UsuarioId}&entidade=importacao&acao=importargeografia&pagina=1&tamanhoPagina=20");
+        var buscaPayload = await buscaResponse.Content.ReadFromJsonAsync<PaginacaoResponse<AuditoriaAdminListItemResponse>>();
+
+        Assert.Equal(HttpStatusCode.OK, buscaResponse.StatusCode);
+        Assert.NotNull(buscaPayload);
+        Assert.Contains(buscaPayload!.Itens, x => x.Entidade == "importacao" && x.Acao == "importargeografia");
+    }
+
     private static async Task<(Guid UsuarioId, string Token)> RegistrarUsuarioAsync(HttpClient client, TipoPerfil tipoPerfil, string prefixo)
     {
         var email = $"{prefixo}-{Guid.NewGuid():N}@teste.local";

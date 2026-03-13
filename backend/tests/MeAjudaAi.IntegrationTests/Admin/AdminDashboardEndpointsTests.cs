@@ -241,6 +241,62 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Contains("Sem acao administrativa recente", payload.ResumoDecisorio.PrincipalGargalo);
     }
 
+    [Fact]
+    public async Task Obter_DeveIgnorarFalhasAntigasNaSaudeOperacional()
+    {
+        using var adminClient = _factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var dataAntiga = DateTime.UtcNow.AddDays(-10);
+
+            context.WebhookPagamentoImpulsionamentoEventos.Add(new WebhookPagamentoImpulsionamentoEvento
+            {
+                Provedor = "manual",
+                EventoExternoId = $"evt-antigo-{Guid.NewGuid():N}",
+                CodigoReferenciaPagamento = $"ref-antigo-{Guid.NewGuid():N}",
+                StatusPagamento = "pago",
+                PayloadJson = "{}",
+                HeadersJson = "{}",
+                IpOrigem = "127.0.0.1",
+                RequestId = "req-antigo-webhook",
+                UserAgent = "integration-test",
+                ProcessadoComSucesso = false,
+                MensagemResultado = "Falha antiga",
+                DataCriacao = dataAntiga
+            });
+
+            context.EmailsNotificacoesOutbox.Add(new EmailNotificacaoOutbox
+            {
+                Id = Guid.NewGuid(),
+                UsuarioId = admin.UsuarioId,
+                TipoNotificacao = TipoNotificacao.ImpulsionamentoAtivado,
+                EmailDestino = TestWebApplicationFactory.EmailAdmin,
+                Assunto = "Falha antiga",
+                Corpo = "Falha antiga de email",
+                Status = StatusEmailNotificacao.Falha,
+                UltimaMensagemErro = "Falha antiga",
+                DataCriacao = dataAntiga
+            });
+
+            await context.SaveChangesAsync();
+        }
+
+        var response = await adminClient.GetAsync("/api/admin/dashboard");
+        var payload = await response.Content.ReadFromJsonAsync<AdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal(0m, payload!.DisponibilidadeOperacional.PercentualFalhaWebhooks);
+        Assert.Equal(0m, payload.DisponibilidadeOperacional.PercentualFalhaEmails);
+        Assert.Equal("baixo", payload.RiscoOperacional);
+        Assert.Equal("saudavel", payload.SaudeOperacional.Status);
+    }
+
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/pagamentos/impulsionamentos")

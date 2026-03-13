@@ -9,6 +9,7 @@ namespace MeAjudaAi.Infrastructure.Services.Admin;
 public class AdminDashboardService : IAdminDashboardService
 {
     private static readonly TimeSpan JanelaAcaoAdminRecente = TimeSpan.FromHours(24);
+    private static readonly TimeSpan JanelaQualidadeOperacional = TimeSpan.FromDays(7);
     private readonly AppDbContext _context;
 
     public AdminDashboardService(AppDbContext context)
@@ -20,6 +21,7 @@ public class AdminDashboardService : IAdminDashboardService
     {
         var hoje = DateTime.UtcNow.Date;
         var agora = DateTime.UtcNow;
+        var inicioJanelaQualidade = agora.Subtract(JanelaQualidadeOperacional);
         var inicioUltimos7Dias = hoje.AddDays(-6);
         var inicioSeteDiasAnteriores = hoje.AddDays(-13);
         var fimSeteDiasAnteriores = hoje.AddDays(-7);
@@ -56,6 +58,12 @@ public class AdminDashboardService : IAdminDashboardService
 
         var totalWebhooks = await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(cancellationToken);
         var webhooksSucesso = await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(x => x.ProcessadoComSucesso, cancellationToken);
+        var totalWebhooksRecentes = await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(
+            x => x.DataCriacao >= inicioJanelaQualidade,
+            cancellationToken);
+        var webhooksSucessoRecentes = await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(
+            x => x.DataCriacao >= inicioJanelaQualidade && x.ProcessadoComSucesso,
+            cancellationToken);
         var ultimaDataWebhook = await _context.WebhookPagamentoImpulsionamentoEventos.MaxAsync(x => (DateTime?)x.DataCriacao, cancellationToken);
 
         var notificacoesAtivas = await _context.NotificacoesUsuarios.CountAsync(x => x.Ativo, cancellationToken);
@@ -68,6 +76,15 @@ public class AdminDashboardService : IAdminDashboardService
         var emailsEnviados = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.Status == StatusEmailNotificacao.Enviado, cancellationToken);
         var emailsFalhas = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.Status == StatusEmailNotificacao.Falha, cancellationToken);
         var emailsCancelados = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.Status == StatusEmailNotificacao.Cancelado, cancellationToken);
+        var totalEmailsRecentes = await _context.EmailsNotificacoesOutbox.CountAsync(
+            x => x.DataCriacao >= inicioJanelaQualidade,
+            cancellationToken);
+        var emailsEnviadosRecentes = await _context.EmailsNotificacoesOutbox.CountAsync(
+            x => x.DataCriacao >= inicioJanelaQualidade && x.Status == StatusEmailNotificacao.Enviado,
+            cancellationToken);
+        var emailsFalhasRecentes = await _context.EmailsNotificacoesOutbox.CountAsync(
+            x => x.DataCriacao >= inicioJanelaQualidade && x.Status == StatusEmailNotificacao.Falha,
+            cancellationToken);
         var emailsPendentesAtrasados = await _context.EmailsNotificacoesOutbox.CountAsync(
             x => x.Status == StatusEmailNotificacao.Pendente &&
                  x.ProximaTentativaEm != null &&
@@ -372,9 +389,10 @@ public class AdminDashboardService : IAdminDashboardService
             .Take(5)
             .ToListAsync(cancellationToken);
 
+        var webhooksFalhosRecentesQuantidade = totalWebhooksRecentes - webhooksSucessoRecentes;
         var riscoOperacional = CalcularRiscoOperacional(
-            totalWebhooks - webhooksSucesso,
-            emailsFalhas,
+            webhooksFalhosRecentesQuantidade,
+            emailsFalhasRecentes,
             emailsPendentesAtrasados,
             avaliacoesPendentes,
             impulsionamentosPendentes,
@@ -384,8 +402,8 @@ public class AdminDashboardService : IAdminDashboardService
                                           (ultimaAcaoAdminEm == null || ultimaAcaoAdminEm <= agora.Subtract(JanelaAcaoAdminRecente));
 
         var acoesRecomendadas = CriarAcoesRecomendadas(
-            totalWebhooks - webhooksSucesso,
-            emailsFalhas,
+            webhooksFalhosRecentesQuantidade,
+            emailsFalhasRecentes,
             emailsPendentesAtrasados,
             avaliacoesPendentes,
             impulsionamentosPendentes,
@@ -393,8 +411,8 @@ public class AdminDashboardService : IAdminDashboardService
             semAcaoAdminRecenteSobRisco);
 
         var destinoOperacionalPrimario = ObterDestinoOperacionalPrimario(
-            totalWebhooks - webhooksSucesso,
-            emailsFalhas,
+            webhooksFalhosRecentesQuantidade,
+            emailsFalhasRecentes,
             emailsPendentesAtrasados,
             avaliacoesPendentes,
             impulsionamentosPendentes,
@@ -494,8 +512,8 @@ public class AdminDashboardService : IAdminDashboardService
             },
             Alertas = new AdminDashboardAlertasResponse
             {
-                WebhooksFalhos = totalWebhooks - webhooksSucesso,
-                EmailsComFalha = emailsFalhas,
+                WebhooksFalhos = webhooksFalhosRecentesQuantidade,
+                EmailsComFalha = emailsFalhasRecentes,
                 EmailsPendentesAtrasados = emailsPendentesAtrasados,
                 SemAcaoAdminRecenteSobRisco = semAcaoAdminRecenteSobRisco,
                 UltimaAcaoAdminEm = ultimaAcaoAdminEm
@@ -527,22 +545,22 @@ public class AdminDashboardService : IAdminDashboardService
             },
             DisponibilidadeOperacional = new AdminDashboardDisponibilidadeOperacionalResponse
             {
-                PercentualSucessoWebhooks = CalcularPercentual(totalWebhooks, webhooksSucesso),
-                PercentualFalhaWebhooks = CalcularPercentual(totalWebhooks, totalWebhooks - webhooksSucesso),
-                PercentualSucessoEmails = CalcularPercentual(totalEmails, emailsEnviados),
-                PercentualFalhaEmails = CalcularPercentual(totalEmails, emailsFalhas)
+                PercentualSucessoWebhooks = CalcularPercentual(totalWebhooksRecentes, webhooksSucessoRecentes),
+                PercentualFalhaWebhooks = CalcularPercentual(totalWebhooksRecentes, webhooksFalhosRecentesQuantidade),
+                PercentualSucessoEmails = CalcularPercentual(totalEmailsRecentes, emailsEnviadosRecentes),
+                PercentualFalhaEmails = CalcularPercentual(totalEmailsRecentes, emailsFalhasRecentes)
             },
             SaudeOperacional = CriarSaudeOperacional(
                 riscoOperacional,
                 semAcaoAdminRecenteSobRisco,
-                CalcularPercentual(totalWebhooks, totalWebhooks - webhooksSucesso),
-                CalcularPercentual(totalEmails, emailsFalhas),
+                CalcularPercentual(totalWebhooksRecentes, webhooksFalhosRecentesQuantidade),
+                CalcularPercentual(totalEmailsRecentes, emailsFalhasRecentes),
                 acoesRecomendadas,
                 destinoOperacionalPrimario,
                 linkOperacionalSugerido),
             ResumoDecisorio = CriarResumoDecisorio(
-                totalWebhooks - webhooksSucesso,
-                emailsFalhas,
+                webhooksFalhosRecentesQuantidade,
+                emailsFalhasRecentes,
                 emailsPendentesAtrasados,
                 avaliacoesPendentes,
                 impulsionamentosPendentes,

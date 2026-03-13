@@ -1,6 +1,7 @@
 using System.Text;
 using MeAjudaAi.Application.Common;
 using MeAjudaAi.Application.DTOs.Common;
+using MeAjudaAi.Api.Filters;
 using MeAjudaAi.Api.Middlewares;
 using MeAjudaAi.Api.Swagger;
 using MeAjudaAi.Api.Webhooks;
@@ -17,7 +18,11 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddScoped<AdminMutationAuditFilter>();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.AddService<AdminMutationAuditFilter>();
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {

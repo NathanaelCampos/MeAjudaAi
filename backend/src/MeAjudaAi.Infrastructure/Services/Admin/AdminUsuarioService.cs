@@ -190,6 +190,8 @@ public class AdminUsuarioService : IAdminUsuarioService
         Guid? usuarioAdministradorId = null,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
         var usuario = await _context.Usuarios
             .FirstOrDefaultAsync(x => x.Id == usuarioId, cancellationToken);
 
@@ -201,8 +203,6 @@ public class AdminUsuarioService : IAdminUsuarioService
 
         usuario.Ativo = ativo;
         usuario.DataAtualizacao = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync(cancellationToken);
 
         if (usuarioAdministradorId.HasValue)
         {
@@ -217,6 +217,12 @@ public class AdminUsuarioService : IAdminUsuarioService
                 """,
                 cancellationToken);
         }
+        else
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
 
         return (await ObterPorIdAsync(usuarioId, cancellationToken))!;
     }

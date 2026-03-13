@@ -262,6 +262,8 @@ public class AdminProfissionalService : IAdminProfissionalService
         Guid? usuarioAdministradorId = null,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
         var profissional = await _context.Profissionais
             .FirstOrDefaultAsync(x => x.Id == profissionalId, cancellationToken);
 
@@ -270,8 +272,6 @@ public class AdminProfissionalService : IAdminProfissionalService
 
         profissional.PerfilVerificado = perfilVerificado;
         profissional.DataAtualizacao = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync(cancellationToken);
 
         if (usuarioAdministradorId.HasValue)
         {
@@ -286,6 +286,12 @@ public class AdminProfissionalService : IAdminProfissionalService
                 """,
                 cancellationToken);
         }
+        else
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
 
         return (await ObterPorIdAsync(profissionalId, cancellationToken))!;
     }
@@ -296,6 +302,8 @@ public class AdminProfissionalService : IAdminProfissionalService
         Guid? usuarioAdministradorId = null,
         CancellationToken cancellationToken = default)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
         var profissional = await _context.Profissionais
             .FirstOrDefaultAsync(x => x.Id == profissionalId, cancellationToken);
 
@@ -312,8 +320,6 @@ public class AdminProfissionalService : IAdminProfissionalService
             usuario.DataAtualizacao = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
-
         if (usuarioAdministradorId.HasValue)
         {
             await _adminAuditoriaService.RegistrarAsync(
@@ -327,6 +333,12 @@ public class AdminProfissionalService : IAdminProfissionalService
                 """,
                 cancellationToken);
         }
+        else
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
 
         return (await ObterPorIdAsync(profissionalId, cancellationToken))!;
     }
