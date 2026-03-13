@@ -14,4 +14,5 @@ public class NotificacaoArquivadaExclusaoDashboardResponse
     public NotificacaoArquivadaResumoIdadeResponse Idade { get; set; } = new();
     public NotificacaoArquivadaResumoTiposResponse Tipos { get; set; } = new();
     public NotificacaoArquivadaResumoUsuariosResponse Usuarios { get; set; } = new();
+    public PreviewExclusaoNotificacoesAntigasResponse Antigas { get; set; } = new();
 }

@@ -860,6 +860,17 @@ public class NotificacaoService : INotificacaoService
             dataCriacaoFinal,
             cancellationToken);
 
+        var antigas = await ObterAntigasExclusaoNotificacoesArquivadasAsync(
+            new ArquivarNotificacoesEmLoteRequest
+            {
+                UsuarioId = usuarioId,
+                TipoNotificacao = tipoNotificacao,
+                DataCriacaoInicial = dataCriacaoInicial,
+                DataCriacaoFinal = dataCriacaoFinal,
+                Limite = 20
+            },
+            cancellationToken);
+
         return new NotificacaoArquivadaExclusaoDashboardResponse
         {
             UsuarioId = usuarioId,
@@ -871,7 +882,8 @@ public class NotificacaoService : INotificacaoService
             Serie = serie,
             Idade = idade,
             Tipos = tipos,
-            Usuarios = usuarios
+            Usuarios = usuarios,
+            Antigas = antigas
         };
     }
 

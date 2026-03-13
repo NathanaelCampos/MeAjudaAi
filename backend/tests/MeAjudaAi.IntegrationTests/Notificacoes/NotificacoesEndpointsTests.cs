@@ -527,6 +527,8 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.Equal(4, dashboard.Idade.Faixas.Count);
         Assert.NotEmpty(dashboard.Tipos.Tipos);
         Assert.NotEmpty(dashboard.Usuarios.Usuarios);
+        Assert.True(dashboard.Antigas.QuantidadeCandidata >= 1);
+        Assert.NotEmpty(dashboard.Antigas.Antigas);
     }
 
     [Fact]
