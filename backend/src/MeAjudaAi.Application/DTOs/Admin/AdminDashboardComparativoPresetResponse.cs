@@ -11,4 +11,5 @@ public class AdminDashboardComparativoPresetResponse
     public AdminDashboardComparativoPresetItemResponse Avaliacoes { get; set; } = new();
     public AdminDashboardComparativoPresetItemResponse Webhooks { get; set; } = new();
     public AdminDashboardComparativoPresetItemResponse Emails { get; set; } = new();
+    public AdminDashboardResumoComparativoPresetResponse Resumo { get; set; } = new();
 }

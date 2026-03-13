@@ -435,6 +435,11 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal("15d", payload.ComparativoPresetAnterior.PresetAnterior);
         Assert.Equal(30, payload.ComparativoPresetAnterior.JanelaAtualDias);
         Assert.Equal(15, payload.ComparativoPresetAnterior.JanelaAnteriorDias);
+        Assert.True(payload.ComparativoPresetAnterior.Resumo.Disponivel);
+        Assert.Contains(payload.ComparativoPresetAnterior.Resumo.EixoPrincipal, ["servicos", "avaliacoes", "webhooks", "emails"]);
+        Assert.Contains(payload.ComparativoPresetAnterior.Resumo.DirecaoPrincipal, ["alta", "queda", "estavel"]);
+        Assert.False(string.IsNullOrWhiteSpace(payload.ComparativoPresetAnterior.Resumo.Resumo));
+        Assert.False(string.IsNullOrWhiteSpace(payload.ComparativoPresetAnterior.Resumo.Recomendacao));
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)

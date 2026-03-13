@@ -461,6 +461,11 @@ public class AdminDashboardService : IAdminDashboardService
             semAcaoAdminRecenteSobRisco);
         var linkOperacionalSugerido = ObterLinkOperacionalSugerido(destinoOperacionalPrimario);
 
+        var comparativoServicos = CriarComparativoPreset(servicosUltimos7Dias, servicosPresetAnterior);
+        var comparativoAvaliacoes = CriarComparativoPreset(avaliacoesUltimos7Dias, avaliacoesPresetAnterior);
+        var comparativoWebhooks = CriarComparativoPreset(webhooksUltimos7Dias, webhooksPresetAnterior);
+        var comparativoEmails = CriarComparativoPreset(emailsUltimos7Dias, emailsPresetAnterior);
+
         return new AdminDashboardResponse
         {
             Configuracao = new AdminDashboardConfiguracaoResponse
@@ -557,10 +562,16 @@ public class AdminDashboardService : IAdminDashboardService
                 PresetAnterior = presetAnterior,
                 JanelaAtualDias = janelaSerieDias,
                 JanelaAnteriorDias = janelaSerieComparativoDias,
-                Servicos = CriarComparativoPreset(servicosUltimos7Dias, servicosPresetAnterior),
-                Avaliacoes = CriarComparativoPreset(avaliacoesUltimos7Dias, avaliacoesPresetAnterior),
-                Webhooks = CriarComparativoPreset(webhooksUltimos7Dias, webhooksPresetAnterior),
-                Emails = CriarComparativoPreset(emailsUltimos7Dias, emailsPresetAnterior)
+                Servicos = comparativoServicos,
+                Avaliacoes = comparativoAvaliacoes,
+                Webhooks = comparativoWebhooks,
+                Emails = comparativoEmails,
+                Resumo = CriarResumoComparativoPreset(
+                    presetAnterior != null,
+                    comparativoServicos,
+                    comparativoAvaliacoes,
+                    comparativoWebhooks,
+                    comparativoEmails)
             },
             Pendencias = new AdminDashboardPendenciasResponse
             {
@@ -697,6 +708,72 @@ public class AdminDashboardService : IAdminDashboardService
             TotalPresetAtual = totalPresetAtual,
             TotalPresetAnterior = totalPresetAnterior,
             VariacaoPercentual = variacaoPercentual
+        };
+    }
+
+    private static AdminDashboardResumoComparativoPresetResponse CriarResumoComparativoPreset(
+        bool disponivel,
+        AdminDashboardComparativoPresetItemResponse servicos,
+        AdminDashboardComparativoPresetItemResponse avaliacoes,
+        AdminDashboardComparativoPresetItemResponse webhooks,
+        AdminDashboardComparativoPresetItemResponse emails)
+    {
+        if (!disponivel)
+        {
+            return new AdminDashboardResumoComparativoPresetResponse
+            {
+                Disponivel = false,
+                DirecaoPrincipal = "indisponivel",
+                Resumo = "Sem preset anterior comparavel.",
+                Recomendacao = "Selecione um preset padrao para habilitar o comparativo."
+            };
+        }
+
+        var principal = new List<(string Eixo, AdminDashboardComparativoPresetItemResponse Item)>
+        {
+            ("servicos", servicos),
+            ("avaliacoes", avaliacoes),
+            ("webhooks", webhooks),
+            ("emails", emails)
+        }
+        .OrderByDescending(x => Math.Abs(x.Item.VariacaoPercentual))
+        .First();
+
+        var direcaoPrincipal = principal.Item.VariacaoPercentual switch
+        {
+            > 0 => "alta",
+            < 0 => "queda",
+            _ => "estavel"
+        };
+
+        var resumo = direcaoPrincipal switch
+        {
+            "alta" => $"Crescimento mais forte em {principal.Eixo}.",
+            "queda" => $"Reducao mais forte em {principal.Eixo}.",
+            _ => "Comparativo entre presets sem variacao relevante."
+        };
+
+        var recomendacao = principal.Eixo switch
+        {
+            "webhooks" when direcaoPrincipal == "alta" => "Verificar se o aumento de webhooks acompanha o processamento esperado.",
+            "emails" when direcaoPrincipal == "alta" => "Acompanhar o crescimento do outbox e a capacidade de envio.",
+            "servicos" when direcaoPrincipal == "alta" => "Avaliar capacidade operacional para o aumento de servicos.",
+            "avaliacoes" when direcaoPrincipal == "alta" => "Acompanhar fila de moderacao para absorver o aumento de avaliacoes.",
+            "webhooks" when direcaoPrincipal == "queda" => "Confirmar se houve queda de volume ou mudanca no fluxo de pagamentos.",
+            "emails" when direcaoPrincipal == "queda" => "Verificar se a queda do outbox reflete melhora operacional ou perda de disparos.",
+            "servicos" when direcaoPrincipal == "queda" => "Monitorar reducao de demanda e impactos na operacao.",
+            "avaliacoes" when direcaoPrincipal == "queda" => "Confirmar se a queda de avaliacoes acompanha menor volume de servicos.",
+            _ => "Manter acompanhamento da variacao entre presets."
+        };
+
+        return new AdminDashboardResumoComparativoPresetResponse
+        {
+            Disponivel = true,
+            EixoPrincipal = principal.Eixo,
+            VariacaoPrincipalPercentual = principal.Item.VariacaoPercentual,
+            DirecaoPrincipal = direcaoPrincipal,
+            Resumo = resumo,
+            Recomendacao = recomendacao
         };
     }
 
