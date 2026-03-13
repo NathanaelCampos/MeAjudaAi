@@ -300,8 +300,9 @@ public class NotificacaoService : INotificacaoService
         ArquivarNotificacoesEmLoteRequest request,
         CancellationToken cancellationToken = default)
     {
-        var notificacoes = await AplicarFiltrosArquivamento(
+        var notificacoes = await AplicarFiltrosAtividade(
                 _context.Set<NotificacaoUsuario>(),
+                ativo: true,
                 request)
             .OrderByDescending(x => x.DataCriacao)
             .Take(request.Limite)
@@ -323,12 +324,41 @@ public class NotificacaoService : INotificacaoService
         return notificacoes.Count;
     }
 
+    public async Task<int> RestaurarNotificacoesEmLoteAsync(
+        ArquivarNotificacoesEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var notificacoes = await AplicarFiltrosAtividade(
+                _context.Set<NotificacaoUsuario>(),
+                ativo: false,
+                request)
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(request.Limite)
+            .ToListAsync(cancellationToken);
+
+        if (notificacoes.Count == 0)
+            return 0;
+
+        var agora = DateTime.UtcNow;
+
+        foreach (var notificacao in notificacoes)
+        {
+            notificacao.Ativo = true;
+            notificacao.DataAtualizacao = agora;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return notificacoes.Count;
+    }
+
     public async Task<PreviewArquivamentoNotificacoesResponse> PreviewArquivamentoNotificacoesAsync(
         ArquivarNotificacoesEmLoteRequest request,
         CancellationToken cancellationToken = default)
     {
-        var query = AplicarFiltrosArquivamento(
+        var query = AplicarFiltrosAtividade(
             _context.Set<NotificacaoUsuario>().AsNoTracking(),
+            ativo: true,
             request);
 
         var quantidadeCandidata = await query.CountAsync(cancellationToken);
@@ -1420,11 +1450,12 @@ public class NotificacaoService : INotificacaoService
         return preferencia?.AtivoEmail ?? false;
     }
 
-    private static IQueryable<NotificacaoUsuario> AplicarFiltrosArquivamento(
+    private static IQueryable<NotificacaoUsuario> AplicarFiltrosAtividade(
         IQueryable<NotificacaoUsuario> query,
+        bool ativo,
         ArquivarNotificacoesEmLoteRequest request)
     {
-        query = query.Where(x => x.Ativo);
+        query = query.Where(x => x.Ativo == ativo);
 
         if (request.UsuarioId.HasValue)
             query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);

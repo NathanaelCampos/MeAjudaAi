@@ -547,6 +547,68 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task RestaurarNotificacoesEmLote_DeveReativarNotificacoesArquivadas()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-restaurar-notif");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-restaurar-notif");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para restaurar",
+            Descricao = "Gera notificacao para restauracao",
+            ValorCombinado = 160m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var arquivarResponse = await adminClient.PutAsJsonAsync("/api/notificacoes/arquivar-lote", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = false,
+            Limite = 100
+        });
+
+        Assert.Equal(HttpStatusCode.OK, arquivarResponse.StatusCode);
+
+        var minhasDepoisDeArquivar = await profissionalClient.GetFromJsonAsync<List<NotificacaoResponse>>("/api/notificacoes/minhas");
+        Assert.NotNull(minhasDepoisDeArquivar);
+        Assert.DoesNotContain(minhasDepoisDeArquivar!, x => x.Tipo == TipoNotificacao.ServicoSolicitado);
+
+        var restaurarResponse = await adminClient.PutAsJsonAsync("/api/notificacoes/restaurar-lote", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = false,
+            Limite = 100
+        });
+
+        var operacao = await restaurarResponse.Content.ReadFromJsonAsync<AtualizarEmailsOutboxEmLoteResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, restaurarResponse.StatusCode);
+        Assert.NotNull(operacao);
+        Assert.True(operacao!.QuantidadeAfetada >= 1);
+
+        var minhasDepoisDeRestaurar = await profissionalClient.GetFromJsonAsync<List<NotificacaoResponse>>("/api/notificacoes/minhas");
+        Assert.NotNull(minhasDepoisDeRestaurar);
+        Assert.Contains(minhasDepoisDeRestaurar!, x => x.Tipo == TipoNotificacao.ServicoSolicitado);
+    }
+
+    [Fact]
     public async Task RetencaoAutomatica_DeveArquivarSomenteNotificacoesLidasEAntigas()
     {
         using var configuredFactory = _factory.WithWebHostBuilder(builder =>
