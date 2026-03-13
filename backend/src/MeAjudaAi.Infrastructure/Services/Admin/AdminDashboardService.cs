@@ -465,6 +465,19 @@ public class AdminDashboardService : IAdminDashboardService
         var comparativoAvaliacoes = CriarComparativoPreset(avaliacoesUltimos7Dias, avaliacoesPresetAnterior);
         var comparativoWebhooks = CriarComparativoPreset(webhooksUltimos7Dias, webhooksPresetAnterior);
         var comparativoEmails = CriarComparativoPreset(emailsUltimos7Dias, emailsPresetAnterior);
+        var resumoComparativoPreset = CriarResumoComparativoPreset(
+            presetAnterior != null,
+            comparativoServicos,
+            comparativoAvaliacoes,
+            comparativoWebhooks,
+            comparativoEmails);
+        var insightComparativoPrincipal = CriarInsightComparativoPreset(resumoComparativoPreset);
+        var statusComparativoPrincipal = CriarStatusComparativoPreset(resumoComparativoPreset);
+        var indicadorComparativoPrincipal = CriarIndicadorComparativoPreset(statusComparativoPrincipal);
+        var prioridadeComparativaPrincipal = CriarPrioridadeComparativaPreset(statusComparativoPrincipal);
+        var acaoComparativaPrincipal = CriarAcaoComparativaPreset(resumoComparativoPreset);
+        var linkComparativoPrincipal = CriarLinkComparativoPreset(resumoComparativoPreset.EixoPrincipal);
+        var tooltipComparativoPrincipal = CriarTooltipComparativoPreset(resumoComparativoPreset);
 
         return new AdminDashboardResponse
         {
@@ -566,84 +579,20 @@ public class AdminDashboardService : IAdminDashboardService
                 Avaliacoes = comparativoAvaliacoes,
                 Webhooks = comparativoWebhooks,
                 Emails = comparativoEmails,
-                Resumo = CriarResumoComparativoPreset(
-                    presetAnterior != null,
-                    comparativoServicos,
-                    comparativoAvaliacoes,
-                    comparativoWebhooks,
-                    comparativoEmails)
+                Resumo = resumoComparativoPreset
             },
-            InsightComparativoPrincipal = CriarInsightComparativoPreset(
-                CriarResumoComparativoPreset(
-                    presetAnterior != null,
-                    comparativoServicos,
-                    comparativoAvaliacoes,
-                    comparativoWebhooks,
-                    comparativoEmails)),
-            EixoComparativoPrincipal = CriarResumoComparativoPreset(
-                presetAnterior != null,
-                comparativoServicos,
-                comparativoAvaliacoes,
-                comparativoWebhooks,
-                comparativoEmails).EixoPrincipal,
+            InsightComparativoPrincipal = insightComparativoPrincipal,
+            EixoComparativoPrincipal = resumoComparativoPreset.EixoPrincipal,
             VariacaoComparativaPrincipal = presetAnterior != null
-                ? CriarResumoComparativoPreset(
-                    true,
-                    comparativoServicos,
-                    comparativoAvaliacoes,
-                    comparativoWebhooks,
-                    comparativoEmails).VariacaoPrincipalPercentual
+                ? resumoComparativoPreset.VariacaoPrincipalPercentual
                 : null,
-            DirecaoComparativaPrincipal = CriarResumoComparativoPreset(
-                presetAnterior != null,
-                comparativoServicos,
-                comparativoAvaliacoes,
-                comparativoWebhooks,
-                comparativoEmails).DirecaoPrincipal,
-            StatusComparativoPrincipal = CriarStatusComparativoPreset(
-                CriarResumoComparativoPreset(
-                    presetAnterior != null,
-                    comparativoServicos,
-                    comparativoAvaliacoes,
-                    comparativoWebhooks,
-                    comparativoEmails)),
-            IndicadorComparativoPrincipal = CriarIndicadorComparativoPreset(
-                CriarStatusComparativoPreset(
-                    CriarResumoComparativoPreset(
-                        presetAnterior != null,
-                        comparativoServicos,
-                        comparativoAvaliacoes,
-                        comparativoWebhooks,
-                        comparativoEmails))),
-            PrioridadeComparativaPrincipal = CriarPrioridadeComparativaPreset(
-                CriarStatusComparativoPreset(
-                    CriarResumoComparativoPreset(
-                        presetAnterior != null,
-                        comparativoServicos,
-                        comparativoAvaliacoes,
-                        comparativoWebhooks,
-                        comparativoEmails))),
-            AcaoComparativaPrincipal = CriarAcaoComparativaPreset(
-                CriarResumoComparativoPreset(
-                    presetAnterior != null,
-                    comparativoServicos,
-                    comparativoAvaliacoes,
-                    comparativoWebhooks,
-                    comparativoEmails)),
-            LinkComparativoPrincipal = CriarLinkComparativoPreset(
-                CriarResumoComparativoPreset(
-                    presetAnterior != null,
-                    comparativoServicos,
-                    comparativoAvaliacoes,
-                    comparativoWebhooks,
-                    comparativoEmails).EixoPrincipal),
-            TooltipComparativoPrincipal = CriarTooltipComparativoPreset(
-                CriarResumoComparativoPreset(
-                    presetAnterior != null,
-                    comparativoServicos,
-                    comparativoAvaliacoes,
-                    comparativoWebhooks,
-                    comparativoEmails)),
+            DirecaoComparativaPrincipal = resumoComparativoPreset.DirecaoPrincipal,
+            StatusComparativoPrincipal = statusComparativoPrincipal,
+            IndicadorComparativoPrincipal = indicadorComparativoPrincipal,
+            PrioridadeComparativaPrincipal = prioridadeComparativaPrincipal,
+            AcaoComparativaPrincipal = acaoComparativaPrincipal,
+            LinkComparativoPrincipal = linkComparativoPrincipal,
+            TooltipComparativoPrincipal = tooltipComparativoPrincipal,
             Pendencias = new AdminDashboardPendenciasResponse
             {
                 AvaliacoesPendentesModeracao = avaliacoesPendentes,
