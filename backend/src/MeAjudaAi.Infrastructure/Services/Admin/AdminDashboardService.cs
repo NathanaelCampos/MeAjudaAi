@@ -134,6 +134,54 @@ public class AdminDashboardService : IAdminDashboardService
         var emailsUltimos7Dias = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioUltimos7Dias, cancellationToken);
         var emailsSeteDiasAnteriores = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioSeteDiasAnteriores && x.DataCriacao.Date <= fimSeteDiasAnteriores, cancellationToken);
 
+        var webhooksFalhosRecentes = await _context.WebhookPagamentoImpulsionamentoEventos
+            .AsNoTracking()
+            .Where(x => !x.ProcessadoComSucesso)
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(5)
+            .Select(x => new AdminDashboardWebhookFalhoItemResponse
+            {
+                Id = x.Id,
+                Provedor = x.Provedor,
+                EventoExternoId = x.EventoExternoId,
+                CodigoReferenciaPagamento = x.CodigoReferenciaPagamento,
+                MensagemResultado = x.MensagemResultado,
+                DataCriacao = x.DataCriacao
+            })
+            .ToListAsync(cancellationToken);
+
+        var emailsFalhosRecentes = await _context.EmailsNotificacoesOutbox
+            .AsNoTracking()
+            .Where(x => x.Status == StatusEmailNotificacao.Falha)
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(5)
+            .Select(x => new AdminDashboardEmailFalhoItemResponse
+            {
+                Id = x.Id,
+                UsuarioId = x.UsuarioId,
+                EmailDestino = x.EmailDestino,
+                TipoNotificacao = x.TipoNotificacao,
+                Status = x.Status,
+                UltimaMensagemErro = x.UltimaMensagemErro,
+                DataCriacao = x.DataCriacao
+            })
+            .ToListAsync(cancellationToken);
+
+        var avaliacoesPendentesRecentes = await _context.Avaliacoes
+            .AsNoTracking()
+            .Where(x => x.StatusModeracaoComentario == StatusModeracaoComentario.Pendente)
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(5)
+            .Select(x => new AdminDashboardAvaliacaoPendenteItemResponse
+            {
+                Id = x.Id,
+                ServicoId = x.ServicoId,
+                NomeCliente = x.Servico.Cliente.Usuario.Nome,
+                NomeProfissional = x.Servico.Profissional.NomeExibicao,
+                DataCriacao = x.DataCriacao
+            })
+            .ToListAsync(cancellationToken);
+
         return new AdminDashboardResponse
         {
             Usuarios = new AdminDashboardUsuariosResponse
@@ -236,7 +284,13 @@ public class AdminDashboardService : IAdminDashboardService
                 emailsPendentesAtrasados,
                 avaliacoesPendentes,
                 impulsionamentosPendentes,
-                servicosSolicitados)
+                servicosSolicitados),
+            ItensCriticosRecentes = new AdminDashboardItensCriticosRecentesResponse
+            {
+                WebhooksFalhos = webhooksFalhosRecentes,
+                EmailsFalhos = emailsFalhosRecentes,
+                AvaliacoesPendentes = avaliacoesPendentesRecentes
+            }
         };
     }
 

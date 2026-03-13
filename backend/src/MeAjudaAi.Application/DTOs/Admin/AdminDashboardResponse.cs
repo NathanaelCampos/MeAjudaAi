@@ -15,4 +15,5 @@ public class AdminDashboardResponse
     public AdminDashboardPendenciasResponse Pendencias { get; set; } = new();
     public AdminDashboardAlertasResponse Alertas { get; set; } = new();
     public string RiscoOperacional { get; set; } = "baixo";
+    public AdminDashboardItensCriticosRecentesResponse ItensCriticosRecentes { get; set; } = new();
 }
