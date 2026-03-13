@@ -573,6 +573,13 @@ public class AdminDashboardService : IAdminDashboardService
                     comparativoWebhooks,
                     comparativoEmails)
             },
+            InsightComparativoPrincipal = CriarInsightComparativoPreset(
+                CriarResumoComparativoPreset(
+                    presetAnterior != null,
+                    comparativoServicos,
+                    comparativoAvaliacoes,
+                    comparativoWebhooks,
+                    comparativoEmails)),
             Pendencias = new AdminDashboardPendenciasResponse
             {
                 AvaliacoesPendentesModeracao = avaliacoesPendentes,
@@ -774,6 +781,29 @@ public class AdminDashboardService : IAdminDashboardService
             DirecaoPrincipal = direcaoPrincipal,
             Resumo = resumo,
             Recomendacao = recomendacao
+        };
+    }
+
+    private static AdminDashboardInsightComparativoPresetResponse CriarInsightComparativoPreset(
+        AdminDashboardResumoComparativoPresetResponse resumoComparativo)
+    {
+        if (!resumoComparativo.Disponivel)
+        {
+            return new AdminDashboardInsightComparativoPresetResponse
+            {
+                Disponivel = false,
+                Titulo = "Comparativo entre presets indisponivel",
+                Detalhe = resumoComparativo.Resumo,
+                Recomendacao = resumoComparativo.Recomendacao
+            };
+        }
+
+        return new AdminDashboardInsightComparativoPresetResponse
+        {
+            Disponivel = true,
+            Titulo = $"Preset em {resumoComparativo.DirecaoPrincipal} com destaque para {resumoComparativo.EixoPrincipal}",
+            Detalhe = resumoComparativo.Resumo,
+            Recomendacao = resumoComparativo.Recomendacao
         };
     }
 

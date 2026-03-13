@@ -440,6 +440,10 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Contains(payload.ComparativoPresetAnterior.Resumo.DirecaoPrincipal, ["alta", "queda", "estavel"]);
         Assert.False(string.IsNullOrWhiteSpace(payload.ComparativoPresetAnterior.Resumo.Resumo));
         Assert.False(string.IsNullOrWhiteSpace(payload.ComparativoPresetAnterior.Resumo.Recomendacao));
+        Assert.True(payload.InsightComparativoPrincipal.Disponivel);
+        Assert.False(string.IsNullOrWhiteSpace(payload.InsightComparativoPrincipal.Titulo));
+        Assert.False(string.IsNullOrWhiteSpace(payload.InsightComparativoPrincipal.Detalhe));
+        Assert.False(string.IsNullOrWhiteSpace(payload.InsightComparativoPrincipal.Recomendacao));
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
