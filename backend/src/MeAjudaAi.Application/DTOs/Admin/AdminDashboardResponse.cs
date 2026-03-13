@@ -10,4 +10,5 @@ public class AdminDashboardResponse
     public AdminDashboardWebhooksResponse Webhooks { get; set; } = new();
     public AdminDashboardNotificacoesResponse Notificacoes { get; set; } = new();
     public AdminDashboardEmailsResponse Emails { get; set; } = new();
+    public AdminDashboardSeriesResponse Series { get; set; } = new();
 }

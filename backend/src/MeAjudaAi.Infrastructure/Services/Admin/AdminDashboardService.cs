@@ -67,6 +67,50 @@ public class AdminDashboardService : IAdminDashboardService
             .FirstOrDefaultAsync(cancellationToken);
         var ultimaDataEmail = await _context.EmailsNotificacoesOutbox.MaxAsync(x => (DateTime?)x.DataCriacao, cancellationToken);
 
+        var serieServicos = await _context.Servicos
+            .AsNoTracking()
+            .GroupBy(x => x.DataCriacao.Date)
+            .Select(x => new AdminDashboardSerieItemResponse
+            {
+                Data = x.Key,
+                Total = x.Count()
+            })
+            .OrderBy(x => x.Data)
+            .ToListAsync(cancellationToken);
+
+        var serieAvaliacoes = await _context.Avaliacoes
+            .AsNoTracking()
+            .GroupBy(x => x.DataCriacao.Date)
+            .Select(x => new AdminDashboardSerieItemResponse
+            {
+                Data = x.Key,
+                Total = x.Count()
+            })
+            .OrderBy(x => x.Data)
+            .ToListAsync(cancellationToken);
+
+        var serieWebhooks = await _context.WebhookPagamentoImpulsionamentoEventos
+            .AsNoTracking()
+            .GroupBy(x => x.DataCriacao.Date)
+            .Select(x => new AdminDashboardSerieItemResponse
+            {
+                Data = x.Key,
+                Total = x.Count()
+            })
+            .OrderBy(x => x.Data)
+            .ToListAsync(cancellationToken);
+
+        var serieEmails = await _context.EmailsNotificacoesOutbox
+            .AsNoTracking()
+            .GroupBy(x => x.DataCriacao.Date)
+            .Select(x => new AdminDashboardSerieItemResponse
+            {
+                Data = x.Key,
+                Total = x.Count()
+            })
+            .OrderBy(x => x.Data)
+            .ToListAsync(cancellationToken);
+
         return new AdminDashboardResponse
         {
             Usuarios = new AdminDashboardUsuariosResponse
@@ -134,6 +178,13 @@ public class AdminDashboardService : IAdminDashboardService
                 Cancelados = emailsCancelados,
                 UltimoStatus = ultimoStatusEmail,
                 UltimaDataCriacao = ultimaDataEmail
+            },
+            Series = new AdminDashboardSeriesResponse
+            {
+                Servicos = serieServicos,
+                Avaliacoes = serieAvaliacoes,
+                Webhooks = serieWebhooks,
+                Emails = serieEmails
             }
         };
     }

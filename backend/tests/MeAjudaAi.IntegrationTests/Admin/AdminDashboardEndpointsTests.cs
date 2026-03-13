@@ -104,6 +104,10 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.True(payload.Impulsionamentos.Total >= 1);
         Assert.True(payload.Webhooks.Total >= 1);
         Assert.True(payload.Notificacoes.TotalAtivas >= 1 || payload.Emails.Total >= 0);
+        Assert.True(payload.Series.Servicos.Count >= 1);
+        Assert.True(payload.Series.Avaliacoes.Count >= 1);
+        Assert.True(payload.Series.Webhooks.Count >= 1);
+        Assert.True(payload.Series.Emails.Count >= 0);
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
