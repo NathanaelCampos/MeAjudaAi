@@ -100,6 +100,9 @@ public static class InfrastructureDependencyInjection
             options.JanelaAcaoAdminRecenteHoras = int.TryParse(adminDashboardSection["JanelaAcaoAdminRecenteHoras"], out var janelaAcaoAdminRecenteHoras)
                 ? Math.Max(janelaAcaoAdminRecenteHoras, 1)
                 : 24;
+            options.JanelaSerieDias = int.TryParse(adminDashboardSection["JanelaSerieDias"], out var janelaSerieDias)
+                ? Math.Max(janelaSerieDias, 1)
+                : 7;
         });
 
         services.AddScoped<IHashSenhaService, HashSenhaService>();

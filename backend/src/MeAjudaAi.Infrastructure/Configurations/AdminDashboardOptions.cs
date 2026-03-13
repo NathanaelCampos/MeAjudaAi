@@ -4,4 +4,5 @@ public class AdminDashboardOptions
 {
     public int JanelaQualidadeDias { get; set; } = 7;
     public int JanelaAcaoAdminRecenteHoras { get; set; } = 24;
+    public int JanelaSerieDias { get; set; } = 7;
 }

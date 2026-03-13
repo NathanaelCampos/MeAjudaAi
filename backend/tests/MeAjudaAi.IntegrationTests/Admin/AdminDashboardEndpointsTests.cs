@@ -104,6 +104,7 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.NotNull(payload);
         Assert.Equal(7, payload!.Configuracao.JanelaQualidadeDias);
         Assert.Equal(24, payload.Configuracao.JanelaAcaoAdminRecenteHoras);
+        Assert.Equal(7, payload.Configuracao.JanelaSerieDias);
         Assert.True(payload!.Usuarios.Total >= 3);
         Assert.True(payload.Usuarios.Profissionais >= 1);
         Assert.True(payload.Usuarios.Clientes >= 1);
@@ -393,6 +394,22 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal(12, payload!.Configuracao.JanelaAcaoAdminRecenteHoras);
         Assert.True(payload.Alertas.SemAcaoAdminRecenteSobRisco);
         Assert.Equal("alto", payload.RiscoOperacional);
+    }
+
+    [Fact]
+    public async Task Obter_ComJanelaSerieDiasCustomizada_DeveRefletirConfiguracaoEfetiva()
+    {
+        using var adminClient = _factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var response = await adminClient.GetAsync("/api/admin/dashboard?janelaSerieDias=15");
+        var payload = await response.Content.ReadFromJsonAsync<AdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal(15, payload!.Configuracao.JanelaSerieDias);
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)

@@ -31,12 +31,15 @@ public class AdminDashboardService : IAdminDashboardService
         var janelaAcaoAdminRecenteHoras = request?.JanelaAcaoAdminRecenteHoras is > 0
             ? request.JanelaAcaoAdminRecenteHoras.Value
             : _options.JanelaAcaoAdminRecenteHoras;
+        var janelaSerieDias = request?.JanelaSerieDias is > 0
+            ? request.JanelaSerieDias.Value
+            : _options.JanelaSerieDias;
         var janelaAcaoAdminRecente = TimeSpan.FromHours(janelaAcaoAdminRecenteHoras);
         var janelaQualidadeOperacional = TimeSpan.FromDays(janelaQualidadeDias);
         var inicioJanelaQualidade = agora.Subtract(janelaQualidadeOperacional);
-        var inicioUltimos7Dias = hoje.AddDays(-6);
-        var inicioSeteDiasAnteriores = hoje.AddDays(-13);
-        var fimSeteDiasAnteriores = hoje.AddDays(-7);
+        var inicioJanelaSerie = hoje.AddDays(-(janelaSerieDias - 1));
+        var inicioJanelaAnterior = inicioJanelaSerie.AddDays(-janelaSerieDias);
+        var fimJanelaAnterior = inicioJanelaSerie.AddDays(-1);
 
         var totalUsuarios = await _context.Usuarios.CountAsync(cancellationToken);
         var usuariosAtivos = await _context.Usuarios.CountAsync(x => x.Ativo, cancellationToken);
@@ -117,6 +120,7 @@ public class AdminDashboardService : IAdminDashboardService
 
         var serieServicos = await _context.Servicos
             .AsNoTracking()
+            .Where(x => x.DataCriacao.Date >= inicioJanelaSerie)
             .GroupBy(x => x.DataCriacao.Date)
             .Select(x => new AdminDashboardSerieItemResponse
             {
@@ -128,6 +132,7 @@ public class AdminDashboardService : IAdminDashboardService
 
         var serieAvaliacoes = await _context.Avaliacoes
             .AsNoTracking()
+            .Where(x => x.DataCriacao.Date >= inicioJanelaSerie)
             .GroupBy(x => x.DataCriacao.Date)
             .Select(x => new AdminDashboardSerieItemResponse
             {
@@ -139,6 +144,7 @@ public class AdminDashboardService : IAdminDashboardService
 
         var serieWebhooks = await _context.WebhookPagamentoImpulsionamentoEventos
             .AsNoTracking()
+            .Where(x => x.DataCriacao.Date >= inicioJanelaSerie)
             .GroupBy(x => x.DataCriacao.Date)
             .Select(x => new AdminDashboardSerieItemResponse
             {
@@ -150,6 +156,7 @@ public class AdminDashboardService : IAdminDashboardService
 
         var serieEmails = await _context.EmailsNotificacoesOutbox
             .AsNoTracking()
+            .Where(x => x.DataCriacao.Date >= inicioJanelaSerie)
             .GroupBy(x => x.DataCriacao.Date)
             .Select(x => new AdminDashboardSerieItemResponse
             {
@@ -159,17 +166,17 @@ public class AdminDashboardService : IAdminDashboardService
             .OrderBy(x => x.Data)
             .ToListAsync(cancellationToken);
 
-        var servicosUltimos7Dias = await _context.Servicos.CountAsync(x => x.DataCriacao.Date >= inicioUltimos7Dias, cancellationToken);
-        var servicosSeteDiasAnteriores = await _context.Servicos.CountAsync(x => x.DataCriacao.Date >= inicioSeteDiasAnteriores && x.DataCriacao.Date <= fimSeteDiasAnteriores, cancellationToken);
+        var servicosUltimos7Dias = await _context.Servicos.CountAsync(x => x.DataCriacao.Date >= inicioJanelaSerie, cancellationToken);
+        var servicosSeteDiasAnteriores = await _context.Servicos.CountAsync(x => x.DataCriacao.Date >= inicioJanelaAnterior && x.DataCriacao.Date <= fimJanelaAnterior, cancellationToken);
 
-        var avaliacoesUltimos7Dias = await _context.Avaliacoes.CountAsync(x => x.DataCriacao.Date >= inicioUltimos7Dias, cancellationToken);
-        var avaliacoesSeteDiasAnteriores = await _context.Avaliacoes.CountAsync(x => x.DataCriacao.Date >= inicioSeteDiasAnteriores && x.DataCriacao.Date <= fimSeteDiasAnteriores, cancellationToken);
+        var avaliacoesUltimos7Dias = await _context.Avaliacoes.CountAsync(x => x.DataCriacao.Date >= inicioJanelaSerie, cancellationToken);
+        var avaliacoesSeteDiasAnteriores = await _context.Avaliacoes.CountAsync(x => x.DataCriacao.Date >= inicioJanelaAnterior && x.DataCriacao.Date <= fimJanelaAnterior, cancellationToken);
 
-        var webhooksUltimos7Dias = await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(x => x.DataCriacao.Date >= inicioUltimos7Dias, cancellationToken);
-        var webhooksSeteDiasAnteriores = await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(x => x.DataCriacao.Date >= inicioSeteDiasAnteriores && x.DataCriacao.Date <= fimSeteDiasAnteriores, cancellationToken);
+        var webhooksUltimos7Dias = await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(x => x.DataCriacao.Date >= inicioJanelaSerie, cancellationToken);
+        var webhooksSeteDiasAnteriores = await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(x => x.DataCriacao.Date >= inicioJanelaAnterior && x.DataCriacao.Date <= fimJanelaAnterior, cancellationToken);
 
-        var emailsUltimos7Dias = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioUltimos7Dias, cancellationToken);
-        var emailsSeteDiasAnteriores = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioSeteDiasAnteriores && x.DataCriacao.Date <= fimSeteDiasAnteriores, cancellationToken);
+        var emailsUltimos7Dias = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioJanelaSerie, cancellationToken);
+        var emailsSeteDiasAnteriores = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioJanelaAnterior && x.DataCriacao.Date <= fimJanelaAnterior, cancellationToken);
 
         var webhooksFalhosRecentes = await _context.WebhookPagamentoImpulsionamentoEventos
             .AsNoTracking()
@@ -437,7 +444,8 @@ public class AdminDashboardService : IAdminDashboardService
             Configuracao = new AdminDashboardConfiguracaoResponse
             {
                 JanelaQualidadeDias = janelaQualidadeDias,
-                JanelaAcaoAdminRecenteHoras = janelaAcaoAdminRecenteHoras
+                JanelaAcaoAdminRecenteHoras = janelaAcaoAdminRecenteHoras,
+                JanelaSerieDias = janelaSerieDias
             },
             Usuarios = new AdminDashboardUsuariosResponse
             {
