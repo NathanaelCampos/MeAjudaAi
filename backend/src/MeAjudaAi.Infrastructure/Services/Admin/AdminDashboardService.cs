@@ -513,6 +513,13 @@ public class AdminDashboardService : IAdminDashboardService
                 UltimoEmailProcessadoEm = ultimoEmailProcessadoEm,
                 MinutosDesdeUltimoEmailProcessado = CalcularMinutosDesde(ultimoEmailProcessadoEm, agora)
             },
+            DisponibilidadeOperacional = new AdminDashboardDisponibilidadeOperacionalResponse
+            {
+                PercentualSucessoWebhooks = CalcularPercentual(totalWebhooks, webhooksSucesso),
+                PercentualFalhaWebhooks = CalcularPercentual(totalWebhooks, totalWebhooks - webhooksSucesso),
+                PercentualSucessoEmails = CalcularPercentual(totalEmails, emailsEnviados),
+                PercentualFalhaEmails = CalcularPercentual(totalEmails, emailsFalhas)
+            },
             ResumoDecisorio = CriarResumoDecisorio(
                 totalWebhooks - webhooksSucesso,
                 emailsFalhas,
@@ -659,5 +666,13 @@ public class AdminDashboardService : IAdminDashboardService
             return null;
 
         return Math.Max(0, (int)Math.Floor((agora - dataReferencia.Value).TotalMinutes));
+    }
+
+    private static decimal CalcularPercentual(int total, int parcela)
+    {
+        if (total <= 0)
+            return 0;
+
+        return Math.Round((parcela / (decimal)total) * 100m, 2);
     }
 }

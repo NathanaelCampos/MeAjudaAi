@@ -149,6 +149,11 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.NotNull(payload.SlaOperacional);
         Assert.NotNull(payload.SlaOperacional.UltimaAcaoAdminEm);
         Assert.True(payload.SlaOperacional.MinutosDesdeUltimaAcaoAdmin >= 0);
+        Assert.NotNull(payload.DisponibilidadeOperacional);
+        Assert.InRange(payload.DisponibilidadeOperacional.PercentualSucessoWebhooks, 0m, 100m);
+        Assert.InRange(payload.DisponibilidadeOperacional.PercentualFalhaWebhooks, 0m, 100m);
+        Assert.InRange(payload.DisponibilidadeOperacional.PercentualSucessoEmails, 0m, 100m);
+        Assert.InRange(payload.DisponibilidadeOperacional.PercentualFalhaEmails, 0m, 100m);
         Assert.NotNull(payload.ResumoDecisorio);
         Assert.Contains(payload.ResumoDecisorio.SituacaoGeral, ["baixo", "medio", "alto"]);
         Assert.False(string.IsNullOrWhiteSpace(payload.ResumoDecisorio.FocoPrincipal));
@@ -213,6 +218,8 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.True(payload.SlaOperacional.MinutosDesdeUltimaAcaoAdmin >= 60 * 24);
         Assert.NotNull(payload.SlaOperacional.UltimoWebhookFalhoEm);
         Assert.True(payload.SlaOperacional.MinutosDesdeUltimoWebhookFalho >= 0);
+        Assert.NotNull(payload.DisponibilidadeOperacional);
+        Assert.True(payload.DisponibilidadeOperacional.PercentualFalhaWebhooks > 0m);
         Assert.Contains(payload.AcoesRecomendadas.Itens, x => x.Contains("Acionar administracao", StringComparison.Ordinal));
         Assert.Contains("Sem acao administrativa recente", payload.ResumoDecisorio.PrincipalGargalo);
     }
