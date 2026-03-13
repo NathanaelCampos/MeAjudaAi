@@ -69,6 +69,26 @@ public static class InfrastructureDependencyInjection
                 : true;
         });
 
+        var retencaoSection = configuration.GetSection("Notificacoes:Internas:Retencao");
+        services.Configure<NotificacaoInternaRetentionOptions>(options =>
+        {
+            options.Habilitada = bool.TryParse(retencaoSection["Habilitada"], out var habilitada)
+                ? habilitada
+                : false;
+            options.DiasRetencao = int.TryParse(retencaoSection["DiasRetencao"], out var diasRetencao)
+                ? diasRetencao
+                : 30;
+            options.LoteProcessamento = int.TryParse(retencaoSection["LoteProcessamento"], out var loteRetencao)
+                ? loteRetencao
+                : 500;
+            options.IntervaloSegundos = int.TryParse(retencaoSection["IntervaloSegundos"], out var intervaloRetencao)
+                ? intervaloRetencao
+                : 3600;
+            options.SomenteLidas = bool.TryParse(retencaoSection["SomenteLidas"], out var somenteLidas)
+                ? somenteLidas
+                : true;
+        });
+
         services.AddScoped<IHashSenhaService, HashSenhaService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthService, AuthService>();
@@ -86,7 +106,9 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<SmtpEmailNotificacaoSender>();
         services.AddScoped<IEmailNotificacaoSender, EmailNotificacaoSender>();
         services.AddSingleton<IWebhookPagamentoMetricsService, WebhookPagamentoMetricsService>();
+        services.AddSingleton<NotificacaoInternaRetentionProcessor>();
         services.AddHostedService<EmailNotificacaoOutboxProcessor>();
+        services.AddHostedService(sp => sp.GetRequiredService<NotificacaoInternaRetentionProcessor>());
 
         return services;
     }

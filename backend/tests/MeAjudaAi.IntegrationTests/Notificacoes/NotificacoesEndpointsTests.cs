@@ -4,8 +4,10 @@ using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.DTOs.Impulsionamentos;
 using MeAjudaAi.Application.DTOs.Notificacoes;
 using MeAjudaAi.Application.DTOs.Servicos;
+using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
+using MeAjudaAi.Infrastructure.Services.Notificacoes;
 using MeAjudaAi.IntegrationTests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -494,6 +496,70 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         var minhasDepois = await profissionalClient.GetFromJsonAsync<List<NotificacaoResponse>>("/api/notificacoes/minhas");
         Assert.NotNull(minhasDepois);
         Assert.DoesNotContain(minhasDepois!, x => x.Tipo == TipoNotificacao.ServicoSolicitado);
+    }
+
+    [Fact]
+    public async Task RetencaoAutomatica_DeveArquivarSomenteNotificacoesLidasEAntigas()
+    {
+        using var configuredFactory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, configurationBuilder) =>
+            {
+                configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Notificacoes:Internas:Retencao:Habilitada"] = "true",
+                    ["Notificacoes:Internas:Retencao:DiasRetencao"] = "30",
+                    ["Notificacoes:Internas:Retencao:LoteProcessamento"] = "100",
+                    ["Notificacoes:Internas:Retencao:SomenteLidas"] = "true"
+                });
+            });
+        });
+
+        using var client = configuredFactory.CreateClient();
+        var auth = await RegistrarUsuarioAsync(client, TipoPerfil.Profissional, "retencao-notif");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
+
+        await using (var scope = configuredFactory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            context.AddRange(
+                new NotificacaoUsuario
+                {
+                    UsuarioId = auth.UsuarioId,
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    Titulo = "Antiga lida",
+                    Mensagem = "Deve ser arquivada",
+                    DataCriacao = DateTime.UtcNow.AddDays(-45),
+                    DataLeitura = DateTime.UtcNow.AddDays(-44)
+                },
+                new NotificacaoUsuario
+                {
+                    UsuarioId = auth.UsuarioId,
+                    Tipo = TipoNotificacao.ServicoConcluido,
+                    Titulo = "Antiga nao lida",
+                    Mensagem = "Deve permanecer ativa",
+                    DataCriacao = DateTime.UtcNow.AddDays(-45)
+                });
+
+            await context.SaveChangesAsync();
+        }
+
+        var antes = await client.GetFromJsonAsync<List<NotificacaoResponse>>("/api/notificacoes/minhas");
+        Assert.NotNull(antes);
+        Assert.Equal(2, antes!.Count);
+
+        await using (var scope = configuredFactory.Services.CreateAsyncScope())
+        {
+            var processor = scope.ServiceProvider.GetRequiredService<NotificacaoInternaRetentionProcessor>();
+            var quantidade = await processor.ProcessarRetencaoAsync();
+            Assert.Equal(1, quantidade);
+        }
+
+        var depois = await client.GetFromJsonAsync<List<NotificacaoResponse>>("/api/notificacoes/minhas");
+        Assert.NotNull(depois);
+        Assert.Single(depois!);
+        Assert.Equal(TipoNotificacao.ServicoConcluido, depois[0].Tipo);
     }
 
     [Fact]

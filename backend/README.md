@@ -314,6 +314,11 @@ curl -X PUT "http://localhost:5231/api/notificacoes/arquivar-lote" \
   -d '{"usuarioId":"USUARIO_ID","tipoNotificacao":"ServicoSolicitado","lida":false,"limite":100}'
 ```
 
+Retencao automatica de notificacoes internas antigas:
+- configuracao em `Notificacoes:Internas:Retencao`
+- arquiva em background notificacoes antigas
+- por padrao pode manter somente notificacoes lidas no ciclo automatico
+
 Exportacao CSV das notificacoes internas:
 
 ```bash
