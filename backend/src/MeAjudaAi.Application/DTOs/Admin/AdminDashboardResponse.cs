@@ -16,6 +16,7 @@ public class AdminDashboardResponse
     public AdminDashboardComparativoPresetResponse ComparativoPresetAnterior { get; set; } = new();
     public AdminDashboardInsightComparativoPresetResponse InsightComparativoPrincipal { get; set; } = new();
     public decimal? VariacaoComparativaPrincipal { get; set; }
+    public string DirecaoComparativaPrincipal { get; set; } = "indisponivel";
     public AdminDashboardPendenciasResponse Pendencias { get; set; } = new();
     public AdminDashboardAlertasResponse Alertas { get; set; } = new();
     public string RiscoOperacional { get; set; } = "baixo";

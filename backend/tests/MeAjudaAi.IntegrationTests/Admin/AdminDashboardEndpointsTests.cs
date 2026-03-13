@@ -445,6 +445,7 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.False(string.IsNullOrWhiteSpace(payload.InsightComparativoPrincipal.Detalhe));
         Assert.False(string.IsNullOrWhiteSpace(payload.InsightComparativoPrincipal.Recomendacao));
         Assert.NotNull(payload.VariacaoComparativaPrincipal);
+        Assert.Contains(payload.DirecaoComparativaPrincipal, ["alta", "queda", "estavel"]);
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)

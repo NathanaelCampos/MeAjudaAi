@@ -588,6 +588,12 @@ public class AdminDashboardService : IAdminDashboardService
                     comparativoWebhooks,
                     comparativoEmails).VariacaoPrincipalPercentual
                 : null,
+            DirecaoComparativaPrincipal = CriarResumoComparativoPreset(
+                presetAnterior != null,
+                comparativoServicos,
+                comparativoAvaliacoes,
+                comparativoWebhooks,
+                comparativoEmails).DirecaoPrincipal,
             Pendencias = new AdminDashboardPendenciasResponse
             {
                 AvaliacoesPendentesModeracao = avaliacoesPendentes,
