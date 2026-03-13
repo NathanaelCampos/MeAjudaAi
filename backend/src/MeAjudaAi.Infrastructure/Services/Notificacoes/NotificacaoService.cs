@@ -415,6 +415,27 @@ public class NotificacaoService : INotificacaoService
         return notificacoes.Count;
     }
 
+    public async Task<int> ExcluirNotificacoesArquivadasEmLoteAsync(
+        ArquivarNotificacoesEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var notificacoes = await AplicarFiltrosAtividade(
+                _context.Set<NotificacaoUsuario>(),
+                ativo: false,
+                request)
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(request.Limite)
+            .ToListAsync(cancellationToken);
+
+        if (notificacoes.Count == 0)
+            return 0;
+
+        _context.Set<NotificacaoUsuario>().RemoveRange(notificacoes);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return notificacoes.Count;
+    }
+
     public async Task<PreviewArquivamentoNotificacoesResponse> PreviewArquivamentoNotificacoesAsync(
         ArquivarNotificacoesEmLoteRequest request,
         CancellationToken cancellationToken = default)

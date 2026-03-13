@@ -432,6 +432,68 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ExcluirNotificacoesArquivadasEmLote_DeveRemoverRegistrosArquivados()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-excluir-arquivadas");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-excluir-arquivadas");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para excluir arquivadas",
+            Descricao = "Gera notificacao arquivada para exclusao fisica",
+            ValorCombinado = 117m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var arquivarResponse = await adminClient.PutAsJsonAsync("/api/notificacoes/arquivar-lote", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = false,
+            Limite = 100
+        });
+
+        Assert.Equal(HttpStatusCode.OK, arquivarResponse.StatusCode);
+
+        var excluirResponse = await adminClient.PostAsJsonAsync("/api/notificacoes/arquivadas/excluir-lote", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = false,
+            Limite = 100
+        });
+
+        var operacao = await excluirResponse.Content.ReadFromJsonAsync<AtualizarEmailsOutboxEmLoteResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, excluirResponse.StatusCode);
+        Assert.NotNull(operacao);
+        Assert.True(operacao!.QuantidadeAfetada >= 1);
+
+        var arquivadas = await adminClient.GetFromJsonAsync<PaginacaoResponse<NotificacaoAdminResponse>>(
+            $"/api/notificacoes/arquivadas?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}&lida=false&pagina=1&tamanhoPagina=10");
+
+        Assert.NotNull(arquivadas);
+        Assert.DoesNotContain(arquivadas!.Itens, x =>
+            x.UsuarioId == authProfissional.UsuarioId &&
+            x.Tipo == TipoNotificacao.ServicoSolicitado);
+    }
+
+    [Fact]
     public async Task ExportarNotificacoesArquivadas_DeveRetornarCsvFiltrado()
     {
         using var clienteClient = _factory.CreateClient();
