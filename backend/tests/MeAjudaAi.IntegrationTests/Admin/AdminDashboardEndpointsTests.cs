@@ -430,6 +430,11 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal(30, payload.Configuracao.JanelaQualidadeDias);
         Assert.Equal(72, payload.Configuracao.JanelaAcaoAdminRecenteHoras);
         Assert.Equal(30, payload.Configuracao.JanelaSerieDias);
+        Assert.True(payload.ComparativoPresetAnterior.Disponivel);
+        Assert.Equal("30d", payload.ComparativoPresetAnterior.PresetAtual);
+        Assert.Equal("15d", payload.ComparativoPresetAnterior.PresetAnterior);
+        Assert.Equal(30, payload.ComparativoPresetAnterior.JanelaAtualDias);
+        Assert.Equal(15, payload.ComparativoPresetAnterior.JanelaAnteriorDias);
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)

@@ -27,6 +27,8 @@ public class AdminDashboardService : IAdminDashboardService
         var agora = DateTime.UtcNow;
         var presetPeriodo = NormalizarPresetPeriodo(request?.PresetPeriodo);
         var (janelaQualidadePreset, janelaAcaoAdminPreset, janelaSeriePreset) = ObterJanelasDoPreset(presetPeriodo);
+        var presetAnterior = ObterPresetAnterior(presetPeriodo);
+        var (_, _, janelaSerieAnteriorPreset) = ObterJanelasDoPreset(presetAnterior);
 
         var janelaQualidadeDias = request?.JanelaQualidadeDias is > 0
             ? request.JanelaQualidadeDias.Value
@@ -43,6 +45,10 @@ public class AdminDashboardService : IAdminDashboardService
         var inicioJanelaSerie = hoje.AddDays(-(janelaSerieDias - 1));
         var inicioJanelaAnterior = inicioJanelaSerie.AddDays(-janelaSerieDias);
         var fimJanelaAnterior = inicioJanelaSerie.AddDays(-1);
+        var janelaSerieComparativoDias = janelaSerieAnteriorPreset ?? 0;
+        var inicioComparativoPresetAnterior = janelaSerieComparativoDias > 0
+            ? hoje.AddDays(-(janelaSerieComparativoDias - 1))
+            : (DateTime?)null;
 
         var totalUsuarios = await _context.Usuarios.CountAsync(cancellationToken);
         var usuariosAtivos = await _context.Usuarios.CountAsync(x => x.Ativo, cancellationToken);
@@ -180,6 +186,19 @@ public class AdminDashboardService : IAdminDashboardService
 
         var emailsUltimos7Dias = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioJanelaSerie, cancellationToken);
         var emailsSeteDiasAnteriores = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioJanelaAnterior && x.DataCriacao.Date <= fimJanelaAnterior, cancellationToken);
+
+        var servicosPresetAnterior = inicioComparativoPresetAnterior.HasValue
+            ? await _context.Servicos.CountAsync(x => x.DataCriacao.Date >= inicioComparativoPresetAnterior.Value, cancellationToken)
+            : 0;
+        var avaliacoesPresetAnterior = inicioComparativoPresetAnterior.HasValue
+            ? await _context.Avaliacoes.CountAsync(x => x.DataCriacao.Date >= inicioComparativoPresetAnterior.Value, cancellationToken)
+            : 0;
+        var webhooksPresetAnterior = inicioComparativoPresetAnterior.HasValue
+            ? await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(x => x.DataCriacao.Date >= inicioComparativoPresetAnterior.Value, cancellationToken)
+            : 0;
+        var emailsPresetAnterior = inicioComparativoPresetAnterior.HasValue
+            ? await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioComparativoPresetAnterior.Value, cancellationToken)
+            : 0;
 
         var webhooksFalhosRecentes = await _context.WebhookPagamentoImpulsionamentoEventos
             .AsNoTracking()
@@ -531,6 +550,18 @@ public class AdminDashboardService : IAdminDashboardService
                 Webhooks = CriarTendencia(webhooksUltimos7Dias, webhooksSeteDiasAnteriores),
                 Emails = CriarTendencia(emailsUltimos7Dias, emailsSeteDiasAnteriores)
             },
+            ComparativoPresetAnterior = new AdminDashboardComparativoPresetResponse
+            {
+                Disponivel = presetAnterior != null,
+                PresetAtual = presetPeriodo ?? "custom",
+                PresetAnterior = presetAnterior,
+                JanelaAtualDias = janelaSerieDias,
+                JanelaAnteriorDias = janelaSerieComparativoDias,
+                Servicos = CriarComparativoPreset(servicosUltimos7Dias, servicosPresetAnterior),
+                Avaliacoes = CriarComparativoPreset(avaliacoesUltimos7Dias, avaliacoesPresetAnterior),
+                Webhooks = CriarComparativoPreset(webhooksUltimos7Dias, webhooksPresetAnterior),
+                Emails = CriarComparativoPreset(emailsUltimos7Dias, emailsPresetAnterior)
+            },
             Pendencias = new AdminDashboardPendenciasResponse
             {
                 AvaliacoesPendentesModeracao = avaliacoesPendentes,
@@ -625,6 +656,16 @@ public class AdminDashboardService : IAdminDashboardService
         };
     }
 
+    private static string? ObterPresetAnterior(string? presetPeriodo)
+    {
+        return presetPeriodo switch
+        {
+            "30d" => "15d",
+            "15d" => "7d",
+            _ => null
+        };
+    }
+
     private static AdminDashboardTendenciaItemResponse CriarTendencia(int ultimos7Dias, int seteDiasAnteriores)
     {
         decimal variacaoPercentual;
@@ -638,6 +679,23 @@ public class AdminDashboardService : IAdminDashboardService
         {
             Ultimos7Dias = ultimos7Dias,
             SeteDiasAnteriores = seteDiasAnteriores,
+            VariacaoPercentual = variacaoPercentual
+        };
+    }
+
+    private static AdminDashboardComparativoPresetItemResponse CriarComparativoPreset(int totalPresetAtual, int totalPresetAnterior)
+    {
+        decimal variacaoPercentual;
+
+        if (totalPresetAnterior == 0)
+            variacaoPercentual = totalPresetAtual == 0 ? 0 : 100;
+        else
+            variacaoPercentual = Math.Round(((totalPresetAtual - totalPresetAnterior) / (decimal)totalPresetAnterior) * 100m, 2);
+
+        return new AdminDashboardComparativoPresetItemResponse
+        {
+            TotalPresetAtual = totalPresetAtual,
+            TotalPresetAnterior = totalPresetAnterior,
             VariacaoPercentual = variacaoPercentual
         };
     }
