@@ -10,6 +10,7 @@ public class NotificacaoArquivadaExclusaoDashboardResponse
     public DateTime? DataCriacaoFinal { get; set; }
     public string NivelOperacional { get; set; } = string.Empty;
     public int LimiteRecomendado { get; set; }
+    public bool ModoSeguro { get; set; }
     public int QuantidadeLotesEstimados { get; set; }
     public NotificacaoResumoOperacionalResponse Resumo { get; set; } = new();
     public NotificacaoArquivadaResumoLeituraResponse Leitura { get; set; } = new();
