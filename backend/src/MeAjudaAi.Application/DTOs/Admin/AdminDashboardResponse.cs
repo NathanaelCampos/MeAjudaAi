@@ -11,4 +11,5 @@ public class AdminDashboardResponse
     public AdminDashboardNotificacoesResponse Notificacoes { get; set; } = new();
     public AdminDashboardEmailsResponse Emails { get; set; } = new();
     public AdminDashboardSeriesResponse Series { get; set; } = new();
+    public AdminDashboardTendenciasResponse Tendencias { get; set; } = new();
 }

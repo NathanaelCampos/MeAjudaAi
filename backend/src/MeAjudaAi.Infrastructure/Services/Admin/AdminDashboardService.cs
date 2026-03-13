@@ -17,6 +17,11 @@ public class AdminDashboardService : IAdminDashboardService
 
     public async Task<AdminDashboardResponse> ObterAsync(CancellationToken cancellationToken = default)
     {
+        var hoje = DateTime.UtcNow.Date;
+        var inicioUltimos7Dias = hoje.AddDays(-6);
+        var inicioSeteDiasAnteriores = hoje.AddDays(-13);
+        var fimSeteDiasAnteriores = hoje.AddDays(-7);
+
         var totalUsuarios = await _context.Usuarios.CountAsync(cancellationToken);
         var usuariosAtivos = await _context.Usuarios.CountAsync(x => x.Ativo, cancellationToken);
         var clientes = await _context.Usuarios.CountAsync(x => x.TipoPerfil == TipoPerfil.Cliente, cancellationToken);
@@ -111,6 +116,18 @@ public class AdminDashboardService : IAdminDashboardService
             .OrderBy(x => x.Data)
             .ToListAsync(cancellationToken);
 
+        var servicosUltimos7Dias = await _context.Servicos.CountAsync(x => x.DataCriacao.Date >= inicioUltimos7Dias, cancellationToken);
+        var servicosSeteDiasAnteriores = await _context.Servicos.CountAsync(x => x.DataCriacao.Date >= inicioSeteDiasAnteriores && x.DataCriacao.Date <= fimSeteDiasAnteriores, cancellationToken);
+
+        var avaliacoesUltimos7Dias = await _context.Avaliacoes.CountAsync(x => x.DataCriacao.Date >= inicioUltimos7Dias, cancellationToken);
+        var avaliacoesSeteDiasAnteriores = await _context.Avaliacoes.CountAsync(x => x.DataCriacao.Date >= inicioSeteDiasAnteriores && x.DataCriacao.Date <= fimSeteDiasAnteriores, cancellationToken);
+
+        var webhooksUltimos7Dias = await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(x => x.DataCriacao.Date >= inicioUltimos7Dias, cancellationToken);
+        var webhooksSeteDiasAnteriores = await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(x => x.DataCriacao.Date >= inicioSeteDiasAnteriores && x.DataCriacao.Date <= fimSeteDiasAnteriores, cancellationToken);
+
+        var emailsUltimos7Dias = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioUltimos7Dias, cancellationToken);
+        var emailsSeteDiasAnteriores = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioSeteDiasAnteriores && x.DataCriacao.Date <= fimSeteDiasAnteriores, cancellationToken);
+
         return new AdminDashboardResponse
         {
             Usuarios = new AdminDashboardUsuariosResponse
@@ -185,7 +202,31 @@ public class AdminDashboardService : IAdminDashboardService
                 Avaliacoes = serieAvaliacoes,
                 Webhooks = serieWebhooks,
                 Emails = serieEmails
+            },
+            Tendencias = new AdminDashboardTendenciasResponse
+            {
+                Servicos = CriarTendencia(servicosUltimos7Dias, servicosSeteDiasAnteriores),
+                Avaliacoes = CriarTendencia(avaliacoesUltimos7Dias, avaliacoesSeteDiasAnteriores),
+                Webhooks = CriarTendencia(webhooksUltimos7Dias, webhooksSeteDiasAnteriores),
+                Emails = CriarTendencia(emailsUltimos7Dias, emailsSeteDiasAnteriores)
             }
+        };
+    }
+
+    private static AdminDashboardTendenciaItemResponse CriarTendencia(int ultimos7Dias, int seteDiasAnteriores)
+    {
+        decimal variacaoPercentual;
+
+        if (seteDiasAnteriores == 0)
+            variacaoPercentual = ultimos7Dias == 0 ? 0 : 100;
+        else
+            variacaoPercentual = Math.Round(((ultimos7Dias - seteDiasAnteriores) / (decimal)seteDiasAnteriores) * 100m, 2);
+
+        return new AdminDashboardTendenciaItemResponse
+        {
+            Ultimos7Dias = ultimos7Dias,
+            SeteDiasAnteriores = seteDiasAnteriores,
+            VariacaoPercentual = variacaoPercentual
         };
     }
 }
