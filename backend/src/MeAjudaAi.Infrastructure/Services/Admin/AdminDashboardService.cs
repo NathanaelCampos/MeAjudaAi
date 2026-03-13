@@ -290,6 +290,16 @@ public class AdminDashboardService : IAdminDashboardService
                 WebhooksFalhos = webhooksFalhosRecentes,
                 EmailsFalhos = emailsFalhosRecentes,
                 AvaliacoesPendentes = avaliacoesPendentesRecentes
+            },
+            AcoesRecomendadas = new AdminDashboardAcoesRecomendadasResponse
+            {
+                Itens = CriarAcoesRecomendadas(
+                    totalWebhooks - webhooksSucesso,
+                    emailsFalhas,
+                    emailsPendentesAtrasados,
+                    avaliacoesPendentes,
+                    impulsionamentosPendentes,
+                    servicosSolicitados)
             }
         };
     }
@@ -326,5 +336,39 @@ public class AdminDashboardService : IAdminDashboardService
             return "medio";
 
         return "baixo";
+    }
+
+    private static List<string> CriarAcoesRecomendadas(
+        int webhooksFalhos,
+        int emailsFalhas,
+        int emailsPendentesAtrasados,
+        int avaliacoesPendentes,
+        int impulsionamentosPendentes,
+        int servicosSolicitados)
+    {
+        var itens = new List<string>();
+
+        if (webhooksFalhos > 0)
+            itens.Add("Revisar webhooks de pagamento com falha.");
+
+        if (emailsFalhas > 0)
+            itens.Add("Reprocessar emails com falha no outbox.");
+
+        if (emailsPendentesAtrasados > 0)
+            itens.Add("Verificar emails pendentes atrasados.");
+
+        if (avaliacoesPendentes > 0)
+            itens.Add("Moderar avaliacoes pendentes.");
+
+        if (impulsionamentosPendentes > 0)
+            itens.Add("Validar pagamentos pendentes de impulsionamento.");
+
+        if (servicosSolicitados > 0)
+            itens.Add("Acompanhar servicos ainda em status solicitado.");
+
+        if (itens.Count == 0)
+            itens.Add("Operacao estavel sem acoes imediatas.");
+
+        return itens;
     }
 }
