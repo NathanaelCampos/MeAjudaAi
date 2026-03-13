@@ -31,6 +31,10 @@ public interface INotificacaoService
         ExportarNotificacoesRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<string> ExportarNotificacoesArquivadasCsvAsync(
+        ExportarNotificacoesRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<NotificacaoAdminResponse?> ObterNotificacaoPorIdAsync(
         Guid notificacaoId,
         CancellationToken cancellationToken = default);

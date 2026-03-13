@@ -303,6 +303,13 @@ curl -s "http://localhost:5231/api/notificacoes/arquivadas/NOTIFICACAO_ID" \
   -H "Authorization: Bearer SEU_TOKEN_ADMIN"
 ```
 
+Exportacao CSV das notificacoes internas arquivadas:
+
+```bash
+curl -s "http://localhost:5231/api/notificacoes/arquivadas/exportar?usuarioId=USUARIO_ID&tipoNotificacao=ServicoSolicitado&lida=false&limite=100" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
 Dashboard de notificacoes internas por usuario:
 
 ```bash

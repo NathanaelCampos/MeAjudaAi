@@ -193,9 +193,30 @@ public class NotificacaoService : INotificacaoService
         ExportarNotificacoesRequest request,
         CancellationToken cancellationToken = default)
     {
+        return await ExportarNotificacoesCsvPorAtividadeAsync(
+            request,
+            ativo: true,
+            cancellationToken);
+    }
+
+    public async Task<string> ExportarNotificacoesArquivadasCsvAsync(
+        ExportarNotificacoesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return await ExportarNotificacoesCsvPorAtividadeAsync(
+            request,
+            ativo: false,
+            cancellationToken);
+    }
+
+    private async Task<string> ExportarNotificacoesCsvPorAtividadeAsync(
+        ExportarNotificacoesRequest request,
+        bool ativo,
+        CancellationToken cancellationToken)
+    {
         var query = _context.Set<NotificacaoUsuario>()
             .AsNoTracking()
-            .Where(x => x.Ativo);
+            .Where(x => x.Ativo == ativo);
 
         if (request.UsuarioId.HasValue)
             query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
