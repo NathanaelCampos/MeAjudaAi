@@ -182,6 +182,85 @@ public class AdminDashboardService : IAdminDashboardService
             })
             .ToListAsync(cancellationToken);
 
+        var servicosSolicitadosPorProfissional = await _context.Servicos
+            .AsNoTracking()
+            .Where(x => x.Status == StatusServico.Solicitado)
+            .GroupBy(x => x.ProfissionalId)
+            .Select(x => new { ProfissionalId = x.Key, Total = x.Count() })
+            .ToDictionaryAsync(x => x.ProfissionalId, x => x.Total, cancellationToken);
+
+        var avaliacoesPendentesPorProfissional = await _context.Avaliacoes
+            .AsNoTracking()
+            .Where(x => x.StatusModeracaoComentario == StatusModeracaoComentario.Pendente)
+            .GroupBy(x => x.Servico.ProfissionalId)
+            .Select(x => new { ProfissionalId = x.Key, Total = x.Count() })
+            .ToDictionaryAsync(x => x.ProfissionalId, x => x.Total, cancellationToken);
+
+        var impulsionamentosPendentesPorProfissional = await _context.ImpulsionamentosProfissionais
+            .AsNoTracking()
+            .Where(x => x.Status == StatusImpulsionamento.PendentePagamento)
+            .GroupBy(x => x.ProfissionalId)
+            .Select(x => new { ProfissionalId = x.Key, Total = x.Count() })
+            .ToDictionaryAsync(x => x.ProfissionalId, x => x.Total, cancellationToken);
+
+        var webhooksFalhosPorProfissional = await _context.WebhookPagamentoImpulsionamentoEventos
+            .AsNoTracking()
+            .Where(x => !x.ProcessadoComSucesso && x.ImpulsionamentoProfissionalId != null)
+            .GroupBy(x => x.ImpulsionamentoProfissional!.ProfissionalId)
+            .Select(x => new { ProfissionalId = x.Key, Total = x.Count() })
+            .ToDictionaryAsync(x => x.ProfissionalId, x => x.Total, cancellationToken);
+
+        var emailsFalhosPorProfissional = await _context.EmailsNotificacoesOutbox
+            .AsNoTracking()
+            .Where(x => x.Status == StatusEmailNotificacao.Falha)
+            .Join(
+                _context.Profissionais.AsNoTracking(),
+                email => email.UsuarioId,
+                profissional => profissional.UsuarioId,
+                (email, profissional) => new { ProfissionalId = profissional.Id, EmailId = email.Id })
+            .GroupBy(x => x.ProfissionalId)
+            .Select(x => new { ProfissionalId = x.Key, Total = x.Count() })
+            .ToDictionaryAsync(x => x.ProfissionalId, x => x.Total, cancellationToken);
+
+        var profissionaisEmAtencao = await _context.Profissionais
+            .AsNoTracking()
+            .Include(x => x.Usuario)
+            .ToListAsync(cancellationToken);
+
+        var topProfissionaisEmAtencao = profissionaisEmAtencao
+            .Select(profissional =>
+            {
+                var totalServicosSolicitados = servicosSolicitadosPorProfissional.GetValueOrDefault(profissional.Id);
+                var totalAvaliacoesPendentes = avaliacoesPendentesPorProfissional.GetValueOrDefault(profissional.Id);
+                var totalImpulsionamentosPendentes = impulsionamentosPendentesPorProfissional.GetValueOrDefault(profissional.Id);
+                var totalWebhooksFalhos = webhooksFalhosPorProfissional.GetValueOrDefault(profissional.Id);
+                var totalEmailsFalhos = emailsFalhosPorProfissional.GetValueOrDefault(profissional.Id);
+                var scoreAtencao = totalServicosSolicitados +
+                                   totalAvaliacoesPendentes +
+                                   totalImpulsionamentosPendentes +
+                                   totalWebhooksFalhos +
+                                   totalEmailsFalhos;
+
+                return new AdminDashboardProfissionalEmAtencaoItemResponse
+                {
+                    ProfissionalId = profissional.Id,
+                    UsuarioId = profissional.UsuarioId,
+                    NomeExibicao = profissional.NomeExibicao,
+                    Email = profissional.Usuario.Email,
+                    ServicosSolicitados = totalServicosSolicitados,
+                    AvaliacoesPendentes = totalAvaliacoesPendentes,
+                    ImpulsionamentosPendentesPagamento = totalImpulsionamentosPendentes,
+                    WebhooksFalhos = totalWebhooksFalhos,
+                    EmailsComFalha = totalEmailsFalhos,
+                    ScoreAtencao = scoreAtencao
+                };
+            })
+            .Where(x => x.ScoreAtencao > 0)
+            .OrderByDescending(x => x.ScoreAtencao)
+            .ThenBy(x => x.NomeExibicao)
+            .Take(5)
+            .ToList();
+
         return new AdminDashboardResponse
         {
             Usuarios = new AdminDashboardUsuariosResponse
@@ -300,7 +379,8 @@ public class AdminDashboardService : IAdminDashboardService
                     avaliacoesPendentes,
                     impulsionamentosPendentes,
                     servicosSolicitados)
-            }
+            },
+            TopProfissionaisEmAtencao = topProfissionaisEmAtencao
         };
     }
 

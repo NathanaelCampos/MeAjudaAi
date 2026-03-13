@@ -17,4 +17,5 @@ public class AdminDashboardResponse
     public string RiscoOperacional { get; set; } = "baixo";
     public AdminDashboardItensCriticosRecentesResponse ItensCriticosRecentes { get; set; } = new();
     public AdminDashboardAcoesRecomendadasResponse AcoesRecomendadas { get; set; } = new();
+    public List<AdminDashboardProfissionalEmAtencaoItemResponse> TopProfissionaisEmAtencao { get; set; } = [];
 }
