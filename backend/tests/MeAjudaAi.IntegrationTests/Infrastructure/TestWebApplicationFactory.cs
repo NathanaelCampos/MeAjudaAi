@@ -1,6 +1,7 @@
 using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.Application.Interfaces.Impulsionamentos;
+using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
@@ -136,6 +137,8 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>, IAsyncL
 
         var metricsService = scope.ServiceProvider.GetRequiredService<IWebhookPagamentoMetricsService>();
         metricsService.Reset();
+        var retentionMetricsService = scope.ServiceProvider.GetRequiredService<INotificacaoRetentionMetricsService>();
+        retentionMetricsService.Reset();
 
         var uploadsPath = Path.Combine(_contentRootPath, "Uploads");
         if (Directory.Exists(uploadsPath))

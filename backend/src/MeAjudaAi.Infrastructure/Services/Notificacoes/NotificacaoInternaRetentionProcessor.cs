@@ -14,15 +14,18 @@ public class NotificacaoInternaRetentionProcessor : BackgroundService, INotifica
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOptions<NotificacaoInternaRetentionOptions> _options;
+    private readonly INotificacaoRetentionMetricsService _metricsService;
     private readonly ILogger<NotificacaoInternaRetentionProcessor> _logger;
 
     public NotificacaoInternaRetentionProcessor(
         IServiceScopeFactory scopeFactory,
         IOptions<NotificacaoInternaRetentionOptions> options,
+        INotificacaoRetentionMetricsService metricsService,
         ILogger<NotificacaoInternaRetentionProcessor> logger)
     {
         _scopeFactory = scopeFactory;
         _options = options;
+        _metricsService = metricsService;
         _logger = logger;
     }
 
@@ -44,6 +47,7 @@ public class NotificacaoInternaRetentionProcessor : BackgroundService, INotifica
             }
             catch (Exception ex)
             {
+                _metricsService.RegistrarErro(DateTime.UtcNow, ex.Message);
                 _logger.LogError(ex, "Erro ao processar retenção de notificações internas.");
             }
 
@@ -54,9 +58,12 @@ public class NotificacaoInternaRetentionProcessor : BackgroundService, INotifica
     public async Task<int> ProcessarRetencaoAsync(CancellationToken cancellationToken = default)
     {
         var options = _options.Value;
+        var iniciadoEm = DateTime.UtcNow;
 
         if (!options.Habilitada || options.DiasRetencao <= 0)
             return 0;
+
+        _metricsService.RegistrarInicio(iniciadoEm);
 
         await using var scope = _scopeFactory.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -84,6 +91,8 @@ public class NotificacaoInternaRetentionProcessor : BackgroundService, INotifica
         }
 
         await context.SaveChangesAsync(cancellationToken);
+
+        _metricsService.RegistrarSucesso(agora, notificacoes.Count);
 
         _logger.LogInformation(
             "Retenção de notificações internas arquivou {Quantidade} registros com corte em {DataLimite}.",

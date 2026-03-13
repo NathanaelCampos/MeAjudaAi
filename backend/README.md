@@ -326,6 +326,13 @@ curl -X POST "http://localhost:5231/api/notificacoes/retencao/executar" \
   -H "Authorization: Bearer SEU_TOKEN_ADMIN"
 ```
 
+Resumo operacional da retencao de notificacoes internas:
+
+```bash
+curl -s "http://localhost:5231/api/notificacoes/retencao/resumo" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
 Exportacao CSV das notificacoes internas:
 
 ```bash

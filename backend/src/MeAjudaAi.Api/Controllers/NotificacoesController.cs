@@ -15,15 +15,18 @@ public class NotificacoesController : ControllerBase
 {
     private readonly INotificacaoService _notificacaoService;
     private readonly INotificacaoRetentionService _notificacaoRetentionService;
+    private readonly INotificacaoRetentionMetricsService _notificacaoRetentionMetricsService;
     private readonly IEmailNotificacaoTemplateRenderer _emailTemplateRenderer;
 
     public NotificacoesController(
         INotificacaoService notificacaoService,
         INotificacaoRetentionService notificacaoRetentionService,
+        INotificacaoRetentionMetricsService notificacaoRetentionMetricsService,
         IEmailNotificacaoTemplateRenderer emailTemplateRenderer)
     {
         _notificacaoService = notificacaoService;
         _notificacaoRetentionService = notificacaoRetentionService;
+        _notificacaoRetentionMetricsService = notificacaoRetentionMetricsService;
         _emailTemplateRenderer = emailTemplateRenderer;
     }
 
@@ -163,6 +166,21 @@ public class NotificacoesController : ControllerBase
         {
             QuantidadeArquivada = quantidade
         });
+    }
+
+    [HttpGet("retencao/resumo")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(RetencaoNotificacoesResumoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult ObterResumoRetencao(
+        [FromServices] Microsoft.Extensions.Options.IOptions<MeAjudaAi.Infrastructure.Configurations.NotificacaoInternaRetentionOptions> options)
+    {
+        var response = _notificacaoRetentionMetricsService.ObterResumo();
+        response.Habilitada = options.Value.Habilitada;
+        response.DiasRetencao = options.Value.DiasRetencao;
+        response.LoteProcessamento = options.Value.LoteProcessamento;
+        response.SomenteLidas = options.Value.SomenteLidas;
+        return Ok(response);
     }
 
     [HttpGet("minhas/nao-lidas/quantidade")]

@@ -615,6 +615,63 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ObterResumoRetencao_DeveExporUltimaExecucaoEQuantidadeArquivada()
+    {
+        using var configuredFactory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, configurationBuilder) =>
+            {
+                configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Notificacoes:Internas:Retencao:Habilitada"] = "true",
+                    ["Notificacoes:Internas:Retencao:DiasRetencao"] = "30",
+                    ["Notificacoes:Internas:Retencao:LoteProcessamento"] = "100",
+                    ["Notificacoes:Internas:Retencao:SomenteLidas"] = "true"
+                });
+            });
+        });
+
+        using var client = configuredFactory.CreateClient();
+        using var adminClient = configuredFactory.CreateClient();
+        var auth = await RegistrarUsuarioAsync(client, TipoPerfil.Profissional, "retencao-resumo-notif");
+        var authAdmin = await LoginAdminAsync(adminClient);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        await using (var scope = configuredFactory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            context.Add(new NotificacaoUsuario
+            {
+                UsuarioId = auth.UsuarioId,
+                Tipo = TipoNotificacao.ServicoSolicitado,
+                Titulo = "Antiga lida resumo",
+                Mensagem = "Vai entrar na métrica",
+                DataCriacao = DateTime.UtcNow.AddDays(-50),
+                DataLeitura = DateTime.UtcNow.AddDays(-49)
+            });
+
+            await context.SaveChangesAsync();
+        }
+
+        var executarResponse = await adminClient.PostAsync("/api/notificacoes/retencao/executar", null);
+        Assert.Equal(HttpStatusCode.OK, executarResponse.StatusCode);
+
+        var resumo = await adminClient.GetFromJsonAsync<RetencaoNotificacoesResumoResponse>("/api/notificacoes/retencao/resumo");
+
+        Assert.NotNull(resumo);
+        Assert.True(resumo!.Habilitada);
+        Assert.Equal(30, resumo.DiasRetencao);
+        Assert.Equal(100, resumo.LoteProcessamento);
+        Assert.True(resumo.SomenteLidas);
+        Assert.Equal("sucesso", resumo.UltimoStatus);
+        Assert.Equal(1, resumo.UltimaQuantidadeArquivada);
+        Assert.Equal(1, resumo.TotalArquivado);
+        Assert.NotNull(resumo.UltimaExecucaoIniciadaEm);
+        Assert.NotNull(resumo.UltimaExecucaoFinalizadaEm);
+    }
+
+    [Fact]
     public async Task Preferencias_DeveListarDefaultsEPermitirAtualizacao()
     {
         using var client = _factory.CreateClient();
