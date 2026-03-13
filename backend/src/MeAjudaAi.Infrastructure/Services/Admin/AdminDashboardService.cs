@@ -78,7 +78,13 @@ public class AdminDashboardService : IAdminDashboardService
             .Select(x => (StatusEmailNotificacao?)x.Status)
             .FirstOrDefaultAsync(cancellationToken);
         var ultimaDataEmail = await _context.EmailsNotificacoesOutbox.MaxAsync(x => (DateTime?)x.DataCriacao, cancellationToken);
+        var ultimoEmailProcessadoEm = await _context.EmailsNotificacoesOutbox
+            .Where(x => x.DataProcessamento != null)
+            .MaxAsync(x => x.DataProcessamento, cancellationToken);
         var ultimaAcaoAdminEm = await _context.AuditoriasAdminAcoes.MaxAsync(x => (DateTime?)x.DataCriacao, cancellationToken);
+        var ultimoWebhookFalhoEm = await _context.WebhookPagamentoImpulsionamentoEventos
+            .Where(x => !x.ProcessadoComSucesso)
+            .MaxAsync(x => (DateTime?)x.DataCriacao, cancellationToken);
 
         var serieServicos = await _context.Servicos
             .AsNoTracking()
@@ -498,6 +504,15 @@ public class AdminDashboardService : IAdminDashboardService
             TopUsuariosInativosRecentes = topUsuariosInativosRecentes,
             AcoesAdminRecentes = acoesAdminRecentes,
             TopAdminsAtivos = topAdminsAtivos,
+            SlaOperacional = new AdminDashboardSlaOperacionalResponse
+            {
+                UltimaAcaoAdminEm = ultimaAcaoAdminEm,
+                MinutosDesdeUltimaAcaoAdmin = CalcularMinutosDesde(ultimaAcaoAdminEm, agora),
+                UltimoWebhookFalhoEm = ultimoWebhookFalhoEm,
+                MinutosDesdeUltimoWebhookFalho = CalcularMinutosDesde(ultimoWebhookFalhoEm, agora),
+                UltimoEmailProcessadoEm = ultimoEmailProcessadoEm,
+                MinutosDesdeUltimoEmailProcessado = CalcularMinutosDesde(ultimoEmailProcessadoEm, agora)
+            },
             ResumoDecisorio = CriarResumoDecisorio(
                 totalWebhooks - webhooksSucesso,
                 emailsFalhas,
@@ -636,5 +651,13 @@ public class AdminDashboardService : IAdminDashboardService
             PrincipalGargalo = principalGargalo,
             RecomendacaoImediata = recomendacaoImediata
         };
+    }
+
+    private static int? CalcularMinutosDesde(DateTime? dataReferencia, DateTime agora)
+    {
+        if (dataReferencia == null)
+            return null;
+
+        return Math.Max(0, (int)Math.Floor((agora - dataReferencia.Value).TotalMinutes));
     }
 }

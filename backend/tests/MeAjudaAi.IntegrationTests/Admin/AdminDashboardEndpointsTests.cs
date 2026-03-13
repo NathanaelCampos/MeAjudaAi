@@ -146,6 +146,9 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.NotNull(payload.TopAdminsAtivos);
         Assert.True(payload.TopAdminsAtivos.Count >= 1);
         Assert.Equal(admin.UsuarioId, payload.TopAdminsAtivos[0].AdminUsuarioId);
+        Assert.NotNull(payload.SlaOperacional);
+        Assert.NotNull(payload.SlaOperacional.UltimaAcaoAdminEm);
+        Assert.True(payload.SlaOperacional.MinutosDesdeUltimaAcaoAdmin >= 0);
         Assert.NotNull(payload.ResumoDecisorio);
         Assert.Contains(payload.ResumoDecisorio.SituacaoGeral, ["baixo", "medio", "alto"]);
         Assert.False(string.IsNullOrWhiteSpace(payload.ResumoDecisorio.FocoPrincipal));
@@ -205,6 +208,11 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal("alto", payload!.RiscoOperacional);
         Assert.True(payload.Alertas.SemAcaoAdminRecenteSobRisco);
         Assert.NotNull(payload.Alertas.UltimaAcaoAdminEm);
+        Assert.NotNull(payload.SlaOperacional);
+        Assert.NotNull(payload.SlaOperacional.UltimaAcaoAdminEm);
+        Assert.True(payload.SlaOperacional.MinutosDesdeUltimaAcaoAdmin >= 60 * 24);
+        Assert.NotNull(payload.SlaOperacional.UltimoWebhookFalhoEm);
+        Assert.True(payload.SlaOperacional.MinutosDesdeUltimoWebhookFalho >= 0);
         Assert.Contains(payload.AcoesRecomendadas.Itens, x => x.Contains("Acionar administracao", StringComparison.Ordinal));
         Assert.Contains("Sem acao administrativa recente", payload.ResumoDecisorio.PrincipalGargalo);
     }

@@ -22,5 +22,6 @@ public class AdminDashboardResponse
     public List<AdminDashboardUsuarioInativoRecenteItemResponse> TopUsuariosInativosRecentes { get; set; } = [];
     public List<AdminDashboardAuditoriaAdminItemResponse> AcoesAdminRecentes { get; set; } = [];
     public List<AdminDashboardAdminAtivoItemResponse> TopAdminsAtivos { get; set; } = [];
+    public AdminDashboardSlaOperacionalResponse SlaOperacional { get; set; } = new();
     public AdminDashboardResumoDecisorioResponse ResumoDecisorio { get; set; } = new();
 }
