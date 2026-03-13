@@ -362,6 +362,47 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ExportarNotificacoes_DeveRetornarCsvFiltrado()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-exporta-notif");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-exporta-notif");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para exportacao",
+            Descricao = "Gera notificacao para exportar",
+            ValorCombinado = 120m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var exportarResponse = await adminClient.GetAsync(
+            $"/api/notificacoes/exportar?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}&lida=false&limite=100");
+
+        var csv = await exportarResponse.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, exportarResponse.StatusCode);
+        Assert.Equal("text/csv; charset=utf-8", exportarResponse.Content.Headers.ContentType!.ToString());
+        Assert.Contains("Id,UsuarioId,NomeUsuario,EmailUsuario,Tipo,Titulo,Mensagem,ReferenciaId,Lida,DataCriacao,DataLeitura", csv);
+        Assert.Contains("ServicoSolicitado", csv);
+        Assert.Contains(authProfissional.UsuarioId.ToString(), csv);
+    }
+
+    [Fact]
     public async Task Preferencias_DeveListarDefaultsEPermitirAtualizacao()
     {
         using var client = _factory.CreateClient();

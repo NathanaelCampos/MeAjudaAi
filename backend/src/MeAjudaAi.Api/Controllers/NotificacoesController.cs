@@ -74,6 +74,23 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("exportar")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Exportar(
+        [FromQuery] ExportarNotificacoesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var csv = await _notificacaoService.ExportarNotificacoesCsvAsync(request, cancellationToken);
+
+        return File(
+            System.Text.Encoding.UTF8.GetBytes(csv),
+            "text/csv; charset=utf-8",
+            $"notificacoes-{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
+    }
+
     [HttpGet("{notificacaoId:guid}")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(NotificacaoAdminResponse), StatusCodes.Status200OK)]

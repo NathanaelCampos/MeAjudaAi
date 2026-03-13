@@ -168,6 +168,70 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<string> ExportarNotificacoesCsvAsync(
+        ExportarNotificacoesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Set<NotificacaoUsuario>()
+            .AsNoTracking()
+            .Where(x => x.Ativo);
+
+        if (request.UsuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
+
+        if (request.TipoNotificacao.HasValue)
+            query = query.Where(x => x.Tipo == request.TipoNotificacao.Value);
+
+        if (request.Lida.HasValue)
+            query = request.Lida.Value ? query.Where(x => x.DataLeitura != null) : query.Where(x => x.DataLeitura == null);
+
+        if (request.DataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= request.DataCriacaoInicial.Value);
+
+        if (request.DataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
+
+        var notificacoes = await query
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(Math.Min(request.Limite, 5000))
+            .Select(x => new NotificacaoAdminResponse
+            {
+                Id = x.Id,
+                UsuarioId = x.UsuarioId,
+                NomeUsuario = x.Usuario.Nome,
+                EmailUsuario = x.Usuario.Email,
+                Tipo = x.Tipo,
+                Titulo = x.Titulo,
+                Mensagem = x.Mensagem,
+                ReferenciaId = x.ReferenciaId,
+                Lida = x.DataLeitura != null,
+                DataCriacao = x.DataCriacao,
+                DataLeitura = x.DataLeitura
+            })
+            .ToListAsync(cancellationToken);
+
+        var csv = new StringBuilder();
+        csv.AppendLine("Id,UsuarioId,NomeUsuario,EmailUsuario,Tipo,Titulo,Mensagem,ReferenciaId,Lida,DataCriacao,DataLeitura");
+
+        foreach (var notificacao in notificacoes)
+        {
+            csv.AppendLine(string.Join(",",
+                EscaparCsv(notificacao.Id),
+                EscaparCsv(notificacao.UsuarioId),
+                EscaparCsv(notificacao.NomeUsuario),
+                EscaparCsv(notificacao.EmailUsuario),
+                EscaparCsv(notificacao.Tipo),
+                EscaparCsv(notificacao.Titulo),
+                EscaparCsv(notificacao.Mensagem),
+                EscaparCsv(notificacao.ReferenciaId),
+                EscaparCsv(notificacao.Lida),
+                EscaparCsv(notificacao.DataCriacao),
+                EscaparCsv(notificacao.DataLeitura)));
+        }
+
+        return csv.ToString();
+    }
+
     public async Task<NotificacaoAdminResponse?> ObterNotificacaoPorIdAsync(
         Guid notificacaoId,
         CancellationToken cancellationToken = default)

@@ -298,6 +298,14 @@ curl -X PUT "http://localhost:5231/api/notificacoes/marcar-lidas-lote" \
   -d '{"usuarioId":"USUARIO_ID","tipoNotificacao":"ServicoSolicitado","limite":100}'
 ```
 
+Exportacao CSV das notificacoes internas:
+
+```bash
+curl -L "http://localhost:5231/api/notificacoes/exportar?usuarioId=USUARIO_ID&tipoNotificacao=ServicoSolicitado&lida=false&limite=100" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN" \
+  -o notificacoes.csv
+```
+
 ## Emails de notificacao
 
 O backend suporta dois modos para o envio do outbox:
