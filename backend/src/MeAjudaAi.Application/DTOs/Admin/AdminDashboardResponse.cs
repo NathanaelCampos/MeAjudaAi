@@ -1,0 +1,13 @@
+namespace MeAjudaAi.Application.DTOs.Admin;
+
+public class AdminDashboardResponse
+{
+    public AdminDashboardUsuariosResponse Usuarios { get; set; } = new();
+    public AdminDashboardProfissionaisResponse Profissionais { get; set; } = new();
+    public AdminDashboardServicosResponse Servicos { get; set; } = new();
+    public AdminDashboardAvaliacoesResponse Avaliacoes { get; set; } = new();
+    public AdminDashboardImpulsionamentosResponse Impulsionamentos { get; set; } = new();
+    public AdminDashboardWebhooksResponse Webhooks { get; set; } = new();
+    public AdminDashboardNotificacoesResponse Notificacoes { get; set; } = new();
+    public AdminDashboardEmailsResponse Emails { get; set; } = new();
+}
