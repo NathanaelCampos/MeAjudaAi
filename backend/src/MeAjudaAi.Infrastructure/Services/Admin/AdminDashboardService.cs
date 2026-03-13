@@ -615,6 +615,14 @@ public class AdminDashboardService : IAdminDashboardService
                         comparativoAvaliacoes,
                         comparativoWebhooks,
                         comparativoEmails))),
+            PrioridadeComparativaPrincipal = CriarPrioridadeComparativaPreset(
+                CriarStatusComparativoPreset(
+                    CriarResumoComparativoPreset(
+                        presetAnterior != null,
+                        comparativoServicos,
+                        comparativoAvaliacoes,
+                        comparativoWebhooks,
+                        comparativoEmails))),
             Pendencias = new AdminDashboardPendenciasResponse
             {
                 AvaliacoesPendentesModeracao = avaliacoesPendentes,
@@ -862,6 +870,16 @@ public class AdminDashboardService : IAdminDashboardService
             "positivo" => "verde",
             "negativo" => "vermelho",
             _ => "amarelo"
+        };
+    }
+
+    private static string CriarPrioridadeComparativaPreset(string statusComparativo)
+    {
+        return statusComparativo switch
+        {
+            "positivo" => "baixa",
+            "negativo" => "alta",
+            _ => "media"
         };
     }
 
