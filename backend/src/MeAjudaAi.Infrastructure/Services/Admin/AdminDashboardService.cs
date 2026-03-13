@@ -313,6 +313,21 @@ public class AdminDashboardService : IAdminDashboardService
             .Take(5)
             .ToList();
 
+        var topUsuariosInativosRecentes = await _context.Usuarios
+            .AsNoTracking()
+            .Where(x => !x.Ativo)
+            .OrderByDescending(x => x.DataAtualizacao ?? x.DataCriacao)
+            .Take(5)
+            .Select(x => new AdminDashboardUsuarioInativoRecenteItemResponse
+            {
+                UsuarioId = x.Id,
+                Nome = x.Nome,
+                Email = x.Email,
+                TipoPerfil = x.TipoPerfil,
+                DataAtualizacao = x.DataAtualizacao
+            })
+            .ToListAsync(cancellationToken);
+
         return new AdminDashboardResponse
         {
             Usuarios = new AdminDashboardUsuariosResponse
@@ -433,7 +448,8 @@ public class AdminDashboardService : IAdminDashboardService
                     servicosSolicitados)
             },
             TopProfissionaisEmAtencao = topProfissionaisEmAtencao,
-            TopClientesEmAtencao = topClientesEmAtencao
+            TopClientesEmAtencao = topClientesEmAtencao,
+            TopUsuariosInativosRecentes = topUsuariosInativosRecentes
         };
     }
 

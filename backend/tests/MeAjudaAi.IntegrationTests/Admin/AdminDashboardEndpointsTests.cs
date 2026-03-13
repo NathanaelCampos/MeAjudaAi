@@ -90,6 +90,9 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         });
         Assert.Equal(HttpStatusCode.OK, avaliacao.StatusCode);
 
+        var bloquearProfissional = await adminClient.PutAsync($"/api/admin/usuarios/{profissional.Auth.UsuarioId}/bloquear", null);
+        Assert.Equal(HttpStatusCode.OK, bloquearProfissional.StatusCode);
+
         var response = await adminClient.GetAsync("/api/admin/dashboard");
         var payload = await response.Content.ReadFromJsonAsync<AdminDashboardResponse>();
 
@@ -129,6 +132,9 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.NotNull(payload.TopClientesEmAtencao);
         Assert.True(payload.TopClientesEmAtencao.Count >= 1);
         Assert.True(payload.TopClientesEmAtencao[0].ScoreAtencao >= 1);
+        Assert.NotNull(payload.TopUsuariosInativosRecentes);
+        Assert.True(payload.TopUsuariosInativosRecentes.Count >= 1);
+        Assert.Contains(payload.TopUsuariosInativosRecentes, x => x.UsuarioId == profissional.Auth.UsuarioId);
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
