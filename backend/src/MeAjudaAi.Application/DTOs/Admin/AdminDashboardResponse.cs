@@ -20,5 +20,7 @@ public class AdminDashboardResponse
     public List<AdminDashboardProfissionalEmAtencaoItemResponse> TopProfissionaisEmAtencao { get; set; } = [];
     public List<AdminDashboardClienteEmAtencaoItemResponse> TopClientesEmAtencao { get; set; } = [];
     public List<AdminDashboardUsuarioInativoRecenteItemResponse> TopUsuariosInativosRecentes { get; set; } = [];
+    public List<AdminDashboardAuditoriaAdminItemResponse> AcoesAdminRecentes { get; set; } = [];
+    public List<AdminDashboardAdminAtivoItemResponse> TopAdminsAtivos { get; set; } = [];
     public AdminDashboardResumoDecisorioResponse ResumoDecisorio { get; set; } = new();
 }

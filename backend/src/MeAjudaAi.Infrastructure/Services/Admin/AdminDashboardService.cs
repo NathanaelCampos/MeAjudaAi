@@ -328,6 +328,42 @@ public class AdminDashboardService : IAdminDashboardService
             })
             .ToListAsync(cancellationToken);
 
+        var acoesAdminRecentes = await _context.AuditoriasAdminAcoes
+            .AsNoTracking()
+            .Include(x => x.AdminUsuario)
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(5)
+            .Select(x => new AdminDashboardAuditoriaAdminItemResponse
+            {
+                AuditoriaId = x.Id,
+                AdminUsuarioId = x.AdminUsuarioId,
+                NomeAdmin = x.AdminUsuario.Nome,
+                EmailAdmin = x.AdminUsuario.Email,
+                Entidade = x.Entidade,
+                EntidadeId = x.EntidadeId,
+                Acao = x.Acao,
+                Descricao = x.Descricao,
+                DataCriacao = x.DataCriacao
+            })
+            .ToListAsync(cancellationToken);
+
+        var topAdminsAtivos = await _context.AuditoriasAdminAcoes
+            .AsNoTracking()
+            .Include(x => x.AdminUsuario)
+            .GroupBy(x => new { x.AdminUsuarioId, x.AdminUsuario.Nome, x.AdminUsuario.Email })
+            .Select(x => new AdminDashboardAdminAtivoItemResponse
+            {
+                AdminUsuarioId = x.Key.AdminUsuarioId,
+                NomeAdmin = x.Key.Nome,
+                EmailAdmin = x.Key.Email,
+                TotalAcoes = x.Count(),
+                UltimaAcaoEm = x.Max(y => (DateTime?)y.DataCriacao)
+            })
+            .OrderByDescending(x => x.TotalAcoes)
+            .ThenByDescending(x => x.UltimaAcaoEm)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+
         return new AdminDashboardResponse
         {
             Usuarios = new AdminDashboardUsuariosResponse
@@ -450,6 +486,8 @@ public class AdminDashboardService : IAdminDashboardService
             TopProfissionaisEmAtencao = topProfissionaisEmAtencao,
             TopClientesEmAtencao = topClientesEmAtencao,
             TopUsuariosInativosRecentes = topUsuariosInativosRecentes,
+            AcoesAdminRecentes = acoesAdminRecentes,
+            TopAdminsAtivos = topAdminsAtivos,
             ResumoDecisorio = CriarResumoDecisorio(
                 totalWebhooks - webhooksSucesso,
                 emailsFalhas,
