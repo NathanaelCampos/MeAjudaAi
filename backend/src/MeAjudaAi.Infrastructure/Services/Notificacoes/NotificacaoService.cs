@@ -856,6 +856,7 @@ public class NotificacaoService : INotificacaoService
             LimiteRecomendado = limiteRecomendado,
             ModoSeguro = totalRegistros <= limiteRecomendado,
             QuantidadeLotesEstimados = quantidadeLotesEstimados,
+            CapacidadePorExecucao = $"Ate {limiteRecomendado} notificacoes por execucao",
             Limites = limites
         };
     }
