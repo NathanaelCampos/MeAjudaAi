@@ -96,6 +96,7 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAdminUsuarioService, AdminUsuarioService>();
         services.AddScoped<IAdminProfissionalService, AdminProfissionalService>();
+        services.AddScoped<IAdminServicoService, AdminServicoService>();
         services.AddScoped<IProfissionalService, ProfissionalService>();
         services.AddScoped<IProfissaoService, ProfissaoService>();
         services.AddScoped<ICidadeService, CidadeService>();
