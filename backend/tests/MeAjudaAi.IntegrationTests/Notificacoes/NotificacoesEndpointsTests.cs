@@ -409,6 +409,75 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ObterResumoUsuariosExclusaoNotificacoesArquivadas_DeveAgruparPorUsuario()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalUmClient = _factory.CreateClient();
+        using var profissionalDoisClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-resumo-usuarios-exclusao-arq");
+        var authProfissionalUm = await RegistrarUsuarioAsync(profissionalUmClient, TipoPerfil.Profissional, "profissional-um-resumo-usuarios-exclusao-arq");
+        var authProfissionalDois = await RegistrarUsuarioAsync(profissionalDoisClient, TipoPerfil.Profissional, "profissional-dois-resumo-usuarios-exclusao-arq");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalUmId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissionalUm.UsuarioId);
+        var profissionalDoisId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissionalDois.UsuarioId);
+
+        var criarServicoProfissionalUm = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalUmId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para resumo por usuario um",
+            Descricao = "Gera notificacao arquivada para o primeiro profissional",
+            ValorCombinado = 150m
+        });
+
+        var criarServicoProfissionalDois = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalDoisId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para resumo por usuario dois",
+            Descricao = "Gera notificacao arquivada para o segundo profissional",
+            ValorCombinado = 175m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoProfissionalUm.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, criarServicoProfissionalDois.StatusCode);
+
+        var arquivarProfissionalUm = await adminClient.PutAsJsonAsync("/api/notificacoes/arquivar-lote", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissionalUm.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = false,
+            Limite = 100
+        });
+
+        var arquivarProfissionalDois = await adminClient.PutAsJsonAsync("/api/notificacoes/arquivar-lote", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissionalDois.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = false,
+            Limite = 100
+        });
+
+        Assert.Equal(HttpStatusCode.OK, arquivarProfissionalUm.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, arquivarProfissionalDois.StatusCode);
+
+        var resumo = await adminClient.GetFromJsonAsync<NotificacaoArquivadaResumoUsuariosResponse>(
+            "/api/notificacoes/arquivadas/excluir-lote/resumo-usuarios?tipoNotificacao=ServicoSolicitado");
+
+        Assert.NotNull(resumo);
+        Assert.True(resumo!.TotalRegistros >= 2);
+        Assert.Contains(resumo.Usuarios, x => x.UsuarioId == authProfissionalUm.UsuarioId && x.Total >= 1 && x.NaoLidas >= 1);
+        Assert.Contains(resumo.Usuarios, x => x.UsuarioId == authProfissionalDois.UsuarioId && x.Total >= 1 && x.NaoLidas >= 1);
+    }
+
+    [Fact]
     public async Task ListarNotificacoesArquivadasAdmin_DevePermitirFiltrarPorUsuarioTipoELidaComPaginacao()
     {
         using var clienteClient = _factory.CreateClient();

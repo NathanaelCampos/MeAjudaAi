@@ -623,6 +623,62 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<NotificacaoArquivadaResumoUsuariosResponse> ObterResumoUsuariosExclusaoNotificacoesArquivadasAsync(
+        Guid? usuarioId = null,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Set<NotificacaoUsuario>()
+            .AsNoTracking()
+            .Include(x => x.Usuario)
+            .Where(x => !x.Ativo);
+
+        if (usuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == usuarioId.Value);
+
+        if (tipoNotificacao.HasValue)
+            query = query.Where(x => x.Tipo == tipoNotificacao.Value);
+
+        if (dataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= dataCriacaoInicial.Value);
+
+        if (dataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= dataCriacaoFinal.Value);
+
+        var totalRegistros = await query.CountAsync(cancellationToken);
+        var usuarios = await query
+            .GroupBy(x => new
+            {
+                x.UsuarioId,
+                x.Usuario.Nome,
+                x.Usuario.Email
+            })
+            .Select(x => new NotificacaoResumoOperacionalUsuarioItemResponse
+            {
+                UsuarioId = x.Key.UsuarioId,
+                Nome = x.Key.Nome,
+                Email = x.Key.Email,
+                Total = x.Count(),
+                Lidas = x.Count(y => y.DataLeitura != null),
+                NaoLidas = x.Count(y => y.DataLeitura == null)
+            })
+            .OrderByDescending(x => x.Total)
+            .ThenBy(x => x.Nome)
+            .ToListAsync(cancellationToken);
+
+        return new NotificacaoArquivadaResumoUsuariosResponse
+        {
+            UsuarioId = usuarioId,
+            TipoNotificacao = tipoNotificacao,
+            DataCriacaoInicial = dataCriacaoInicial,
+            DataCriacaoFinal = dataCriacaoFinal,
+            TotalRegistros = totalRegistros,
+            Usuarios = usuarios
+        };
+    }
+
     private async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesPorAtividadeAsync(
         bool ativo,
         Guid? usuarioId,
