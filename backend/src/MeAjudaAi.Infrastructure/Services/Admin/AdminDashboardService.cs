@@ -19,12 +19,17 @@ public class AdminDashboardService : IAdminDashboardService
         _options = options.Value;
     }
 
-    public async Task<AdminDashboardResponse> ObterAsync(CancellationToken cancellationToken = default)
+    public async Task<AdminDashboardResponse> ObterAsync(
+        BuscarAdminDashboardRequest? request = null,
+        CancellationToken cancellationToken = default)
     {
         var hoje = DateTime.UtcNow.Date;
         var agora = DateTime.UtcNow;
+        var janelaQualidadeDias = request?.JanelaQualidadeDias is > 0
+            ? request.JanelaQualidadeDias.Value
+            : _options.JanelaQualidadeDias;
         var janelaAcaoAdminRecente = TimeSpan.FromHours(_options.JanelaAcaoAdminRecenteHoras);
-        var janelaQualidadeOperacional = TimeSpan.FromDays(_options.JanelaQualidadeDias);
+        var janelaQualidadeOperacional = TimeSpan.FromDays(janelaQualidadeDias);
         var inicioJanelaQualidade = agora.Subtract(janelaQualidadeOperacional);
         var inicioUltimos7Dias = hoje.AddDays(-6);
         var inicioSeteDiasAnteriores = hoje.AddDays(-13);
@@ -428,7 +433,7 @@ public class AdminDashboardService : IAdminDashboardService
         {
             Configuracao = new AdminDashboardConfiguracaoResponse
             {
-                JanelaQualidadeDias = _options.JanelaQualidadeDias,
+                JanelaQualidadeDias = janelaQualidadeDias,
                 JanelaAcaoAdminRecenteHoras = _options.JanelaAcaoAdminRecenteHoras
             },
             Usuarios = new AdminDashboardUsuariosResponse

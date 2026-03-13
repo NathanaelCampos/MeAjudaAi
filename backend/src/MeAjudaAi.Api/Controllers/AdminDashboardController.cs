@@ -20,9 +20,11 @@ public class AdminDashboardController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(AdminDashboardResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Obter(CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Obter(
+        [FromQuery] BuscarAdminDashboardRequest request,
+        CancellationToken cancellationToken = default)
     {
-        var response = await _adminDashboardService.ObterAsync(cancellationToken);
+        var response = await _adminDashboardService.ObterAsync(request, cancellationToken);
         return Ok(response);
     }
 }

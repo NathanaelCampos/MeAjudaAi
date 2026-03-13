@@ -299,6 +299,48 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal("saudavel", payload.SaudeOperacional.Status);
     }
 
+    [Fact]
+    public async Task Obter_ComJanelaQualidadeDiasMaior_DeveConsiderarFalhasAntigasDentroDoPeriodo()
+    {
+        using var adminClient = _factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var dataAntiga = DateTime.UtcNow.AddDays(-10);
+
+            context.WebhookPagamentoImpulsionamentoEventos.Add(new WebhookPagamentoImpulsionamentoEvento
+            {
+                Provedor = "manual",
+                EventoExternoId = $"evt-janela-{Guid.NewGuid():N}",
+                CodigoReferenciaPagamento = $"ref-janela-{Guid.NewGuid():N}",
+                StatusPagamento = "pago",
+                PayloadJson = "{}",
+                HeadersJson = "{}",
+                IpOrigem = "127.0.0.1",
+                RequestId = "req-janela-webhook",
+                UserAgent = "integration-test",
+                ProcessadoComSucesso = false,
+                MensagemResultado = "Falha antiga dentro da janela customizada",
+                DataCriacao = dataAntiga
+            });
+
+            await context.SaveChangesAsync();
+        }
+
+        var response = await adminClient.GetAsync("/api/admin/dashboard?janelaQualidadeDias=15");
+        var payload = await response.Content.ReadFromJsonAsync<AdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal(15, payload!.Configuracao.JanelaQualidadeDias);
+        Assert.True(payload.DisponibilidadeOperacional.PercentualFalhaWebhooks > 0m);
+        Assert.NotEqual("baixo", payload.RiscoOperacional);
+    }
+
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/pagamentos/impulsionamentos")

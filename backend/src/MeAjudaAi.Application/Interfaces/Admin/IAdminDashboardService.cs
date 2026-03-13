@@ -4,5 +4,7 @@ namespace MeAjudaAi.Application.Interfaces.Admin;
 
 public interface IAdminDashboardService
 {
-    Task<AdminDashboardResponse> ObterAsync(CancellationToken cancellationToken = default);
+    Task<AdminDashboardResponse> ObterAsync(
+        BuscarAdminDashboardRequest? request = null,
+        CancellationToken cancellationToken = default);
 }
