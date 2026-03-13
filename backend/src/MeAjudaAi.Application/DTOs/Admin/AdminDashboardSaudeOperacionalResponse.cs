@@ -6,5 +6,6 @@ public class AdminDashboardSaudeOperacionalResponse
     public string IndicadorCor { get; set; } = "verde";
     public string PrioridadeVisual { get; set; } = "baixa";
     public int OrdemAtencao { get; set; } = 3;
+    public string AcaoPrimariaSugerida { get; set; } = string.Empty;
     public string Resumo { get; set; } = string.Empty;
 }

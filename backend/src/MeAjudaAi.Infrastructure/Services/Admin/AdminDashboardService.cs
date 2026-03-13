@@ -383,6 +383,15 @@ public class AdminDashboardService : IAdminDashboardService
         var semAcaoAdminRecenteSobRisco = riscoOperacional == "alto" &&
                                           (ultimaAcaoAdminEm == null || ultimaAcaoAdminEm <= agora.Subtract(JanelaAcaoAdminRecente));
 
+        var acoesRecomendadas = CriarAcoesRecomendadas(
+            totalWebhooks - webhooksSucesso,
+            emailsFalhas,
+            emailsPendentesAtrasados,
+            avaliacoesPendentes,
+            impulsionamentosPendentes,
+            servicosSolicitados,
+            semAcaoAdminRecenteSobRisco);
+
         return new AdminDashboardResponse
         {
             Usuarios = new AdminDashboardUsuariosResponse
@@ -490,14 +499,7 @@ public class AdminDashboardService : IAdminDashboardService
             },
             AcoesRecomendadas = new AdminDashboardAcoesRecomendadasResponse
             {
-                Itens = CriarAcoesRecomendadas(
-                    totalWebhooks - webhooksSucesso,
-                    emailsFalhas,
-                    emailsPendentesAtrasados,
-                    avaliacoesPendentes,
-                    impulsionamentosPendentes,
-                    servicosSolicitados,
-                    semAcaoAdminRecenteSobRisco)
+                Itens = acoesRecomendadas
             },
             TopProfissionaisEmAtencao = topProfissionaisEmAtencao,
             TopClientesEmAtencao = topClientesEmAtencao,
@@ -524,7 +526,8 @@ public class AdminDashboardService : IAdminDashboardService
                 riscoOperacional,
                 semAcaoAdminRecenteSobRisco,
                 CalcularPercentual(totalWebhooks, totalWebhooks - webhooksSucesso),
-                CalcularPercentual(totalEmails, emailsFalhas)),
+                CalcularPercentual(totalEmails, emailsFalhas),
+                acoesRecomendadas),
             ResumoDecisorio = CriarResumoDecisorio(
                 totalWebhooks - webhooksSucesso,
                 emailsFalhas,
@@ -685,8 +688,11 @@ public class AdminDashboardService : IAdminDashboardService
         string riscoOperacional,
         bool semAcaoAdminRecenteSobRisco,
         decimal percentualFalhaWebhooks,
-        decimal percentualFalhaEmails)
+        decimal percentualFalhaEmails,
+        List<string> acoesRecomendadas)
     {
+        var acaoPrimariaSugerida = acoesRecomendadas.FirstOrDefault() ?? "Operacao estavel sem acoes imediatas.";
+
         if (semAcaoAdminRecenteSobRisco)
         {
             return new AdminDashboardSaudeOperacionalResponse
@@ -695,6 +701,7 @@ public class AdminDashboardService : IAdminDashboardService
                 IndicadorCor = "vermelho",
                 PrioridadeVisual = "alta",
                 OrdemAtencao = 1,
+                AcaoPrimariaSugerida = acaoPrimariaSugerida,
                 Resumo = "Risco alto sem acao administrativa recente."
             };
         }
@@ -707,6 +714,7 @@ public class AdminDashboardService : IAdminDashboardService
                 IndicadorCor = "vermelho",
                 PrioridadeVisual = "alta",
                 OrdemAtencao = 1,
+                AcaoPrimariaSugerida = acaoPrimariaSugerida,
                 Resumo = "Operacao com falhas relevantes em canais ou backlog critico."
             };
         }
@@ -719,6 +727,7 @@ public class AdminDashboardService : IAdminDashboardService
                 IndicadorCor = "amarelo",
                 PrioridadeVisual = "media",
                 OrdemAtencao = 2,
+                AcaoPrimariaSugerida = acaoPrimariaSugerida,
                 Resumo = "Operacao sob atencao com pendencias ou falhas pontuais."
             };
         }
@@ -729,6 +738,7 @@ public class AdminDashboardService : IAdminDashboardService
             IndicadorCor = "verde",
             PrioridadeVisual = "baixa",
             OrdemAtencao = 3,
+            AcaoPrimariaSugerida = acaoPrimariaSugerida,
             Resumo = "Operacao estavel com sinais controlados."
         };
     }
