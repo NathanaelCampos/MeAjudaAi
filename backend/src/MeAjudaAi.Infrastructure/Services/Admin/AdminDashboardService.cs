@@ -261,6 +261,58 @@ public class AdminDashboardService : IAdminDashboardService
             .Take(5)
             .ToList();
 
+        var servicosEmAbertoPorCliente = await _context.Servicos
+            .AsNoTracking()
+            .Where(x => x.Status == StatusServico.Solicitado || x.Status == StatusServico.Aceito || x.Status == StatusServico.EmExecucao)
+            .GroupBy(x => x.ClienteId)
+            .Select(x => new { ClienteId = x.Key, Total = x.Count() })
+            .ToDictionaryAsync(x => x.ClienteId, x => x.Total, cancellationToken);
+
+        var notificacoesNaoLidasPorUsuario = await _context.NotificacoesUsuarios
+            .AsNoTracking()
+            .Where(x => x.Ativo && x.DataLeitura == null)
+            .GroupBy(x => x.UsuarioId)
+            .Select(x => new { UsuarioId = x.Key, Total = x.Count() })
+            .ToDictionaryAsync(x => x.UsuarioId, x => x.Total, cancellationToken);
+
+        var emailsFalhosPorUsuario = await _context.EmailsNotificacoesOutbox
+            .AsNoTracking()
+            .Where(x => x.Status == StatusEmailNotificacao.Falha)
+            .GroupBy(x => x.UsuarioId)
+            .Select(x => new { UsuarioId = x.Key, Total = x.Count() })
+            .ToDictionaryAsync(x => x.UsuarioId, x => x.Total, cancellationToken);
+
+        var clientesEmAtencao = await _context.Clientes
+            .AsNoTracking()
+            .Include(x => x.Usuario)
+            .ToListAsync(cancellationToken);
+
+        var topClientesEmAtencao = clientesEmAtencao
+            .Select(cliente =>
+            {
+                var totalServicosEmAberto = servicosEmAbertoPorCliente.GetValueOrDefault(cliente.Id);
+                var totalNotificacoesNaoLidas = notificacoesNaoLidasPorUsuario.GetValueOrDefault(cliente.UsuarioId);
+                var totalEmailsFalhos = emailsFalhosPorUsuario.GetValueOrDefault(cliente.UsuarioId);
+                var scoreAtencao = totalServicosEmAberto + totalNotificacoesNaoLidas + totalEmailsFalhos;
+
+                return new AdminDashboardClienteEmAtencaoItemResponse
+                {
+                    ClienteId = cliente.Id,
+                    UsuarioId = cliente.UsuarioId,
+                    NomeExibicao = cliente.NomeExibicao,
+                    Email = cliente.Usuario.Email,
+                    ServicosEmAberto = totalServicosEmAberto,
+                    NotificacoesNaoLidas = totalNotificacoesNaoLidas,
+                    EmailsComFalha = totalEmailsFalhos,
+                    ScoreAtencao = scoreAtencao
+                };
+            })
+            .Where(x => x.ScoreAtencao > 0)
+            .OrderByDescending(x => x.ScoreAtencao)
+            .ThenBy(x => x.NomeExibicao)
+            .Take(5)
+            .ToList();
+
         return new AdminDashboardResponse
         {
             Usuarios = new AdminDashboardUsuariosResponse
@@ -380,7 +432,8 @@ public class AdminDashboardService : IAdminDashboardService
                     impulsionamentosPendentes,
                     servicosSolicitados)
             },
-            TopProfissionaisEmAtencao = topProfissionaisEmAtencao
+            TopProfissionaisEmAtencao = topProfissionaisEmAtencao,
+            TopClientesEmAtencao = topClientesEmAtencao
         };
     }
 

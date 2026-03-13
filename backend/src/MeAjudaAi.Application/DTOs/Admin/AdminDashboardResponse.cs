@@ -18,4 +18,5 @@ public class AdminDashboardResponse
     public AdminDashboardItensCriticosRecentesResponse ItensCriticosRecentes { get; set; } = new();
     public AdminDashboardAcoesRecomendadasResponse AcoesRecomendadas { get; set; } = new();
     public List<AdminDashboardProfissionalEmAtencaoItemResponse> TopProfissionaisEmAtencao { get; set; } = [];
+    public List<AdminDashboardClienteEmAtencaoItemResponse> TopClientesEmAtencao { get; set; } = [];
 }

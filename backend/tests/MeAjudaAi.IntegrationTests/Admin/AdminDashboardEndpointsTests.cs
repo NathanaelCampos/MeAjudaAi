@@ -126,6 +126,9 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.NotNull(payload.TopProfissionaisEmAtencao);
         Assert.True(payload.TopProfissionaisEmAtencao.Count >= 1);
         Assert.True(payload.TopProfissionaisEmAtencao[0].ScoreAtencao >= 1);
+        Assert.NotNull(payload.TopClientesEmAtencao);
+        Assert.True(payload.TopClientesEmAtencao.Count >= 1);
+        Assert.True(payload.TopClientesEmAtencao[0].ScoreAtencao >= 1);
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
