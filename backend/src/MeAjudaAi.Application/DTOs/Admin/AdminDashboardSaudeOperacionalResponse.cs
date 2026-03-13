@@ -8,5 +8,6 @@ public class AdminDashboardSaudeOperacionalResponse
     public int OrdemAtencao { get; set; } = 3;
     public string AcaoPrimariaSugerida { get; set; } = string.Empty;
     public string DestinoOperacionalPrimario { get; set; } = "dashboard";
+    public string LinkOperacionalSugerido { get; set; } = "/admin/dashboard";
     public string Resumo { get; set; } = string.Empty;
 }

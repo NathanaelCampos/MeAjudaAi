@@ -400,6 +400,7 @@ public class AdminDashboardService : IAdminDashboardService
             impulsionamentosPendentes,
             servicosSolicitados,
             semAcaoAdminRecenteSobRisco);
+        var linkOperacionalSugerido = ObterLinkOperacionalSugerido(destinoOperacionalPrimario);
 
         return new AdminDashboardResponse
         {
@@ -537,7 +538,8 @@ public class AdminDashboardService : IAdminDashboardService
                 CalcularPercentual(totalWebhooks, totalWebhooks - webhooksSucesso),
                 CalcularPercentual(totalEmails, emailsFalhas),
                 acoesRecomendadas,
-                destinoOperacionalPrimario),
+                destinoOperacionalPrimario,
+                linkOperacionalSugerido),
             ResumoDecisorio = CriarResumoDecisorio(
                 totalWebhooks - webhooksSucesso,
                 emailsFalhas,
@@ -700,7 +702,8 @@ public class AdminDashboardService : IAdminDashboardService
         decimal percentualFalhaWebhooks,
         decimal percentualFalhaEmails,
         List<string> acoesRecomendadas,
-        string destinoOperacionalPrimario)
+        string destinoOperacionalPrimario,
+        string linkOperacionalSugerido)
     {
         var acaoPrimariaSugerida = acoesRecomendadas.FirstOrDefault() ?? "Operacao estavel sem acoes imediatas.";
 
@@ -714,6 +717,7 @@ public class AdminDashboardService : IAdminDashboardService
                 OrdemAtencao = 1,
                 AcaoPrimariaSugerida = acaoPrimariaSugerida,
                 DestinoOperacionalPrimario = destinoOperacionalPrimario,
+                LinkOperacionalSugerido = linkOperacionalSugerido,
                 Resumo = "Risco alto sem acao administrativa recente."
             };
         }
@@ -728,6 +732,7 @@ public class AdminDashboardService : IAdminDashboardService
                 OrdemAtencao = 1,
                 AcaoPrimariaSugerida = acaoPrimariaSugerida,
                 DestinoOperacionalPrimario = destinoOperacionalPrimario,
+                LinkOperacionalSugerido = linkOperacionalSugerido,
                 Resumo = "Operacao com falhas relevantes em canais ou backlog critico."
             };
         }
@@ -742,6 +747,7 @@ public class AdminDashboardService : IAdminDashboardService
                 OrdemAtencao = 2,
                 AcaoPrimariaSugerida = acaoPrimariaSugerida,
                 DestinoOperacionalPrimario = destinoOperacionalPrimario,
+                LinkOperacionalSugerido = linkOperacionalSugerido,
                 Resumo = "Operacao sob atencao com pendencias ou falhas pontuais."
             };
         }
@@ -754,6 +760,7 @@ public class AdminDashboardService : IAdminDashboardService
             OrdemAtencao = 3,
             AcaoPrimariaSugerida = acaoPrimariaSugerida,
             DestinoOperacionalPrimario = destinoOperacionalPrimario,
+            LinkOperacionalSugerido = linkOperacionalSugerido,
             Resumo = "Operacao estavel com sinais controlados."
         };
     }
@@ -784,5 +791,19 @@ public class AdminDashboardService : IAdminDashboardService
             .First();
 
         return principal.Valor > 0 ? principal.Destino : "dashboard";
+    }
+
+    private static string ObterLinkOperacionalSugerido(string destinoOperacionalPrimario)
+    {
+        return destinoOperacionalPrimario switch
+        {
+            "auditoria-admin" => "/admin/auditoria",
+            "webhooks" => "/admin/webhooks/pagamentos",
+            "emails" => "/admin/notificacoes/emails",
+            "avaliacoes" => "/admin/avaliacoes",
+            "impulsionamentos" => "/admin/impulsionamentos",
+            "servicos" => "/admin/servicos",
+            _ => "/admin/dashboard"
+        };
     }
 }
