@@ -392,6 +392,15 @@ public class AdminDashboardService : IAdminDashboardService
             servicosSolicitados,
             semAcaoAdminRecenteSobRisco);
 
+        var destinoOperacionalPrimario = ObterDestinoOperacionalPrimario(
+            totalWebhooks - webhooksSucesso,
+            emailsFalhas,
+            emailsPendentesAtrasados,
+            avaliacoesPendentes,
+            impulsionamentosPendentes,
+            servicosSolicitados,
+            semAcaoAdminRecenteSobRisco);
+
         return new AdminDashboardResponse
         {
             Usuarios = new AdminDashboardUsuariosResponse
@@ -527,7 +536,8 @@ public class AdminDashboardService : IAdminDashboardService
                 semAcaoAdminRecenteSobRisco,
                 CalcularPercentual(totalWebhooks, totalWebhooks - webhooksSucesso),
                 CalcularPercentual(totalEmails, emailsFalhas),
-                acoesRecomendadas),
+                acoesRecomendadas,
+                destinoOperacionalPrimario),
             ResumoDecisorio = CriarResumoDecisorio(
                 totalWebhooks - webhooksSucesso,
                 emailsFalhas,
@@ -689,7 +699,8 @@ public class AdminDashboardService : IAdminDashboardService
         bool semAcaoAdminRecenteSobRisco,
         decimal percentualFalhaWebhooks,
         decimal percentualFalhaEmails,
-        List<string> acoesRecomendadas)
+        List<string> acoesRecomendadas,
+        string destinoOperacionalPrimario)
     {
         var acaoPrimariaSugerida = acoesRecomendadas.FirstOrDefault() ?? "Operacao estavel sem acoes imediatas.";
 
@@ -702,6 +713,7 @@ public class AdminDashboardService : IAdminDashboardService
                 PrioridadeVisual = "alta",
                 OrdemAtencao = 1,
                 AcaoPrimariaSugerida = acaoPrimariaSugerida,
+                DestinoOperacionalPrimario = destinoOperacionalPrimario,
                 Resumo = "Risco alto sem acao administrativa recente."
             };
         }
@@ -715,6 +727,7 @@ public class AdminDashboardService : IAdminDashboardService
                 PrioridadeVisual = "alta",
                 OrdemAtencao = 1,
                 AcaoPrimariaSugerida = acaoPrimariaSugerida,
+                DestinoOperacionalPrimario = destinoOperacionalPrimario,
                 Resumo = "Operacao com falhas relevantes em canais ou backlog critico."
             };
         }
@@ -728,6 +741,7 @@ public class AdminDashboardService : IAdminDashboardService
                 PrioridadeVisual = "media",
                 OrdemAtencao = 2,
                 AcaoPrimariaSugerida = acaoPrimariaSugerida,
+                DestinoOperacionalPrimario = destinoOperacionalPrimario,
                 Resumo = "Operacao sob atencao com pendencias ou falhas pontuais."
             };
         }
@@ -739,7 +753,36 @@ public class AdminDashboardService : IAdminDashboardService
             PrioridadeVisual = "baixa",
             OrdemAtencao = 3,
             AcaoPrimariaSugerida = acaoPrimariaSugerida,
+            DestinoOperacionalPrimario = destinoOperacionalPrimario,
             Resumo = "Operacao estavel com sinais controlados."
         };
+    }
+
+    private static string ObterDestinoOperacionalPrimario(
+        int webhooksFalhos,
+        int emailsFalhas,
+        int emailsPendentesAtrasados,
+        int avaliacoesPendentes,
+        int impulsionamentosPendentes,
+        int servicosSolicitados,
+        bool semAcaoAdminRecenteSobRisco)
+    {
+        if (semAcaoAdminRecenteSobRisco)
+            return "auditoria-admin";
+
+        var gargalos = new List<(string Destino, int Valor)>
+        {
+            ("webhooks", webhooksFalhos),
+            ("emails", emailsFalhas + emailsPendentesAtrasados),
+            ("avaliacoes", avaliacoesPendentes),
+            ("impulsionamentos", impulsionamentosPendentes),
+            ("servicos", servicosSolicitados)
+        };
+
+        var principal = gargalos
+            .OrderByDescending(x => x.Valor)
+            .First();
+
+        return principal.Valor > 0 ? principal.Destino : "dashboard";
     }
 }

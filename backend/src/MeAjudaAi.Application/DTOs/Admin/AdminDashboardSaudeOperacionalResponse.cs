@@ -7,5 +7,6 @@ public class AdminDashboardSaudeOperacionalResponse
     public string PrioridadeVisual { get; set; } = "baixa";
     public int OrdemAtencao { get; set; } = 3;
     public string AcaoPrimariaSugerida { get; set; } = string.Empty;
+    public string DestinoOperacionalPrimario { get; set; } = "dashboard";
     public string Resumo { get; set; } = string.Empty;
 }

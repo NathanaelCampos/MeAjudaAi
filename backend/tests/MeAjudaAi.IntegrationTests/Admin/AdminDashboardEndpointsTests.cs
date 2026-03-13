@@ -160,6 +160,7 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Contains(payload.SaudeOperacional.PrioridadeVisual, ["baixa", "media", "alta"]);
         Assert.InRange(payload.SaudeOperacional.OrdemAtencao, 1, 3);
         Assert.False(string.IsNullOrWhiteSpace(payload.SaudeOperacional.AcaoPrimariaSugerida));
+        Assert.Contains(payload.SaudeOperacional.DestinoOperacionalPrimario, ["dashboard", "auditoria-admin", "webhooks", "emails", "avaliacoes", "impulsionamentos", "servicos"]);
         Assert.False(string.IsNullOrWhiteSpace(payload.SaudeOperacional.Resumo));
         Assert.NotNull(payload.ResumoDecisorio);
         Assert.Contains(payload.ResumoDecisorio.SituacaoGeral, ["baixo", "medio", "alto"]);
@@ -233,6 +234,7 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal("alta", payload.SaudeOperacional.PrioridadeVisual);
         Assert.Equal(1, payload.SaudeOperacional.OrdemAtencao);
         Assert.Contains("Acionar administracao", payload.SaudeOperacional.AcaoPrimariaSugerida, StringComparison.Ordinal);
+        Assert.Equal("auditoria-admin", payload.SaudeOperacional.DestinoOperacionalPrimario);
         Assert.Contains(payload.AcoesRecomendadas.Itens, x => x.Contains("Acionar administracao", StringComparison.Ordinal));
         Assert.Contains("Sem acao administrativa recente", payload.ResumoDecisorio.PrincipalGargalo);
     }
