@@ -4,6 +4,9 @@ using System.Net.Http.Json;
 using MeAjudaAi.Application.DTOs.Admin;
 using MeAjudaAi.Application.DTOs.Auth;
 using MeAjudaAi.Application.DTOs.Common;
+using MeAjudaAi.Application.DTOs.Impulsionamentos;
+using MeAjudaAi.Application.DTOs.Notificacoes;
+using MeAjudaAi.Application.DTOs.Servicos;
 using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.IntegrationTests.Infrastructure;
 
@@ -137,6 +140,75 @@ public class AdminProfissionaisEndpointsTests : IntegrationTestBase, IClassFixtu
         Assert.Equal(HttpStatusCode.OK, login.StatusCode);
     }
 
+    [Fact]
+    public async Task ObterDashboardProfissional_DeveConsolidarIndicadores()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var cliente = await RegistrarClienteAsync(clienteClient, "cliente-admin-prof-dashboard");
+        var profissional = await RegistrarProfissionalAsync(profissionalClient, "prof-admin-prof-dashboard");
+        var admin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cliente.Auth.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", profissional.Auth.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var preferenciasResponse = await profissionalClient.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias = new[]
+            {
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = true,
+                    AtivoEmail = true
+                }
+            }
+        });
+
+        Assert.Equal(HttpStatusCode.OK, preferenciasResponse.StatusCode);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissional.ProfissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para dashboard admin profissional",
+            Descricao = "Gera dados para dashboard admin profissional",
+            ValorCombinado = 200m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var planos = await profissionalClient.GetFromJsonAsync<IReadOnlyList<PlanoImpulsionamentoResponse>>("/api/impulsionamentos/planos");
+        Assert.NotNull(planos);
+        Assert.NotEmpty(planos!);
+
+        var contratarResponse = await profissionalClient.PostAsJsonAsync("/api/impulsionamentos/contratar", new ContratarPlanoImpulsionamentoRequest
+        {
+            PlanoImpulsionamentoId = planos![0].Id,
+            CodigoReferenciaPagamento = $"admin-prof-dashboard-{Guid.NewGuid():N}"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, contratarResponse.StatusCode);
+
+        var dashboardResponse = await adminClient.GetAsync($"/api/admin/profissionais/{profissional.ProfissionalId}/dashboard");
+        var dashboard = await dashboardResponse.Content.ReadFromJsonAsync<ProfissionalAdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, dashboardResponse.StatusCode);
+        Assert.NotNull(dashboard);
+        Assert.Equal(profissional.ProfissionalId, dashboard!.Profissional.Id);
+        Assert.True(dashboard.Notificacoes.TotalAtivas >= 1);
+        Assert.True(dashboard.Emails.Total >= 1);
+        Assert.True(dashboard.Servicos.Total >= 1);
+        Assert.True(dashboard.Servicos.Solicitados >= 1);
+        Assert.True(dashboard.Impulsionamentos.Total >= 1);
+        Assert.True(dashboard.Impulsionamentos.PendentesPagamento >= 1);
+    }
+
     private async Task<ProfissionalRegistrado> RegistrarProfissionalAsync(HttpClient client, string prefixo)
     {
         var email = $"{prefixo}-{Guid.NewGuid():N}@teste.local";
@@ -160,6 +232,28 @@ public class AdminProfissionaisEndpointsTests : IntegrationTestBase, IClassFixtu
         return new ProfissionalRegistrado(auth, profissionalId, email, senha);
     }
 
+    private static async Task<ClienteRegistrado> RegistrarClienteAsync(HttpClient client, string prefixo)
+    {
+        var email = $"{prefixo}-{Guid.NewGuid():N}@teste.local";
+        const string senha = "Senha@123";
+
+        var response = await client.PostAsJsonAsync("/api/auth/registrar", new RegistrarUsuarioRequest
+        {
+            Nome = $"{prefixo} teste",
+            Email = email,
+            Telefone = "11988887777",
+            Senha = senha,
+            TipoPerfil = TipoPerfil.Cliente
+        });
+
+        response.EnsureSuccessStatusCode();
+
+        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        Assert.NotNull(auth);
+
+        return new ClienteRegistrado(auth!, email, senha);
+    }
+
     private static async Task<AuthResponse> LoginAdminAsync(HttpClient client)
     {
         var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
@@ -176,4 +270,5 @@ public class AdminProfissionaisEndpointsTests : IntegrationTestBase, IClassFixtu
     }
 
     private sealed record ProfissionalRegistrado(AuthResponse Auth, Guid ProfissionalId, string Email, string Senha);
+    private sealed record ClienteRegistrado(AuthResponse Auth, string Email, string Senha);
 }

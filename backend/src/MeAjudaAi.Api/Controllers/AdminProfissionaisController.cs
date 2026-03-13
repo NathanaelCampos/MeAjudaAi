@@ -57,6 +57,22 @@ public class AdminProfissionaisController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("{profissionalId:guid}/dashboard")]
+    [ProducesResponseType(typeof(ProfissionalAdminDashboardResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterDashboard(
+        Guid profissionalId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _adminProfissionalService.ObterDashboardAsync(profissionalId, cancellationToken);
+
+        if (response is null)
+            return NotFound(new MensagemErroResponse { Mensagem = "Profissional não encontrado." });
+
+        return Ok(response);
+    }
+
     [HttpPut("{profissionalId:guid}/verificar")]
     [ProducesResponseType(typeof(ProfissionalAdminDetalheResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]

@@ -13,6 +13,10 @@ public interface IAdminProfissionalService
         Guid profissionalId,
         CancellationToken cancellationToken = default);
 
+    Task<ProfissionalAdminDashboardResponse?> ObterDashboardAsync(
+        Guid profissionalId,
+        CancellationToken cancellationToken = default);
+
     Task<ProfissionalAdminDetalheResponse> DefinirPerfilVerificadoAsync(
         Guid profissionalId,
         bool perfilVerificado,
