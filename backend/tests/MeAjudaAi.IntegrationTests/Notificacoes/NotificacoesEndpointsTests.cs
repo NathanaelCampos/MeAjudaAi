@@ -403,6 +403,48 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ObterDashboardNotificacoesPorUsuario_DeveConsolidarResumoERecentes()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-dashboard-notif");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-dashboard-notif");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para dashboard",
+            Descricao = "Gera notificacao para dashboard interno",
+            ValorCombinado = 130m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var dashboard = await adminClient.GetFromJsonAsync<NotificacaoUsuarioDashboardResponse>(
+            $"/api/notificacoes/usuarios/{authProfissional.UsuarioId}/dashboard?tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
+
+        Assert.NotNull(dashboard);
+        Assert.Equal(authProfissional.UsuarioId, dashboard!.UsuarioId);
+        Assert.Equal(TipoNotificacao.ServicoSolicitado, dashboard.TipoNotificacao);
+        Assert.True(dashboard.Resumo.TotalRegistros >= 1);
+        Assert.True(dashboard.Resumo.NaoLidas >= 1);
+        Assert.Contains(dashboard.Recentes, x =>
+            x.UsuarioId == authProfissional.UsuarioId &&
+            x.Tipo == TipoNotificacao.ServicoSolicitado);
+    }
+
+    [Fact]
     public async Task Preferencias_DeveListarDefaultsEPermitirAtualizacao()
     {
         using var client = _factory.CreateClient();

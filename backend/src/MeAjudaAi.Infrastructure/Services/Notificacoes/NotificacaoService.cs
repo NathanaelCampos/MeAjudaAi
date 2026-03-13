@@ -373,6 +373,63 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<NotificacaoUsuarioDashboardResponse> ObterDashboardNotificacoesPorUsuarioAsync(
+        Guid usuarioId,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resumo = await ObterResumoOperacionalNotificacoesAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+
+        var query = _context.Set<NotificacaoUsuario>()
+            .AsNoTracking()
+            .Where(x => x.Ativo && x.UsuarioId == usuarioId);
+
+        if (tipoNotificacao.HasValue)
+            query = query.Where(x => x.Tipo == tipoNotificacao.Value);
+
+        if (dataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= dataCriacaoInicial.Value);
+
+        if (dataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= dataCriacaoFinal.Value);
+
+        var recentes = await query
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(20)
+            .Select(x => new NotificacaoAdminResponse
+            {
+                Id = x.Id,
+                UsuarioId = x.UsuarioId,
+                NomeUsuario = x.Usuario.Nome,
+                EmailUsuario = x.Usuario.Email,
+                Tipo = x.Tipo,
+                Titulo = x.Titulo,
+                Mensagem = x.Mensagem,
+                ReferenciaId = x.ReferenciaId,
+                Lida = x.DataLeitura != null,
+                DataCriacao = x.DataCriacao,
+                DataLeitura = x.DataLeitura
+            })
+            .ToListAsync(cancellationToken);
+
+        return new NotificacaoUsuarioDashboardResponse
+        {
+            UsuarioId = usuarioId,
+            TipoNotificacao = tipoNotificacao,
+            DataCriacaoInicial = dataCriacaoInicial,
+            DataCriacaoFinal = dataCriacaoFinal,
+            Resumo = resumo,
+            Recentes = recentes
+        };
+    }
+
     public async Task<IReadOnlyList<PreferenciaNotificacaoResponse>> ListarPreferenciasAsync(
         Guid usuarioId,
         CancellationToken cancellationToken = default)
