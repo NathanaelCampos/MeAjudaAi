@@ -511,6 +511,27 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("arquivadas/excluir-lote/resumo-limites")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(NotificacaoArquivadaResumoLimitesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterResumoLimitesExclusaoArquivadas(
+        [FromQuery] Guid? usuarioId = null,
+        [FromQuery] TipoNotificacao? tipoNotificacao = null,
+        [FromQuery] DateTime? dataCriacaoInicial = null,
+        [FromQuery] DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.ObterResumoLimitesExclusaoNotificacoesArquivadasAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     [HttpPost("arquivadas/excluir-lote/antigas")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(PreviewExclusaoNotificacoesAntigasResponse), StatusCodes.Status200OK)]

@@ -811,6 +811,43 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<NotificacaoArquivadaResumoLimitesResponse> ObterResumoLimitesExclusaoNotificacoesArquivadasAsync(
+        Guid? usuarioId = null,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        var totalRegistros = await _context.Set<NotificacaoUsuario>()
+            .AsNoTracking()
+            .Where(x => !x.Ativo)
+            .Where(x => !usuarioId.HasValue || x.UsuarioId == usuarioId.Value)
+            .Where(x => !tipoNotificacao.HasValue || x.Tipo == tipoNotificacao.Value)
+            .Where(x => !dataCriacaoInicial.HasValue || x.DataCriacao >= dataCriacaoInicial.Value)
+            .Where(x => !dataCriacaoFinal.HasValue || x.DataCriacao <= dataCriacaoFinal.Value)
+            .CountAsync(cancellationToken);
+
+        var limitesSugeridos = new[] { 20, 100, 500 };
+        var limites = limitesSugeridos
+            .Select(limite => new NotificacaoArquivadaResumoLimiteItemResponse
+            {
+                Limite = limite,
+                QuantidadeAplicada = Math.Min(totalRegistros, limite),
+                AtingeTodoBacklog = totalRegistros <= limite
+            })
+            .ToList();
+
+        return new NotificacaoArquivadaResumoLimitesResponse
+        {
+            UsuarioId = usuarioId,
+            TipoNotificacao = tipoNotificacao,
+            DataCriacaoInicial = dataCriacaoInicial,
+            DataCriacaoFinal = dataCriacaoFinal,
+            TotalRegistros = totalRegistros,
+            Limites = limites
+        };
+    }
+
     public async Task<NotificacaoArquivadaExclusaoDashboardResponse> ObterDashboardExclusaoNotificacoesArquivadasAsync(
         Guid? usuarioId = null,
         TipoNotificacao? tipoNotificacao = null,
@@ -860,6 +897,13 @@ public class NotificacaoService : INotificacaoService
             dataCriacaoFinal,
             cancellationToken);
 
+        var limites = await ObterResumoLimitesExclusaoNotificacoesArquivadasAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+
         var antigas = await ObterAntigasExclusaoNotificacoesArquivadasAsync(
             new ArquivarNotificacoesEmLoteRequest
             {
@@ -883,6 +927,7 @@ public class NotificacaoService : INotificacaoService
             Idade = idade,
             Tipos = tipos,
             Usuarios = usuarios,
+            Limites = limites,
             Antigas = antigas
         };
     }

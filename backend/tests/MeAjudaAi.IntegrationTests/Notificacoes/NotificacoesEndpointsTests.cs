@@ -527,8 +527,59 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         Assert.Equal(4, dashboard.Idade.Faixas.Count);
         Assert.NotEmpty(dashboard.Tipos.Tipos);
         Assert.NotEmpty(dashboard.Usuarios.Usuarios);
+        Assert.Equal(3, dashboard.Limites.Limites.Count);
+        Assert.Contains(dashboard.Limites.Limites, x => x.Limite == 20);
         Assert.True(dashboard.Antigas.QuantidadeCandidata >= 1);
         Assert.NotEmpty(dashboard.Antigas.Antigas);
+    }
+
+    [Fact]
+    public async Task ObterResumoLimitesExclusaoNotificacoesArquivadas_DeveRetornarLimitesSugeridos()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-resumo-limites-exclusao");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-resumo-limites-exclusao");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para resumo de limites",
+            Descricao = "Gera notificacao arquivada para resumo de limites",
+            ValorCombinado = 340m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var arquivarResponse = await adminClient.PutAsJsonAsync("/api/notificacoes/arquivar-lote", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = false,
+            Limite = 100
+        });
+
+        Assert.Equal(HttpStatusCode.OK, arquivarResponse.StatusCode);
+
+        var resumo = await adminClient.GetFromJsonAsync<NotificacaoArquivadaResumoLimitesResponse>(
+            $"/api/notificacoes/arquivadas/excluir-lote/resumo-limites?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
+
+        Assert.NotNull(resumo);
+        Assert.Equal(authProfissional.UsuarioId, resumo!.UsuarioId);
+        Assert.Equal(TipoNotificacao.ServicoSolicitado, resumo.TipoNotificacao);
+        Assert.True(resumo.TotalRegistros >= 1);
+        Assert.Equal(new[] { 20, 100, 500 }, resumo.Limites.Select(x => x.Limite).ToArray());
+        Assert.All(resumo.Limites, x => Assert.True(x.QuantidadeAplicada >= 1));
     }
 
     [Fact]
