@@ -444,6 +444,7 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.False(string.IsNullOrWhiteSpace(payload.InsightComparativoPrincipal.Titulo));
         Assert.False(string.IsNullOrWhiteSpace(payload.InsightComparativoPrincipal.Detalhe));
         Assert.False(string.IsNullOrWhiteSpace(payload.InsightComparativoPrincipal.Recomendacao));
+        Assert.Contains(payload.EixoComparativoPrincipal, ["servicos", "avaliacoes", "webhooks", "emails"]);
         Assert.NotNull(payload.VariacaoComparativaPrincipal);
         Assert.Contains(payload.DirecaoComparativaPrincipal, ["alta", "queda", "estavel"]);
     }

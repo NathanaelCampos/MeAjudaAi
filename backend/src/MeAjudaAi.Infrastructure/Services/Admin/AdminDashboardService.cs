@@ -580,6 +580,12 @@ public class AdminDashboardService : IAdminDashboardService
                     comparativoAvaliacoes,
                     comparativoWebhooks,
                     comparativoEmails)),
+            EixoComparativoPrincipal = CriarResumoComparativoPreset(
+                presetAnterior != null,
+                comparativoServicos,
+                comparativoAvaliacoes,
+                comparativoWebhooks,
+                comparativoEmails).EixoPrincipal,
             VariacaoComparativaPrincipal = presetAnterior != null
                 ? CriarResumoComparativoPreset(
                     true,

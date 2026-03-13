@@ -15,6 +15,7 @@ public class AdminDashboardResponse
     public AdminDashboardTendenciasResponse Tendencias { get; set; } = new();
     public AdminDashboardComparativoPresetResponse ComparativoPresetAnterior { get; set; } = new();
     public AdminDashboardInsightComparativoPresetResponse InsightComparativoPrincipal { get; set; } = new();
+    public string EixoComparativoPrincipal { get; set; } = string.Empty;
     public decimal? VariacaoComparativaPrincipal { get; set; }
     public string DirecaoComparativaPrincipal { get; set; } = "indisponivel";
     public AdminDashboardPendenciasResponse Pendencias { get; set; } = new();
