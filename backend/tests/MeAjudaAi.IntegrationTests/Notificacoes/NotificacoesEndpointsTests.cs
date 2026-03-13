@@ -309,6 +309,59 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task MarcarNotificacoesComoLidasEmLote_DevePermitirOperacaoAdminPorFiltro()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-lote-admin-notif");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-lote-admin-notif");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para lote admin",
+            Descricao = "Gera notificacao para marcar em lote",
+            ValorCombinado = 112m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var marcarLoteResponse = await adminClient.PutAsJsonAsync("/api/notificacoes/marcar-lidas-lote", new MarcarNotificacoesComoLidasEmLoteRequest
+        {
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Limite = 10
+        });
+
+        var resultado = await marcarLoteResponse.Content.ReadFromJsonAsync<AtualizarEmailsOutboxEmLoteResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, marcarLoteResponse.StatusCode);
+        Assert.NotNull(resultado);
+        Assert.True(resultado!.QuantidadeAfetada >= 1);
+
+        var lidas = await adminClient.GetFromJsonAsync<PaginacaoResponse<NotificacaoAdminResponse>>(
+            $"/api/notificacoes?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}&lida=true&pagina=1&tamanhoPagina=10");
+
+        Assert.NotNull(lidas);
+        Assert.Contains(lidas!.Itens, x =>
+            x.UsuarioId == authProfissional.UsuarioId &&
+            x.Tipo == TipoNotificacao.ServicoSolicitado &&
+            x.Lida &&
+            x.DataLeitura.HasValue);
+    }
+
+    [Fact]
     public async Task Preferencias_DeveListarDefaultsEPermitirAtualizacao()
     {
         using var client = _factory.CreateClient();

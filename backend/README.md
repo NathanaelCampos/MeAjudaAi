@@ -289,6 +289,15 @@ curl -s "http://localhost:5231/api/notificacoes/NOTIFICACAO_ID" \
   -H "Authorization: Bearer SEU_TOKEN_ADMIN"
 ```
 
+Marcar notificacoes internas como lidas em lote:
+
+```bash
+curl -X PUT "http://localhost:5231/api/notificacoes/marcar-lidas-lote" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN" \
+  -H "Content-Type: application/json" \
+  -d '{"usuarioId":"USUARIO_ID","tipoNotificacao":"ServicoSolicitado","limite":100}'
+```
+
 ## Emails de notificacao
 
 O backend suporta dois modos para o envio do outbox:

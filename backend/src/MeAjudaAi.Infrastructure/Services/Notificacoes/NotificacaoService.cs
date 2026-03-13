@@ -192,6 +192,46 @@ public class NotificacaoService : INotificacaoService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<int> MarcarNotificacoesComoLidasEmLoteAsync(
+        MarcarNotificacoesComoLidasEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Set<NotificacaoUsuario>()
+            .Where(x => x.Ativo && x.DataLeitura == null);
+
+        if (request.UsuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
+
+        if (request.TipoNotificacao.HasValue)
+            query = query.Where(x => x.Tipo == request.TipoNotificacao.Value);
+
+        if (request.DataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= request.DataCriacaoInicial.Value);
+
+        if (request.DataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
+
+        var notificacoes = await query
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(request.Limite)
+            .ToListAsync(cancellationToken);
+
+        if (notificacoes.Count == 0)
+            return 0;
+
+        var agora = DateTime.UtcNow;
+
+        foreach (var notificacao in notificacoes)
+        {
+            notificacao.DataLeitura = agora;
+            notificacao.DataAtualizacao = agora;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return notificacoes.Count;
+    }
+
     public async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesAsync(
         Guid? usuarioId = null,
         TipoNotificacao? tipoNotificacao = null,
