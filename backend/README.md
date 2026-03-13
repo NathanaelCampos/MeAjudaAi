@@ -314,6 +314,15 @@ curl -X PUT "http://localhost:5231/api/notificacoes/arquivar-lote" \
   -d '{"usuarioId":"USUARIO_ID","tipoNotificacao":"ServicoSolicitado","lida":false,"limite":100}'
 ```
 
+Preview do arquivamento em lote de notificacoes internas:
+
+```bash
+curl -s -X POST "http://localhost:5231/api/notificacoes/arquivar-lote/preview" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN" \
+  -H "Content-Type: application/json" \
+  -d '{"usuarioId":"USUARIO_ID","tipoNotificacao":"ServicoSolicitado","lida":false,"limite":100}'
+```
+
 Retencao automatica de notificacoes internas antigas:
 - configuracao em `Notificacoes:Internas:Retencao`
 - arquiva em background notificacoes antigas

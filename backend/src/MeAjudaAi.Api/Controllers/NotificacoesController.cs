@@ -153,6 +153,19 @@ public class NotificacoesController : ControllerBase
         });
     }
 
+    [HttpPost("arquivar-lote/preview")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(PreviewArquivamentoNotificacoesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> PreviewArquivarEmLote(
+        [FromBody] ArquivarNotificacoesEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.PreviewArquivamentoNotificacoesAsync(request, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPost("retencao/executar")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(ExecutarRetencaoNotificacoesResponse), StatusCodes.Status200OK)]

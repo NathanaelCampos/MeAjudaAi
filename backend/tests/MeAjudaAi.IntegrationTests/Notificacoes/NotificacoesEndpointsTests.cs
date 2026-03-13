@@ -499,6 +499,54 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task PreviewArquivamentoNotificacoes_DeveRetornarQuantidadeECandidatos()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-preview-arquivar-notif");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-preview-arquivar-notif");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para preview",
+            Descricao = "Gera notificacao para preview de arquivamento",
+            ValorCombinado = 150m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var previewResponse = await adminClient.PostAsJsonAsync("/api/notificacoes/arquivar-lote/preview", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = false,
+            Limite = 100
+        });
+
+        var preview = await previewResponse.Content.ReadFromJsonAsync<PreviewArquivamentoNotificacoesResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, previewResponse.StatusCode);
+        Assert.NotNull(preview);
+        Assert.True(preview!.QuantidadeCandidata >= 1);
+        Assert.Contains(preview.Recentes, x =>
+            x.UsuarioId == authProfissional.UsuarioId &&
+            x.Tipo == TipoNotificacao.ServicoSolicitado &&
+            !x.Lida);
+    }
+
+    [Fact]
     public async Task RetencaoAutomatica_DeveArquivarSomenteNotificacoesLidasEAntigas()
     {
         using var configuredFactory = _factory.WithWebHostBuilder(builder =>

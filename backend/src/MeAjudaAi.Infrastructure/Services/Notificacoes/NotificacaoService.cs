@@ -300,25 +300,9 @@ public class NotificacaoService : INotificacaoService
         ArquivarNotificacoesEmLoteRequest request,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Set<NotificacaoUsuario>()
-            .Where(x => x.Ativo);
-
-        if (request.UsuarioId.HasValue)
-            query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
-
-        if (request.TipoNotificacao.HasValue)
-            query = query.Where(x => x.Tipo == request.TipoNotificacao.Value);
-
-        if (request.Lida.HasValue)
-            query = request.Lida.Value ? query.Where(x => x.DataLeitura != null) : query.Where(x => x.DataLeitura == null);
-
-        if (request.DataCriacaoInicial.HasValue)
-            query = query.Where(x => x.DataCriacao >= request.DataCriacaoInicial.Value);
-
-        if (request.DataCriacaoFinal.HasValue)
-            query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
-
-        var notificacoes = await query
+        var notificacoes = await AplicarFiltrosArquivamento(
+                _context.Set<NotificacaoUsuario>(),
+                request)
             .OrderByDescending(x => x.DataCriacao)
             .Take(request.Limite)
             .ToListAsync(cancellationToken);
@@ -337,6 +321,42 @@ public class NotificacaoService : INotificacaoService
         await _context.SaveChangesAsync(cancellationToken);
 
         return notificacoes.Count;
+    }
+
+    public async Task<PreviewArquivamentoNotificacoesResponse> PreviewArquivamentoNotificacoesAsync(
+        ArquivarNotificacoesEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var query = AplicarFiltrosArquivamento(
+            _context.Set<NotificacaoUsuario>().AsNoTracking(),
+            request);
+
+        var quantidadeCandidata = await query.CountAsync(cancellationToken);
+
+        var recentes = await query
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(Math.Min(request.Limite, 20))
+            .Select(x => new NotificacaoAdminResponse
+            {
+                Id = x.Id,
+                UsuarioId = x.UsuarioId,
+                NomeUsuario = x.Usuario.Nome,
+                EmailUsuario = x.Usuario.Email,
+                Tipo = x.Tipo,
+                Titulo = x.Titulo,
+                Mensagem = x.Mensagem,
+                ReferenciaId = x.ReferenciaId,
+                Lida = x.DataLeitura != null,
+                DataCriacao = x.DataCriacao,
+                DataLeitura = x.DataLeitura
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PreviewArquivamentoNotificacoesResponse
+        {
+            QuantidadeCandidata = quantidadeCandidata,
+            Recentes = recentes
+        };
     }
 
     public async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesAsync(
@@ -1398,6 +1418,30 @@ public class NotificacaoService : INotificacaoService
                 cancellationToken);
 
         return preferencia?.AtivoEmail ?? false;
+    }
+
+    private static IQueryable<NotificacaoUsuario> AplicarFiltrosArquivamento(
+        IQueryable<NotificacaoUsuario> query,
+        ArquivarNotificacoesEmLoteRequest request)
+    {
+        query = query.Where(x => x.Ativo);
+
+        if (request.UsuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
+
+        if (request.TipoNotificacao.HasValue)
+            query = query.Where(x => x.Tipo == request.TipoNotificacao.Value);
+
+        if (request.Lida.HasValue)
+            query = request.Lida.Value ? query.Where(x => x.DataLeitura != null) : query.Where(x => x.DataLeitura == null);
+
+        if (request.DataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= request.DataCriacaoInicial.Value);
+
+        if (request.DataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
+
+        return query;
     }
 
     private static TipoNotificacao[] ListarTiposSuportados()
