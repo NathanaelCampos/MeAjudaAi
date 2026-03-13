@@ -1,4 +1,5 @@
 using MeAjudaAi.Domain.Entities;
+using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Infrastructure.Configurations;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace MeAjudaAi.Infrastructure.Services.Notificacoes;
 
-public class NotificacaoInternaRetentionProcessor : BackgroundService
+public class NotificacaoInternaRetentionProcessor : BackgroundService, INotificacaoRetentionService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOptions<NotificacaoInternaRetentionOptions> _options;

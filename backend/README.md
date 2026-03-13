@@ -319,6 +319,13 @@ Retencao automatica de notificacoes internas antigas:
 - arquiva em background notificacoes antigas
 - por padrao pode manter somente notificacoes lidas no ciclo automatico
 
+Execucao manual da retencao de notificacoes internas:
+
+```bash
+curl -X POST "http://localhost:5231/api/notificacoes/retencao/executar" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
 Exportacao CSV das notificacoes internas:
 
 ```bash

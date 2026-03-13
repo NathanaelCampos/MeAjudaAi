@@ -563,6 +563,58 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ExecutarRetencao_DevePermitirDisparoManualPeloAdmin()
+    {
+        using var configuredFactory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, configurationBuilder) =>
+            {
+                configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Notificacoes:Internas:Retencao:Habilitada"] = "true",
+                    ["Notificacoes:Internas:Retencao:DiasRetencao"] = "30",
+                    ["Notificacoes:Internas:Retencao:LoteProcessamento"] = "100",
+                    ["Notificacoes:Internas:Retencao:SomenteLidas"] = "true"
+                });
+            });
+        });
+
+        using var client = configuredFactory.CreateClient();
+        using var adminClient = configuredFactory.CreateClient();
+        var auth = await RegistrarUsuarioAsync(client, TipoPerfil.Profissional, "retencao-manual-notif");
+        var authAdmin = await LoginAdminAsync(adminClient);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        await using (var scope = configuredFactory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            context.Add(new NotificacaoUsuario
+            {
+                UsuarioId = auth.UsuarioId,
+                Tipo = TipoNotificacao.ServicoSolicitado,
+                Titulo = "Antiga lida manual",
+                Mensagem = "Deve ser arquivada manualmente",
+                DataCriacao = DateTime.UtcNow.AddDays(-50),
+                DataLeitura = DateTime.UtcNow.AddDays(-49)
+            });
+
+            await context.SaveChangesAsync();
+        }
+
+        var executarResponse = await adminClient.PostAsync("/api/notificacoes/retencao/executar", null);
+        var resultado = await executarResponse.Content.ReadFromJsonAsync<ExecutarRetencaoNotificacoesResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, executarResponse.StatusCode);
+        Assert.NotNull(resultado);
+        Assert.Equal(1, resultado!.QuantidadeArquivada);
+
+        var minhas = await client.GetFromJsonAsync<List<NotificacaoResponse>>("/api/notificacoes/minhas");
+        Assert.NotNull(minhas);
+        Assert.Empty(minhas!);
+    }
+
+    [Fact]
     public async Task Preferencias_DeveListarDefaultsEPermitirAtualizacao()
     {
         using var client = _factory.CreateClient();

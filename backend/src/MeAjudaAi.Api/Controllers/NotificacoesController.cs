@@ -14,13 +14,16 @@ namespace MeAjudaAi.Api.Controllers;
 public class NotificacoesController : ControllerBase
 {
     private readonly INotificacaoService _notificacaoService;
+    private readonly INotificacaoRetentionService _notificacaoRetentionService;
     private readonly IEmailNotificacaoTemplateRenderer _emailTemplateRenderer;
 
     public NotificacoesController(
         INotificacaoService notificacaoService,
+        INotificacaoRetentionService notificacaoRetentionService,
         IEmailNotificacaoTemplateRenderer emailTemplateRenderer)
     {
         _notificacaoService = notificacaoService;
+        _notificacaoRetentionService = notificacaoRetentionService;
         _emailTemplateRenderer = emailTemplateRenderer;
     }
 
@@ -144,6 +147,21 @@ public class NotificacoesController : ControllerBase
         return Ok(new AtualizarEmailsOutboxEmLoteResponse
         {
             QuantidadeAfetada = quantidade
+        });
+    }
+
+    [HttpPost("retencao/executar")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(ExecutarRetencaoNotificacoesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ExecutarRetencao(
+        CancellationToken cancellationToken = default)
+    {
+        var quantidade = await _notificacaoRetentionService.ProcessarRetencaoAsync(cancellationToken);
+
+        return Ok(new ExecutarRetencaoNotificacoesResponse
+        {
+            QuantidadeArquivada = quantidade
         });
     }
 

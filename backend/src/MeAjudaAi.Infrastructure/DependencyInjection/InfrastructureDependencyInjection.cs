@@ -107,6 +107,7 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<IEmailNotificacaoSender, EmailNotificacaoSender>();
         services.AddSingleton<IWebhookPagamentoMetricsService, WebhookPagamentoMetricsService>();
         services.AddSingleton<NotificacaoInternaRetentionProcessor>();
+        services.AddSingleton<INotificacaoRetentionService>(sp => sp.GetRequiredService<NotificacaoInternaRetentionProcessor>());
         services.AddHostedService<EmailNotificacaoOutboxProcessor>();
         services.AddHostedService(sp => sp.GetRequiredService<NotificacaoInternaRetentionProcessor>());
 
