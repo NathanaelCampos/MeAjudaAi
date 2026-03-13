@@ -851,6 +851,7 @@ public class NotificacaoService : INotificacaoService
             DataCriacaoFinal = dataCriacaoFinal,
             TotalRegistros = totalRegistros,
             LimiteRecomendado = limiteRecomendado,
+            ModoSeguro = totalRegistros <= limiteRecomendado,
             Limites = limites
         };
     }
