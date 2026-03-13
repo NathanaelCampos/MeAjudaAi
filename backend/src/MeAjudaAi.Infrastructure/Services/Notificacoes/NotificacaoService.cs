@@ -942,6 +942,7 @@ public class NotificacaoService : INotificacaoService
             TipoNotificacao = tipoNotificacao,
             DataCriacaoInicial = dataCriacaoInicial,
             DataCriacaoFinal = dataCriacaoFinal,
+            NivelOperacional = limites.NivelOperacional,
             Resumo = resumo,
             Leitura = leitura,
             Serie = serie,
