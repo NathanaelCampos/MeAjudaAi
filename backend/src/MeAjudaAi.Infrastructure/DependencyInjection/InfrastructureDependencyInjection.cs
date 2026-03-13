@@ -99,6 +99,7 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<IAdminServicoService, AdminServicoService>();
         services.AddScoped<IAdminAvaliacaoService, AdminAvaliacaoService>();
         services.AddScoped<IAdminImpulsionamentoService, AdminImpulsionamentoService>();
+        services.AddScoped<IAdminWebhookPagamentoService, AdminWebhookPagamentoService>();
         services.AddScoped<IProfissionalService, ProfissionalService>();
         services.AddScoped<IProfissaoService, ProfissaoService>();
         services.AddScoped<ICidadeService, CidadeService>();
