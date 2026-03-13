@@ -113,6 +113,73 @@ public class AdminUsuarioService : IAdminUsuarioService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<UsuarioAdminDashboardResponse?> ObterDashboardAsync(
+        Guid usuarioId,
+        CancellationToken cancellationToken = default)
+    {
+        var usuario = await ObterPorIdAsync(usuarioId, cancellationToken);
+
+        if (usuario is null)
+            return null;
+
+        var totalAtivas = await _context.NotificacoesUsuarios
+            .AsNoTracking()
+            .Where(x => x.UsuarioId == usuarioId && x.Ativo)
+            .CountAsync(cancellationToken);
+
+        var naoLidas = await _context.NotificacoesUsuarios
+            .AsNoTracking()
+            .Where(x => x.UsuarioId == usuarioId && x.Ativo && x.DataLeitura == null)
+            .CountAsync(cancellationToken);
+
+        var lidas = await _context.NotificacoesUsuarios
+            .AsNoTracking()
+            .Where(x => x.UsuarioId == usuarioId && x.Ativo && x.DataLeitura != null)
+            .CountAsync(cancellationToken);
+
+        var arquivadas = await _context.NotificacoesUsuarios
+            .AsNoTracking()
+            .Where(x => x.UsuarioId == usuarioId && !x.Ativo)
+            .CountAsync(cancellationToken);
+
+        var emailsQuery = _context.EmailsNotificacoesOutbox
+            .AsNoTracking()
+            .Where(x => x.UsuarioId == usuarioId);
+
+        var totalEmails = await emailsQuery.CountAsync(cancellationToken);
+        var pendentes = await emailsQuery.Where(x => x.Status == Domain.Enums.StatusEmailNotificacao.Pendente).CountAsync(cancellationToken);
+        var enviados = await emailsQuery.Where(x => x.Status == Domain.Enums.StatusEmailNotificacao.Enviado).CountAsync(cancellationToken);
+        var falhas = await emailsQuery.Where(x => x.Status == Domain.Enums.StatusEmailNotificacao.Falha).CountAsync(cancellationToken);
+        var cancelados = await emailsQuery.Where(x => x.Status == Domain.Enums.StatusEmailNotificacao.Cancelado).CountAsync(cancellationToken);
+
+        var ultimoEmail = await emailsQuery
+            .OrderByDescending(x => x.DataCriacao)
+            .Select(x => new { x.Status, x.DataCriacao })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new UsuarioAdminDashboardResponse
+        {
+            Usuario = usuario,
+            Notificacoes = new UsuarioAdminDashboardNotificacoesResponse
+            {
+                TotalAtivas = totalAtivas,
+                NaoLidas = naoLidas,
+                Lidas = lidas,
+                Arquivadas = arquivadas
+            },
+            Emails = new UsuarioAdminDashboardEmailsResponse
+            {
+                Total = totalEmails,
+                Pendentes = pendentes,
+                Enviados = enviados,
+                Falhas = falhas,
+                Cancelados = cancelados,
+                UltimoStatus = ultimoEmail?.Status,
+                UltimaDataCriacao = ultimoEmail?.DataCriacao
+            }
+        };
+    }
+
     public async Task<UsuarioAdminDetalheResponse> DefinirAtivoAsync(
         Guid usuarioId,
         bool ativo,

@@ -5,6 +5,7 @@ using MeAjudaAi.Application.DTOs.Admin;
 using MeAjudaAi.Application.DTOs.Auth;
 using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.DTOs.Notificacoes;
+using MeAjudaAi.Application.DTOs.Servicos;
 using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.IntegrationTests.Infrastructure;
 
@@ -61,6 +62,62 @@ public class AdminUsuariosEndpointsTests : IntegrationTestBase, IClassFixture<Te
         Assert.Equal(profissional.Auth.UsuarioId, payload!.Id);
         Assert.Equal(TipoPerfil.Profissional, payload.TipoPerfil);
         Assert.NotNull(payload.ProfissionalId);
+    }
+
+    [Fact]
+    public async Task ObterDashboardUsuario_DeveConsolidarNotificacoesEEmails()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var cliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-admin-dashboard");
+        var profissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "prof-admin-dashboard");
+        var admin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cliente.Auth.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", profissional.Auth.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var preferenciasResponse = await profissionalClient.PutAsJsonAsync("/api/notificacoes/minhas/preferencias", new AtualizarPreferenciasNotificacaoRequest
+        {
+            Preferencias = new[]
+            {
+                new PreferenciaNotificacaoItemRequest
+                {
+                    Tipo = TipoNotificacao.ServicoSolicitado,
+                    AtivoInterno = true,
+                    AtivoEmail = true
+                }
+            }
+        });
+
+        Assert.Equal(HttpStatusCode.OK, preferenciasResponse.StatusCode);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(profissional.Auth.UsuarioId);
+
+        var servicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para dashboard admin usuario",
+            Descricao = "Gera notificacoes e email para dashboard admin usuario",
+            ValorCombinado = 150m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, servicoResponse.StatusCode);
+
+        var dashboardResponse = await adminClient.GetAsync($"/api/admin/usuarios/{profissional.Auth.UsuarioId}/dashboard");
+        var dashboard = await dashboardResponse.Content.ReadFromJsonAsync<UsuarioAdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, dashboardResponse.StatusCode);
+        Assert.NotNull(dashboard);
+        Assert.Equal(profissional.Auth.UsuarioId, dashboard!.Usuario.Id);
+        Assert.True(dashboard.Notificacoes.TotalAtivas >= 1);
+        Assert.True(dashboard.Notificacoes.NaoLidas >= 1);
+        Assert.True(dashboard.Emails.Total >= 1);
+        Assert.NotNull(dashboard.Emails.UltimoStatus);
     }
 
     [Fact]

@@ -61,6 +61,22 @@ public class AdminUsuariosController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("{usuarioId:guid}/dashboard")]
+    [ProducesResponseType(typeof(UsuarioAdminDashboardResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterDashboard(
+        Guid usuarioId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _adminUsuarioService.ObterDashboardAsync(usuarioId, cancellationToken);
+
+        if (response is null)
+            return NotFound(new MensagemErroResponse { Mensagem = "Usuário não encontrado." });
+
+        return Ok(response);
+    }
+
     [HttpPut("{usuarioId:guid}/bloquear")]
     [ProducesResponseType(typeof(UsuarioAdminDetalheResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]

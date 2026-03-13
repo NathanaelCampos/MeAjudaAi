@@ -13,6 +13,10 @@ public interface IAdminUsuarioService
         Guid usuarioId,
         CancellationToken cancellationToken = default);
 
+    Task<UsuarioAdminDashboardResponse?> ObterDashboardAsync(
+        Guid usuarioId,
+        CancellationToken cancellationToken = default);
+
     Task<UsuarioAdminDetalheResponse> DefinirAtivoAsync(
         Guid usuarioId,
         bool ativo,
