@@ -256,6 +256,19 @@ public class NotificacoesController : ControllerBase
         });
     }
 
+    [HttpPost("arquivadas/excluir-lote/preview")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(PreviewArquivamentoNotificacoesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> PreviewExcluirArquivadasEmLote(
+        [FromBody] ArquivarNotificacoesEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.PreviewExclusaoNotificacoesArquivadasAsync(request, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPost("arquivar-lote/preview")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(PreviewArquivamentoNotificacoesResponse), StatusCodes.Status200OK)]

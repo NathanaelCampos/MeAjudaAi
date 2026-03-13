@@ -456,6 +456,16 @@ public class NotificacaoService : INotificacaoService
             cancellationToken);
     }
 
+    public async Task<PreviewArquivamentoNotificacoesResponse> PreviewExclusaoNotificacoesArquivadasAsync(
+        ArquivarNotificacoesEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return await PreviewAtualizacaoAtividadeNotificacoesAsync(
+            request,
+            ativo: false,
+            cancellationToken);
+    }
+
     public async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesAsync(
         Guid? usuarioId = null,
         TipoNotificacao? tipoNotificacao = null,

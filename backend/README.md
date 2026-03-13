@@ -326,6 +326,15 @@ curl -X POST "http://localhost:5231/api/notificacoes/arquivadas/excluir-lote" \
   -d '{"usuarioId":"USUARIO_ID","tipoNotificacao":"ServicoSolicitado","lida":false,"limite":100}'
 ```
 
+Preview da exclusao fisica em lote de notificacoes internas arquivadas:
+
+```bash
+curl -X POST "http://localhost:5231/api/notificacoes/arquivadas/excluir-lote/preview" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN" \
+  -H "Content-Type: application/json" \
+  -d '{"usuarioId":"USUARIO_ID","tipoNotificacao":"ServicoSolicitado","lida":false,"limite":100}'
+```
+
 Dashboard de notificacoes internas por usuario:
 
 ```bash

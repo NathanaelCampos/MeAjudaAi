@@ -67,6 +67,10 @@ public interface INotificacaoService
         ArquivarNotificacoesEmLoteRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<PreviewArquivamentoNotificacoesResponse> PreviewExclusaoNotificacoesArquivadasAsync(
+        ArquivarNotificacoesEmLoteRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesAsync(
         Guid? usuarioId = null,
         TipoNotificacao? tipoNotificacao = null,
