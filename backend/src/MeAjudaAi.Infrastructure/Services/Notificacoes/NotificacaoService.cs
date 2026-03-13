@@ -623,6 +623,21 @@ public class NotificacaoService : INotificacaoService
             cancellationToken);
     }
 
+    public async Task<NotificacaoUsuarioDashboardResponse> ObterDashboardExclusaoNotificacoesArquivadasPorUsuarioAsync(
+        Guid usuarioId,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await ObterDashboardNotificacoesArquivadasPorUsuarioAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+    }
+
     private async Task<NotificacaoUsuarioDashboardResponse> ObterDashboardNotificacoesPorUsuarioEAtividadeAsync(
         Guid usuarioId,
         bool ativo,

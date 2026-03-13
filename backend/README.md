@@ -324,6 +324,13 @@ curl -s "http://localhost:5231/api/notificacoes/arquivadas/usuarios/USUARIO_ID/d
   -H "Authorization: Bearer SEU_TOKEN_ADMIN"
 ```
 
+Dashboard das notificacoes internas arquivadas candidatas a exclusao por usuario:
+
+```bash
+curl -s "http://localhost:5231/api/notificacoes/arquivadas/usuarios/USUARIO_ID/excluir-lote/dashboard?tipoNotificacao=ServicoSolicitado&dataCriacaoInicial=2026-03-12T00:00:00Z&dataCriacaoFinal=2026-03-12T23:59:59Z" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN"
+```
+
 Exclusao fisica em lote de notificacoes internas arquivadas:
 
 ```bash
