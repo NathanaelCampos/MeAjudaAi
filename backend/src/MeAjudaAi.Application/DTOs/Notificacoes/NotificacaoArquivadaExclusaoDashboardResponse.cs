@@ -9,6 +9,7 @@ public class NotificacaoArquivadaExclusaoDashboardResponse
     public DateTime? DataCriacaoInicial { get; set; }
     public DateTime? DataCriacaoFinal { get; set; }
     public string NivelOperacional { get; set; } = string.Empty;
+    public int QuantidadeLotesEstimados { get; set; }
     public NotificacaoResumoOperacionalResponse Resumo { get; set; } = new();
     public NotificacaoArquivadaResumoLeituraResponse Leitura { get; set; } = new();
     public NotificacaoArquivadaMetricasSerieResponse Serie { get; set; } = new();
