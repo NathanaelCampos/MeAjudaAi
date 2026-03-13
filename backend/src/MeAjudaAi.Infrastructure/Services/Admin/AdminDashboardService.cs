@@ -580,6 +580,14 @@ public class AdminDashboardService : IAdminDashboardService
                     comparativoAvaliacoes,
                     comparativoWebhooks,
                     comparativoEmails)),
+            VariacaoComparativaPrincipal = presetAnterior != null
+                ? CriarResumoComparativoPreset(
+                    true,
+                    comparativoServicos,
+                    comparativoAvaliacoes,
+                    comparativoWebhooks,
+                    comparativoEmails).VariacaoPrincipalPercentual
+                : null,
             Pendencias = new AdminDashboardPendenciasResponse
             {
                 AvaliacoesPendentesModeracao = avaliacoesPendentes,
