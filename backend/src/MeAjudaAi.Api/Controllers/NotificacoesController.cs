@@ -490,6 +490,22 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("arquivadas/excluir-lote/antigas")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(PreviewExclusaoNotificacoesAntigasResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterAntigasExclusaoArquivadas(
+        [FromBody] ArquivarNotificacoesEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.ObterAntigasExclusaoNotificacoesArquivadasAsync(
+            request,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     [HttpGet("arquivadas/excluir-lote/dashboard")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(NotificacaoArquivadaExclusaoDashboardResponse), StatusCodes.Status200OK)]

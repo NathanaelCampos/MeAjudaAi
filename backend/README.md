@@ -317,6 +317,19 @@ curl -s "http://localhost:5231/api/notificacoes/arquivadas/excluir-lote/serie?us
   -H "Authorization: Bearer SEU_TOKEN_ADMIN"
 ```
 
+Drill-down das notificacoes internas arquivadas mais antigas candidatas a exclusao:
+
+```bash
+curl -X POST "http://localhost:5231/api/notificacoes/arquivadas/excluir-lote/antigas" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "usuarioId": "USUARIO_ID",
+    "tipoNotificacao": "ServicoSolicitado",
+    "limite": 20
+  }'
+```
+
 Dashboard consolidado das notificacoes internas arquivadas candidatas a exclusao:
 
 ```bash

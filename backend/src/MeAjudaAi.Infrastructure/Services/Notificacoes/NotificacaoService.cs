@@ -466,6 +466,43 @@ public class NotificacaoService : INotificacaoService
             cancellationToken);
     }
 
+    public async Task<PreviewExclusaoNotificacoesAntigasResponse> ObterAntigasExclusaoNotificacoesArquivadasAsync(
+        ArquivarNotificacoesEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var query = AplicarFiltrosAtividade(
+            _context.Set<NotificacaoUsuario>().AsNoTracking(),
+            ativo: false,
+            request);
+
+        var quantidadeCandidata = await query.CountAsync(cancellationToken);
+
+        var antigas = await query
+            .OrderBy(x => x.DataCriacao)
+            .Take(Math.Min(request.Limite, 20))
+            .Select(x => new NotificacaoAdminResponse
+            {
+                Id = x.Id,
+                UsuarioId = x.UsuarioId,
+                NomeUsuario = x.Usuario.Nome,
+                EmailUsuario = x.Usuario.Email,
+                Tipo = x.Tipo,
+                Titulo = x.Titulo,
+                Mensagem = x.Mensagem,
+                ReferenciaId = x.ReferenciaId,
+                Lida = x.DataLeitura != null,
+                DataCriacao = x.DataCriacao,
+                DataLeitura = x.DataLeitura
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PreviewExclusaoNotificacoesAntigasResponse
+        {
+            QuantidadeCandidata = quantidadeCandidata,
+            Antigas = antigas
+        };
+    }
+
     public async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesAsync(
         Guid? usuarioId = null,
         TipoNotificacao? tipoNotificacao = null,
