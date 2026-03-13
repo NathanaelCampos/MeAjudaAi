@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using MeAjudaAi.Application.DTOs.Admin;
+using MeAjudaAi.Application.DTOs.Avaliacoes;
 using MeAjudaAi.Application.DTOs.Auth;
 using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.DTOs.Servicos;
@@ -112,6 +113,70 @@ public class AdminServicosEndpointsTests : IntegrationTestBase, IClassFixture<Te
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.NotNull(payload);
         Assert.Equal("Serviço não encontrado.", payload!.Mensagem);
+    }
+
+    [Fact]
+    public async Task ObterDashboard_DeveRetornarResumoDoServicoEAggregadosRelacionados()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var cliente = await RegistrarClienteAsync(clienteClient, "cliente-admin-servicos-dashboard");
+        var profissional = await RegistrarProfissionalAsync(profissionalClient, "prof-admin-servicos-dashboard");
+        var admin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cliente.Auth.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", profissional.Auth.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+
+        var criarResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissional.ProfissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico admin dashboard",
+            Descricao = "Servico admin dashboard descricao",
+            ValorCombinado = 150m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarResponse.StatusCode);
+        var servico = await criarResponse.Content.ReadFromJsonAsync<ServicoResponse>();
+        Assert.NotNull(servico);
+
+        var aceitarResponse = await profissionalClient.PutAsync($"/api/servicos/{servico!.Id}/aceitar", null);
+        Assert.Equal(HttpStatusCode.OK, aceitarResponse.StatusCode);
+
+        var iniciarResponse = await profissionalClient.PutAsync($"/api/servicos/{servico.Id}/iniciar", null);
+        Assert.Equal(HttpStatusCode.OK, iniciarResponse.StatusCode);
+
+        var concluirResponse = await profissionalClient.PutAsync($"/api/servicos/{servico.Id}/concluir", null);
+        Assert.Equal(HttpStatusCode.OK, concluirResponse.StatusCode);
+
+        var avaliacaoResponse = await clienteClient.PostAsJsonAsync("/api/avaliacoes", new CriarAvaliacaoRequest
+        {
+            ServicoId = servico.Id,
+            NotaAtendimento = NotaAtendimento.Excelente,
+            NotaServico = NotaServico.Excelente,
+            NotaPreco = NotaPreco.BomCustoBeneficio,
+            Comentario = "Dashboard admin avaliacao"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, avaliacaoResponse.StatusCode);
+
+        var response = await adminClient.GetAsync($"/api/admin/servicos/{servico.Id}/dashboard");
+        var payload = await response.Content.ReadFromJsonAsync<ServicoAdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal(servico.Id, payload!.Servico.Id);
+        Assert.Equal("Servico admin dashboard", payload.Servico.Titulo);
+        Assert.True(payload.Notificacoes.TotalAtivas >= 1);
+        Assert.True(payload.Emails.Total >= 0);
+        Assert.NotNull(payload.Avaliacao);
+        Assert.Equal("Dashboard admin avaliacao", payload.Avaliacao!.Comentario);
+        Assert.Equal(StatusModeracaoComentario.Pendente, payload.Avaliacao.StatusModeracaoComentario);
     }
 
     private async Task<Guid> ObterUsuarioIdClientePorServicoAsync(Guid servicoId)

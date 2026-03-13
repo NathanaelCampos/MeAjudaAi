@@ -12,4 +12,8 @@ public interface IAdminServicoService
     Task<ServicoAdminDetalheResponse?> ObterPorIdAsync(
         Guid servicoId,
         CancellationToken cancellationToken = default);
+
+    Task<ServicoAdminDashboardResponse?> ObterDashboardAsync(
+        Guid servicoId,
+        CancellationToken cancellationToken = default);
 }

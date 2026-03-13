@@ -1,6 +1,7 @@
 using MeAjudaAi.Application.DTOs.Admin;
 using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.Interfaces.Admin;
+using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
 
@@ -130,5 +131,98 @@ public class AdminServicoService : IAdminServicoService
                 DataCancelamento = x.DataCancelamento
             })
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<ServicoAdminDashboardResponse?> ObterDashboardAsync(
+        Guid servicoId,
+        CancellationToken cancellationToken = default)
+    {
+        var servico = await ObterPorIdAsync(servicoId, cancellationToken);
+
+        if (servico is null)
+            return null;
+
+        var notificacoesQuery = _context.NotificacoesUsuarios
+            .AsNoTracking()
+            .Where(x => x.ReferenciaId == servicoId);
+
+        var totalNotificacoesAtivas = await notificacoesQuery
+            .Where(x => x.Ativo)
+            .CountAsync(cancellationToken);
+
+        var notificacoesNaoLidas = await notificacoesQuery
+            .Where(x => x.Ativo && x.DataLeitura == null)
+            .CountAsync(cancellationToken);
+
+        var notificacoesLidas = await notificacoesQuery
+            .Where(x => x.Ativo && x.DataLeitura != null)
+            .CountAsync(cancellationToken);
+
+        var notificacoesArquivadas = await notificacoesQuery
+            .Where(x => !x.Ativo)
+            .CountAsync(cancellationToken);
+
+        var ultimaDataCriacaoNotificacao = await notificacoesQuery
+            .OrderByDescending(x => x.DataCriacao)
+            .Select(x => (DateTime?)x.DataCriacao)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var emailsQuery = _context.EmailsNotificacoesOutbox
+            .AsNoTracking()
+            .Where(x => x.ReferenciaId == servicoId);
+
+        var totalEmails = await emailsQuery.CountAsync(cancellationToken);
+        var emailsPendentes = await emailsQuery.Where(x => x.Status == StatusEmailNotificacao.Pendente).CountAsync(cancellationToken);
+        var emailsEnviados = await emailsQuery.Where(x => x.Status == StatusEmailNotificacao.Enviado).CountAsync(cancellationToken);
+        var emailsFalhas = await emailsQuery.Where(x => x.Status == StatusEmailNotificacao.Falha).CountAsync(cancellationToken);
+        var emailsCancelados = await emailsQuery.Where(x => x.Status == StatusEmailNotificacao.Cancelado).CountAsync(cancellationToken);
+
+        var ultimoEmail = await emailsQuery
+            .OrderByDescending(x => x.DataCriacao)
+            .Select(x => new { x.Status, x.DataCriacao })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var avaliacao = await _context.Avaliacoes
+            .AsNoTracking()
+            .Include(x => x.Cliente).ThenInclude(x => x.Usuario)
+            .Where(x => x.ServicoId == servicoId && x.Ativo)
+            .Select(x => new ServicoAdminDashboardAvaliacaoResponse
+            {
+                Id = x.Id,
+                ClienteId = x.ClienteId,
+                ProfissionalId = x.ProfissionalId,
+                NomeCliente = x.Cliente.Usuario.Nome,
+                NotaAtendimento = x.NotaAtendimento,
+                NotaServico = x.NotaServico,
+                NotaPreco = x.NotaPreco,
+                Comentario = x.Comentario,
+                StatusModeracaoComentario = x.StatusModeracaoComentario,
+                DataCriacao = x.DataCriacao
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new ServicoAdminDashboardResponse
+        {
+            Servico = servico,
+            Notificacoes = new ServicoAdminDashboardNotificacoesResponse
+            {
+                TotalAtivas = totalNotificacoesAtivas,
+                NaoLidas = notificacoesNaoLidas,
+                Lidas = notificacoesLidas,
+                Arquivadas = notificacoesArquivadas,
+                UltimaDataCriacao = ultimaDataCriacaoNotificacao
+            },
+            Emails = new ServicoAdminDashboardEmailsResponse
+            {
+                Total = totalEmails,
+                Pendentes = emailsPendentes,
+                Enviados = emailsEnviados,
+                Falhas = emailsFalhas,
+                Cancelados = emailsCancelados,
+                UltimoStatus = ultimoEmail?.Status,
+                UltimaDataCriacao = ultimoEmail?.DataCriacao
+            },
+            Avaliacao = avaliacao
+        };
     }
 }

@@ -63,4 +63,20 @@ public class AdminServicosController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpGet("{servicoId:guid}/dashboard")]
+    [ProducesResponseType(typeof(ServicoAdminDashboardResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterDashboard(
+        Guid servicoId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _adminServicoService.ObterDashboardAsync(servicoId, cancellationToken);
+
+        if (response is null)
+            return NotFound(new MensagemErroResponse { Mensagem = "Serviço não encontrado." });
+
+        return Ok(response);
+    }
 }
