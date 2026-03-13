@@ -23,6 +23,7 @@ public class AdminDashboardResponse
     public string PrioridadeComparativaPrincipal { get; set; } = "media";
     public string AcaoComparativaPrincipal { get; set; } = string.Empty;
     public string LinkComparativoPrincipal { get; set; } = "/admin/dashboard";
+    public string TooltipComparativoPrincipal { get; set; } = string.Empty;
     public AdminDashboardPendenciasResponse Pendencias { get; set; } = new();
     public AdminDashboardAlertasResponse Alertas { get; set; } = new();
     public string RiscoOperacional { get; set; } = "baixo";

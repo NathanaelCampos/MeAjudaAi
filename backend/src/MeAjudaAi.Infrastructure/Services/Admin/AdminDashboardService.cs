@@ -637,6 +637,13 @@ public class AdminDashboardService : IAdminDashboardService
                     comparativoAvaliacoes,
                     comparativoWebhooks,
                     comparativoEmails).EixoPrincipal),
+            TooltipComparativoPrincipal = CriarTooltipComparativoPreset(
+                CriarResumoComparativoPreset(
+                    presetAnterior != null,
+                    comparativoServicos,
+                    comparativoAvaliacoes,
+                    comparativoWebhooks,
+                    comparativoEmails)),
             Pendencias = new AdminDashboardPendenciasResponse
             {
                 AvaliacoesPendentesModeracao = avaliacoesPendentes,
@@ -922,6 +929,14 @@ public class AdminDashboardService : IAdminDashboardService
             "avaliacoes" => "/admin/avaliacoes",
             _ => "/admin/dashboard"
         };
+    }
+
+    private static string CriarTooltipComparativoPreset(AdminDashboardResumoComparativoPresetResponse resumoComparativo)
+    {
+        if (!resumoComparativo.Disponivel)
+            return "Comparativo indisponivel sem preset anterior equivalente.";
+
+        return $"{resumoComparativo.Resumo} {resumoComparativo.Recomendacao}";
     }
 
     private static string CalcularRiscoOperacional(
