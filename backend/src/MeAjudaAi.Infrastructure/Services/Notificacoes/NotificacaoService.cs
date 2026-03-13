@@ -114,12 +114,33 @@ public class NotificacaoService : INotificacaoService
         BuscarNotificacoesRequest request,
         CancellationToken cancellationToken = default)
     {
+        return await ListarNotificacoesPorAtividadeAsync(
+            request,
+            ativo: true,
+            cancellationToken);
+    }
+
+    public async Task<PaginacaoResponse<NotificacaoAdminResponse>> ListarNotificacoesArquivadasAsync(
+        BuscarNotificacoesRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return await ListarNotificacoesPorAtividadeAsync(
+            request,
+            ativo: false,
+            cancellationToken);
+    }
+
+    private async Task<PaginacaoResponse<NotificacaoAdminResponse>> ListarNotificacoesPorAtividadeAsync(
+        BuscarNotificacoesRequest request,
+        bool ativo,
+        CancellationToken cancellationToken)
+    {
         var pagina = request.Pagina <= 0 ? 1 : request.Pagina;
         var tamanhoPagina = request.TamanhoPagina <= 0 ? 20 : Math.Min(request.TamanhoPagina, 100);
 
         var query = _context.Set<NotificacaoUsuario>()
             .AsNoTracking()
-            .Where(x => x.Ativo);
+            .Where(x => x.Ativo == ativo);
 
         if (request.UsuarioId.HasValue)
             query = query.Where(x => x.UsuarioId == request.UsuarioId.Value);
