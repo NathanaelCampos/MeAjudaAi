@@ -692,6 +692,8 @@ public class AdminDashboardService : IAdminDashboardService
             return new AdminDashboardSaudeOperacionalResponse
             {
                 Status = "critico",
+                IndicadorCor = "vermelho",
+                PrioridadeVisual = "alta",
                 Resumo = "Risco alto sem acao administrativa recente."
             };
         }
@@ -701,6 +703,8 @@ public class AdminDashboardService : IAdminDashboardService
             return new AdminDashboardSaudeOperacionalResponse
             {
                 Status = "critico",
+                IndicadorCor = "vermelho",
+                PrioridadeVisual = "alta",
                 Resumo = "Operacao com falhas relevantes em canais ou backlog critico."
             };
         }
@@ -710,6 +714,8 @@ public class AdminDashboardService : IAdminDashboardService
             return new AdminDashboardSaudeOperacionalResponse
             {
                 Status = "atencao",
+                IndicadorCor = "amarelo",
+                PrioridadeVisual = "media",
                 Resumo = "Operacao sob atencao com pendencias ou falhas pontuais."
             };
         }
@@ -717,6 +723,8 @@ public class AdminDashboardService : IAdminDashboardService
         return new AdminDashboardSaudeOperacionalResponse
         {
             Status = "saudavel",
+            IndicadorCor = "verde",
+            PrioridadeVisual = "baixa",
             Resumo = "Operacao estavel com sinais controlados."
         };
     }
