@@ -825,6 +825,13 @@ public class NotificacaoService : INotificacaoService
             dataCriacaoFinal,
             cancellationToken);
 
+        var leitura = await ObterResumoLeituraExclusaoNotificacoesArquivadasAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+
         var serie = await ObterSerieExclusaoNotificacoesArquivadasAsync(
             usuarioId,
             tipoNotificacao,
@@ -860,6 +867,7 @@ public class NotificacaoService : INotificacaoService
             DataCriacaoInicial = dataCriacaoInicial,
             DataCriacaoFinal = dataCriacaoFinal,
             Resumo = resumo,
+            Leitura = leitura,
             Serie = serie,
             Idade = idade,
             Tipos = tipos,
