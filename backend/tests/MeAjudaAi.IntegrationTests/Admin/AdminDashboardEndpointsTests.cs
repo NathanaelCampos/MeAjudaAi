@@ -135,6 +135,11 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.NotNull(payload.TopUsuariosInativosRecentes);
         Assert.True(payload.TopUsuariosInativosRecentes.Count >= 1);
         Assert.Contains(payload.TopUsuariosInativosRecentes, x => x.UsuarioId == profissional.Auth.UsuarioId);
+        Assert.NotNull(payload.ResumoDecisorio);
+        Assert.Contains(payload.ResumoDecisorio.SituacaoGeral, ["baixo", "medio", "alto"]);
+        Assert.False(string.IsNullOrWhiteSpace(payload.ResumoDecisorio.FocoPrincipal));
+        Assert.False(string.IsNullOrWhiteSpace(payload.ResumoDecisorio.PrincipalGargalo));
+        Assert.False(string.IsNullOrWhiteSpace(payload.ResumoDecisorio.RecomendacaoImediata));
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)

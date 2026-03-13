@@ -20,10 +20,12 @@ public interface IAdminProfissionalService
     Task<ProfissionalAdminDetalheResponse> DefinirPerfilVerificadoAsync(
         Guid profissionalId,
         bool perfilVerificado,
+        Guid? usuarioAdministradorId = null,
         CancellationToken cancellationToken = default);
 
     Task<ProfissionalAdminDetalheResponse> DefinirAtivoAsync(
         Guid profissionalId,
         bool ativo,
+        Guid? usuarioAdministradorId = null,
         CancellationToken cancellationToken = default);
 }

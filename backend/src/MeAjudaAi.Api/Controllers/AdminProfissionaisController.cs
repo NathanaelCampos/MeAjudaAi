@@ -1,6 +1,7 @@
 using MeAjudaAi.Application.DTOs.Admin;
 using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.Interfaces.Admin;
+using MeAjudaAi.Api.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -81,7 +82,8 @@ public class AdminProfissionaisController : ControllerBase
         Guid profissionalId,
         CancellationToken cancellationToken = default)
     {
-        var response = await _adminProfissionalService.DefinirPerfilVerificadoAsync(profissionalId, true, cancellationToken);
+        var adminId = User.ObterUsuarioId();
+        var response = await _adminProfissionalService.DefinirPerfilVerificadoAsync(profissionalId, true, adminId, cancellationToken);
         return Ok(response);
     }
 
@@ -93,7 +95,8 @@ public class AdminProfissionaisController : ControllerBase
         Guid profissionalId,
         CancellationToken cancellationToken = default)
     {
-        var response = await _adminProfissionalService.DefinirPerfilVerificadoAsync(profissionalId, false, cancellationToken);
+        var adminId = User.ObterUsuarioId();
+        var response = await _adminProfissionalService.DefinirPerfilVerificadoAsync(profissionalId, false, adminId, cancellationToken);
         return Ok(response);
     }
 
@@ -105,7 +108,8 @@ public class AdminProfissionaisController : ControllerBase
         Guid profissionalId,
         CancellationToken cancellationToken = default)
     {
-        var response = await _adminProfissionalService.DefinirAtivoAsync(profissionalId, true, cancellationToken);
+        var adminId = User.ObterUsuarioId();
+        var response = await _adminProfissionalService.DefinirAtivoAsync(profissionalId, true, adminId, cancellationToken);
         return Ok(response);
     }
 
@@ -117,7 +121,8 @@ public class AdminProfissionaisController : ControllerBase
         Guid profissionalId,
         CancellationToken cancellationToken = default)
     {
-        var response = await _adminProfissionalService.DefinirAtivoAsync(profissionalId, false, cancellationToken);
+        var adminId = User.ObterUsuarioId();
+        var response = await _adminProfissionalService.DefinirAtivoAsync(profissionalId, false, adminId, cancellationToken);
         return Ok(response);
     }
 }

@@ -26,6 +26,7 @@ public class AppDbContext : DbContext
     public DbSet<PlanoImpulsionamento> PlanosImpulsionamento => Set<PlanoImpulsionamento>();
     public DbSet<ImpulsionamentoProfissional> ImpulsionamentosProfissionais => Set<ImpulsionamentoProfissional>();
     public DbSet<WebhookPagamentoImpulsionamentoEvento> WebhookPagamentoImpulsionamentoEventos => Set<WebhookPagamentoImpulsionamentoEvento>();
+    public DbSet<AuditoriaAdminAcao> AuditoriasAdminAcoes => Set<AuditoriaAdminAcao>();
     public DbSet<NotificacaoUsuario> NotificacoesUsuarios => Set<NotificacaoUsuario>();
     public DbSet<PreferenciaNotificacaoUsuario> PreferenciasNotificacoesUsuarios => Set<PreferenciaNotificacaoUsuario>();
     public DbSet<EmailNotificacaoOutbox> EmailsNotificacoesOutbox => Set<EmailNotificacaoOutbox>();

@@ -10,10 +10,14 @@ namespace MeAjudaAi.Infrastructure.Services.Admin;
 public class AdminProfissionalService : IAdminProfissionalService
 {
     private readonly AppDbContext _context;
+    private readonly IAdminAuditoriaService _adminAuditoriaService;
 
-    public AdminProfissionalService(AppDbContext context)
+    public AdminProfissionalService(
+        AppDbContext context,
+        IAdminAuditoriaService adminAuditoriaService)
     {
         _context = context;
+        _adminAuditoriaService = adminAuditoriaService;
     }
 
     public async Task<PaginacaoResponse<ProfissionalAdminListItemResponse>> BuscarAsync(
@@ -255,6 +259,7 @@ public class AdminProfissionalService : IAdminProfissionalService
     public async Task<ProfissionalAdminDetalheResponse> DefinirPerfilVerificadoAsync(
         Guid profissionalId,
         bool perfilVerificado,
+        Guid? usuarioAdministradorId = null,
         CancellationToken cancellationToken = default)
     {
         var profissional = await _context.Profissionais
@@ -267,12 +272,28 @@ public class AdminProfissionalService : IAdminProfissionalService
         profissional.DataAtualizacao = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        if (usuarioAdministradorId.HasValue)
+        {
+            await _adminAuditoriaService.RegistrarAsync(
+                usuarioAdministradorId.Value,
+                "profissional",
+                profissional.Id,
+                perfilVerificado ? "verificar" : "desverificar",
+                perfilVerificado ? "Administrador verificou o perfil profissional." : "Administrador removeu a verificação do perfil profissional.",
+                $$"""
+                {"profissionalId":"{{profissional.Id}}","perfilVerificado":{{perfilVerificado.ToString().ToLowerInvariant()}}}
+                """,
+                cancellationToken);
+        }
+
         return (await ObterPorIdAsync(profissionalId, cancellationToken))!;
     }
 
     public async Task<ProfissionalAdminDetalheResponse> DefinirAtivoAsync(
         Guid profissionalId,
         bool ativo,
+        Guid? usuarioAdministradorId = null,
         CancellationToken cancellationToken = default)
     {
         var profissional = await _context.Profissionais
@@ -292,6 +313,21 @@ public class AdminProfissionalService : IAdminProfissionalService
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        if (usuarioAdministradorId.HasValue)
+        {
+            await _adminAuditoriaService.RegistrarAsync(
+                usuarioAdministradorId.Value,
+                "profissional",
+                profissional.Id,
+                ativo ? "ativar" : "desativar",
+                ativo ? "Administrador ativou o profissional." : "Administrador desativou o profissional.",
+                $$"""
+                {"profissionalId":"{{profissional.Id}}","ativo":{{ativo.ToString().ToLowerInvariant()}}}
+                """,
+                cancellationToken);
+        }
+
         return (await ObterPorIdAsync(profissionalId, cancellationToken))!;
     }
 }

@@ -9,10 +9,14 @@ namespace MeAjudaAi.Infrastructure.Services.Admin;
 public class AdminUsuarioService : IAdminUsuarioService
 {
     private readonly AppDbContext _context;
+    private readonly IAdminAuditoriaService _adminAuditoriaService;
 
-    public AdminUsuarioService(AppDbContext context)
+    public AdminUsuarioService(
+        AppDbContext context,
+        IAdminAuditoriaService adminAuditoriaService)
     {
         _context = context;
+        _adminAuditoriaService = adminAuditoriaService;
     }
 
     public async Task<PaginacaoResponse<UsuarioAdminListItemResponse>> BuscarAsync(
@@ -199,6 +203,20 @@ public class AdminUsuarioService : IAdminUsuarioService
         usuario.DataAtualizacao = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        if (usuarioAdministradorId.HasValue)
+        {
+            await _adminAuditoriaService.RegistrarAsync(
+                usuarioAdministradorId.Value,
+                "usuario",
+                usuario.Id,
+                ativo ? "desbloquear" : "bloquear",
+                ativo ? "Administrador desbloqueou o usuário." : "Administrador bloqueou o usuário.",
+                $$"""
+                {"usuarioId":"{{usuario.Id}}","ativo":{{ativo.ToString().ToLowerInvariant()}}}
+                """,
+                cancellationToken);
+        }
 
         return (await ObterPorIdAsync(usuarioId, cancellationToken))!;
     }

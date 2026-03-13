@@ -1,4 +1,5 @@
 using MeAjudaAi.Application.DTOs.Impulsionamentos;
+using MeAjudaAi.Application.DTOs.Common;
 using MeAjudaAi.Application.DTOs.Notificacoes;
 using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
@@ -470,14 +471,134 @@ public class ImpulsionamentoServiceTests
         public Task<IReadOnlyList<PreferenciaNotificacaoResponse>> AtualizarPreferenciasAsync(Guid usuarioId, IReadOnlyList<PreferenciaNotificacaoItemRequest> preferencias, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<PreferenciaNotificacaoResponse>>(Array.Empty<PreferenciaNotificacaoResponse>());
 
-        public Task<IReadOnlyList<EmailNotificacaoOutboxResponse>> ListarEmailsOutboxAsync(StatusEmailNotificacao? status = null, Guid? usuarioId = null, CancellationToken cancellationToken = default)
-            => Task.FromResult<IReadOnlyList<EmailNotificacaoOutboxResponse>>(Array.Empty<EmailNotificacaoOutboxResponse>());
+        public Task<PaginacaoResponse<NotificacaoAdminResponse>> ListarNotificacoesAsync(BuscarNotificacoesRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PaginacaoResponse<NotificacaoAdminResponse>());
+
+        public Task<PaginacaoResponse<NotificacaoAdminResponse>> ListarNotificacoesArquivadasAsync(BuscarNotificacoesRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PaginacaoResponse<NotificacaoAdminResponse>());
+
+        public Task<string> ExportarNotificacoesCsvAsync(ExportarNotificacoesRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(string.Empty);
+
+        public Task<string> ExportarNotificacoesArquivadasCsvAsync(ExportarNotificacoesRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(string.Empty);
+
+        public Task<NotificacaoAdminResponse?> ObterNotificacaoPorIdAsync(Guid notificacaoId, CancellationToken cancellationToken = default)
+            => Task.FromResult<NotificacaoAdminResponse?>(null);
+
+        public Task<NotificacaoAdminResponse?> ObterNotificacaoArquivadaPorIdAsync(Guid notificacaoId, CancellationToken cancellationToken = default)
+            => Task.FromResult<NotificacaoAdminResponse?>(null);
+
+        public Task<int> MarcarNotificacoesComoLidasEmLoteAsync(MarcarNotificacoesComoLidasEmLoteRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(0);
+
+        public Task<int> ArquivarNotificacoesEmLoteAsync(ArquivarNotificacoesEmLoteRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(0);
+
+        public Task<int> RestaurarNotificacoesEmLoteAsync(ArquivarNotificacoesEmLoteRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(0);
+
+        public Task<int> ExcluirNotificacoesArquivadasEmLoteAsync(ArquivarNotificacoesEmLoteRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(0);
+
+        public Task<PreviewArquivamentoNotificacoesResponse> PreviewArquivamentoNotificacoesAsync(ArquivarNotificacoesEmLoteRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PreviewArquivamentoNotificacoesResponse());
+
+        public Task<PreviewArquivamentoNotificacoesResponse> PreviewRestauracaoNotificacoesAsync(ArquivarNotificacoesEmLoteRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PreviewArquivamentoNotificacoesResponse());
+
+        public Task<PreviewArquivamentoNotificacoesResponse> PreviewExclusaoNotificacoesArquivadasAsync(ArquivarNotificacoesEmLoteRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PreviewArquivamentoNotificacoesResponse());
+
+        public Task<PreviewExclusaoNotificacoesAntigasResponse> ObterAntigasExclusaoNotificacoesArquivadasAsync(ArquivarNotificacoesEmLoteRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PreviewExclusaoNotificacoesAntigasResponse());
+
+        public Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesAsync(Guid? usuarioId = null, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoResumoOperacionalResponse());
+
+        public Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesArquivadasAsync(Guid? usuarioId = null, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoResumoOperacionalResponse());
+
+        public Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalExclusaoNotificacoesArquivadasAsync(Guid? usuarioId = null, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoResumoOperacionalResponse());
+
+        public Task<NotificacaoArquivadaResumoIdadeResponse> ObterResumoIdadeExclusaoNotificacoesArquivadasAsync(Guid? usuarioId = null, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoArquivadaResumoIdadeResponse());
+
+        public Task<NotificacaoArquivadaResumoTiposResponse> ObterResumoTiposExclusaoNotificacoesArquivadasAsync(Guid? usuarioId = null, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoArquivadaResumoTiposResponse());
+
+        public Task<NotificacaoArquivadaResumoUsuariosResponse> ObterResumoUsuariosExclusaoNotificacoesArquivadasAsync(Guid? usuarioId = null, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoArquivadaResumoUsuariosResponse());
+
+        public Task<NotificacaoArquivadaMetricasSerieResponse> ObterSerieExclusaoNotificacoesArquivadasAsync(Guid? usuarioId = null, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoArquivadaMetricasSerieResponse());
+
+        public Task<NotificacaoArquivadaResumoLeituraResponse> ObterResumoLeituraExclusaoNotificacoesArquivadasAsync(Guid? usuarioId = null, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoArquivadaResumoLeituraResponse());
+
+        public Task<NotificacaoArquivadaResumoLimitesResponse> ObterResumoLimitesExclusaoNotificacoesArquivadasAsync(Guid? usuarioId = null, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoArquivadaResumoLimitesResponse());
+
+        public Task<NotificacaoArquivadaExclusaoDashboardResponse> ObterDashboardExclusaoNotificacoesArquivadasAsync(Guid? usuarioId = null, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoArquivadaExclusaoDashboardResponse());
+
+        public Task<NotificacaoUsuarioDashboardResponse> ObterDashboardNotificacoesPorUsuarioAsync(Guid usuarioId, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoUsuarioDashboardResponse());
+
+        public Task<NotificacaoUsuarioDashboardResponse> ObterDashboardNotificacoesArquivadasPorUsuarioAsync(Guid usuarioId, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoUsuarioDashboardResponse());
+
+        public Task<NotificacaoUsuarioDashboardResponse> ObterDashboardExclusaoNotificacoesArquivadasPorUsuarioAsync(Guid usuarioId, TipoNotificacao? tipoNotificacao = null, DateTime? dataCriacaoInicial = null, DateTime? dataCriacaoFinal = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(new NotificacaoUsuarioDashboardResponse());
+
+        public Task<PaginacaoResponse<EmailNotificacaoOutboxResponse>> ListarEmailsOutboxAsync(BuscarEmailsOutboxRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PaginacaoResponse<EmailNotificacaoOutboxResponse>());
+
+        public Task<string> ExportarEmailsOutboxCsvAsync(ExportarEmailsOutboxRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(string.Empty);
+
+        public Task<EmailNotificacaoOutboxResponse?> ObterEmailOutboxPorIdAsync(Guid emailId, CancellationToken cancellationToken = default)
+            => Task.FromResult<EmailNotificacaoOutboxResponse?>(null);
+
+        public Task<EmailNotificacaoOutboxResponse?> CancelarEmailOutboxAsync(Guid emailId, CancellationToken cancellationToken = default)
+            => Task.FromResult<EmailNotificacaoOutboxResponse?>(null);
+
+        public Task<EmailNotificacaoOutboxResponse?> ReabrirEmailOutboxAsync(Guid emailId, CancellationToken cancellationToken = default)
+            => Task.FromResult<EmailNotificacaoOutboxResponse?>(null);
+
+        public Task<int> CancelarEmailsOutboxEmLoteAsync(AtualizarEmailsOutboxEmLoteRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(0);
+
+        public Task<int> ReabrirEmailsOutboxEmLoteAsync(AtualizarEmailsOutboxEmLoteRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(0);
+
+        public Task<int> ReprocessarEmailsOutboxEmLoteAsync(AtualizarEmailsOutboxEmLoteRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(0);
 
         public Task<int> ReprocessarEmailsOutboxAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(0);
 
-        public Task<EmailNotificacaoMetricasResponse> ObterMetricasEmailsOutboxAsync(CancellationToken cancellationToken = default)
+        public Task<EmailNotificacaoMetricasResponse> ObterMetricasEmailsOutboxAsync(BuscarMetricasEmailsOutboxRequest request, CancellationToken cancellationToken = default)
             => Task.FromResult(new EmailNotificacaoMetricasResponse());
+
+        public Task<EmailNotificacaoResumoOperacionalResponse> ObterResumoOperacionalEmailsOutboxAsync(BuscarMetricasEmailsOutboxRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new EmailNotificacaoResumoOperacionalResponse());
+
+        public Task<EmailNotificacaoMetricasSerieResponse> ObterMetricasSerieEmailsOutboxAsync(BuscarMetricasEmailsOutboxRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new EmailNotificacaoMetricasSerieResponse());
+
+        public Task<EmailNotificacaoDestinatariosMetricasResponse> ObterMetricasDestinatariosEmailsOutboxAsync(BuscarMetricasEmailsOutboxRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new EmailNotificacaoDestinatariosMetricasResponse());
+
+        public Task<EmailNotificacaoTiposMetricasResponse> ObterMetricasTiposEmailsOutboxAsync(BuscarMetricasEmailsOutboxRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new EmailNotificacaoTiposMetricasResponse());
+
+        public Task<EmailNotificacaoDashboardResponse> ObterDashboardEmailsOutboxAsync(BuscarMetricasEmailsOutboxRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new EmailNotificacaoDashboardResponse());
+
+        public Task<EmailNotificacaoUsuarioDashboardResponse> ObterDashboardEmailsOutboxPorUsuarioAsync(Guid usuarioId, BuscarMetricasEmailsOutboxRequest request, CancellationToken cancellationToken = default)
+            => Task.FromResult(new EmailNotificacaoUsuarioDashboardResponse());
 
         public Task<QuantidadeNotificacoesNaoLidasResponse> ObterQuantidadeNaoLidasAsync(Guid usuarioId, CancellationToken cancellationToken = default)
             => Task.FromResult(new QuantidadeNotificacoesNaoLidasResponse());

@@ -449,7 +449,14 @@ public class AdminDashboardService : IAdminDashboardService
             },
             TopProfissionaisEmAtencao = topProfissionaisEmAtencao,
             TopClientesEmAtencao = topClientesEmAtencao,
-            TopUsuariosInativosRecentes = topUsuariosInativosRecentes
+            TopUsuariosInativosRecentes = topUsuariosInativosRecentes,
+            ResumoDecisorio = CriarResumoDecisorio(
+                totalWebhooks - webhooksSucesso,
+                emailsFalhas,
+                emailsPendentesAtrasados,
+                avaliacoesPendentes,
+                impulsionamentosPendentes,
+                servicosSolicitados)
         };
     }
 
@@ -519,5 +526,57 @@ public class AdminDashboardService : IAdminDashboardService
             itens.Add("Operacao estavel sem acoes imediatas.");
 
         return itens;
+    }
+
+    private static AdminDashboardResumoDecisorioResponse CriarResumoDecisorio(
+        int webhooksFalhos,
+        int emailsFalhas,
+        int emailsPendentesAtrasados,
+        int avaliacoesPendentes,
+        int impulsionamentosPendentes,
+        int servicosSolicitados)
+    {
+        var situacaoGeral = CalcularRiscoOperacional(
+            webhooksFalhos,
+            emailsFalhas,
+            emailsPendentesAtrasados,
+            avaliacoesPendentes,
+            impulsionamentosPendentes,
+            servicosSolicitados);
+
+        var gargalos = new List<(string Nome, int Valor)>
+        {
+            ("webhooks com falha", webhooksFalhos),
+            ("emails com falha", emailsFalhas),
+            ("emails pendentes atrasados", emailsPendentesAtrasados),
+            ("avaliacoes pendentes", avaliacoesPendentes),
+            ("impulsionamentos pendentes de pagamento", impulsionamentosPendentes),
+            ("servicos solicitados", servicosSolicitados)
+        };
+
+        var principal = gargalos
+            .OrderByDescending(x => x.Valor)
+            .First();
+
+        var focoPrincipal = principal.Valor > 0 ? principal.Nome : "operacao estavel";
+        var principalGargalo = principal.Valor > 0
+            ? $"{principal.Valor} registro(s) em {principal.Nome}"
+            : "Sem gargalo operacional relevante.";
+
+        var recomendacaoImediata = CriarAcoesRecomendadas(
+            webhooksFalhos,
+            emailsFalhas,
+            emailsPendentesAtrasados,
+            avaliacoesPendentes,
+            impulsionamentosPendentes,
+            servicosSolicitados)[0];
+
+        return new AdminDashboardResumoDecisorioResponse
+        {
+            SituacaoGeral = situacaoGeral,
+            FocoPrincipal = focoPrincipal,
+            PrincipalGargalo = principalGargalo,
+            RecomendacaoImediata = recomendacaoImediata
+        };
     }
 }
