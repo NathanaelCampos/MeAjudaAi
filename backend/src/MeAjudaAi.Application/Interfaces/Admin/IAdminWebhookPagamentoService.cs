@@ -13,4 +13,8 @@ public interface IAdminWebhookPagamentoService
     Task<WebhookPagamentoAdminDetalheResponse?> ObterPorIdAsync(
         Guid webhookId,
         CancellationToken cancellationToken = default);
+
+    Task<WebhookPagamentoAdminDashboardResponse?> ObterDashboardAsync(
+        Guid webhookId,
+        CancellationToken cancellationToken = default);
 }

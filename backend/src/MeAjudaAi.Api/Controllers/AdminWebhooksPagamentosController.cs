@@ -65,4 +65,20 @@ public class AdminWebhooksPagamentosController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpGet("{webhookId:guid}/dashboard")]
+    [ProducesResponseType(typeof(WebhookPagamentoAdminDashboardResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterDashboard(
+        Guid webhookId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _adminWebhookPagamentoService.ObterDashboardAsync(webhookId, cancellationToken);
+
+        if (response is null)
+            return NotFound(new MensagemErroResponse { Mensagem = "Webhook de pagamento não encontrado." });
+
+        return Ok(response);
+    }
 }

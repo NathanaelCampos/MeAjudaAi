@@ -128,6 +128,70 @@ public class AdminWebhooksPagamentosEndpointsTests : IntegrationTestBase, IClass
         Assert.Equal("Webhook de pagamento não encontrado.", payload!.Mensagem);
     }
 
+    [Fact]
+    public async Task ObterDashboard_DeveRetornarConsolidadoDoWebhook()
+    {
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+        using var webhookClient = _factory.CreateClient();
+
+        var profissional = await RegistrarProfissionalAsync(profissionalClient, "prof-admin-webhooks-dashboard");
+        var admin = await LoginAdminAsync(adminClient);
+
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", profissional.Auth.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var planoId = await ObterPlanoIdAsync();
+        var contratarResponse = await profissionalClient.PostAsJsonAsync("/api/impulsionamentos/contratar", new
+        {
+            planoImpulsionamentoId = planoId,
+            codigoReferenciaPagamento = "admin-webhook-dashboard"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, contratarResponse.StatusCode);
+        var impulsionamento = await contratarResponse.Content.ReadFromJsonAsync<ImpulsionamentoProfissionalResponse>();
+        Assert.NotNull(impulsionamento);
+
+        var webhookRequest = CriarWebhookRequest("admin-webhook-dashboard", "admin-webhook-dashboard-evt");
+        var webhookResponse = await webhookClient.SendAsync(webhookRequest);
+        Assert.Equal(HttpStatusCode.OK, webhookResponse.StatusCode);
+
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<MeAjudaAi.Infrastructure.Persistence.Contexts.AppDbContext>();
+        var webhookId = await context.WebhookPagamentoImpulsionamentoEventos
+            .Where(x => x.EventoExternoId == "admin-webhook-dashboard-evt")
+            .Select(x => x.Id)
+            .SingleAsync();
+
+        var response = await adminClient.GetAsync($"/api/admin/webhooks/pagamentos/{webhookId}/dashboard");
+        var payload = await response.Content.ReadFromJsonAsync<WebhookPagamentoAdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal(webhookId, payload!.Webhook.Id);
+        Assert.Equal("admin-webhook-dashboard-evt", payload.Webhook.EventoExternoId);
+        Assert.NotNull(payload.Impulsionamento);
+        Assert.Equal(impulsionamento!.Id, payload.Impulsionamento!.Id);
+        Assert.True(payload.WebhooksRelacionados.Total >= 1);
+        Assert.True(payload.WebhooksRelacionados.Sucessos >= 1);
+        Assert.True(payload.Notificacoes.TotalAtivas >= 1 || payload.Emails.Total >= 0);
+    }
+
+    [Fact]
+    public async Task ObterDashboard_Inexistente_DeveRetornar404()
+    {
+        using var adminClient = _factory.CreateClient();
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var response = await adminClient.GetAsync($"/api/admin/webhooks/pagamentos/{Guid.NewGuid()}/dashboard");
+        var payload = await response.Content.ReadFromJsonAsync<MeAjudaAi.Application.DTOs.Common.MensagemErroResponse>();
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal("Webhook de pagamento não encontrado.", payload!.Mensagem);
+    }
+
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/pagamentos/impulsionamentos")
