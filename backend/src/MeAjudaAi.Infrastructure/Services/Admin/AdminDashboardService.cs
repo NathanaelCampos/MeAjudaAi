@@ -630,6 +630,13 @@ public class AdminDashboardService : IAdminDashboardService
                     comparativoAvaliacoes,
                     comparativoWebhooks,
                     comparativoEmails)),
+            LinkComparativoPrincipal = CriarLinkComparativoPreset(
+                CriarResumoComparativoPreset(
+                    presetAnterior != null,
+                    comparativoServicos,
+                    comparativoAvaliacoes,
+                    comparativoWebhooks,
+                    comparativoEmails).EixoPrincipal),
             Pendencias = new AdminDashboardPendenciasResponse
             {
                 AvaliacoesPendentesModeracao = avaliacoesPendentes,
@@ -902,6 +909,18 @@ public class AdminDashboardService : IAdminDashboardService
             "servicos" => "Revisar capacidade de atendimento",
             "avaliacoes" => "Revisar fila de moderacao",
             _ => "Revisar comparativo entre presets"
+        };
+    }
+
+    private static string CriarLinkComparativoPreset(string eixoPrincipal)
+    {
+        return eixoPrincipal switch
+        {
+            "webhooks" => "/admin/webhooks/pagamentos",
+            "emails" => "/admin/notificacoes/emails",
+            "servicos" => "/admin/servicos",
+            "avaliacoes" => "/admin/avaliacoes",
+            _ => "/admin/dashboard"
         };
     }
 
