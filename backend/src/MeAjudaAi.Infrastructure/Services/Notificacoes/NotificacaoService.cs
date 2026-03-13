@@ -679,6 +679,54 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<NotificacaoArquivadaExclusaoDashboardResponse> ObterDashboardExclusaoNotificacoesArquivadasAsync(
+        Guid? usuarioId = null,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        var resumo = await ObterResumoOperacionalExclusaoNotificacoesArquivadasAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+
+        var idade = await ObterResumoIdadeExclusaoNotificacoesArquivadasAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+
+        var tipos = await ObterResumoTiposExclusaoNotificacoesArquivadasAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+
+        var usuarios = await ObterResumoUsuariosExclusaoNotificacoesArquivadasAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+
+        return new NotificacaoArquivadaExclusaoDashboardResponse
+        {
+            UsuarioId = usuarioId,
+            TipoNotificacao = tipoNotificacao,
+            DataCriacaoInicial = dataCriacaoInicial,
+            DataCriacaoFinal = dataCriacaoFinal,
+            Resumo = resumo,
+            Idade = idade,
+            Tipos = tipos,
+            Usuarios = usuarios
+        };
+    }
+
     private async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesPorAtividadeAsync(
         bool ativo,
         Guid? usuarioId,

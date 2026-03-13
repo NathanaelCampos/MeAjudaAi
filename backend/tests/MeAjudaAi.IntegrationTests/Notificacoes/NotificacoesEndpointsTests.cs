@@ -478,6 +478,56 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ObterDashboardExclusaoNotificacoesArquivadas_DeveConsolidarAgregados()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-dashboard-exclusao-global");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-dashboard-exclusao-global");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para dashboard global de exclusao",
+            Descricao = "Gera notificacao arquivada para dashboard global",
+            ValorCombinado = 333m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var arquivarResponse = await adminClient.PutAsJsonAsync("/api/notificacoes/arquivar-lote", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = false,
+            Limite = 100
+        });
+
+        Assert.Equal(HttpStatusCode.OK, arquivarResponse.StatusCode);
+
+        var dashboard = await adminClient.GetFromJsonAsync<NotificacaoArquivadaExclusaoDashboardResponse>(
+            $"/api/notificacoes/arquivadas/excluir-lote/dashboard?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
+
+        Assert.NotNull(dashboard);
+        Assert.Equal(authProfissional.UsuarioId, dashboard!.UsuarioId);
+        Assert.Equal(TipoNotificacao.ServicoSolicitado, dashboard.TipoNotificacao);
+        Assert.True(dashboard.Resumo.TotalRegistros >= 1);
+        Assert.Equal(4, dashboard.Idade.Faixas.Count);
+        Assert.NotEmpty(dashboard.Tipos.Tipos);
+        Assert.NotEmpty(dashboard.Usuarios.Usuarios);
+    }
+
+    [Fact]
     public async Task ListarNotificacoesArquivadasAdmin_DevePermitirFiltrarPorUsuarioTipoELidaComPaginacao()
     {
         using var clienteClient = _factory.CreateClient();
