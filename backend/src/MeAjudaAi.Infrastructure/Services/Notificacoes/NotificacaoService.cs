@@ -837,6 +837,12 @@ public class NotificacaoService : INotificacaoService
             })
             .ToList();
 
+        var limiteRecomendado = totalRegistros <= 20
+            ? 20
+            : totalRegistros <= 100
+                ? 100
+                : 500;
+
         return new NotificacaoArquivadaResumoLimitesResponse
         {
             UsuarioId = usuarioId,
@@ -844,6 +850,7 @@ public class NotificacaoService : INotificacaoService
             DataCriacaoInicial = dataCriacaoInicial,
             DataCriacaoFinal = dataCriacaoFinal,
             TotalRegistros = totalRegistros,
+            LimiteRecomendado = limiteRecomendado,
             Limites = limites
         };
     }
