@@ -761,6 +761,56 @@ public class NotificacaoService : INotificacaoService
         };
     }
 
+    public async Task<NotificacaoArquivadaResumoLeituraResponse> ObterResumoLeituraExclusaoNotificacoesArquivadasAsync(
+        Guid? usuarioId = null,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Set<NotificacaoUsuario>()
+            .AsNoTracking()
+            .Where(x => !x.Ativo);
+
+        if (usuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == usuarioId.Value);
+
+        if (tipoNotificacao.HasValue)
+            query = query.Where(x => x.Tipo == tipoNotificacao.Value);
+
+        if (dataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= dataCriacaoInicial.Value);
+
+        if (dataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= dataCriacaoFinal.Value);
+
+        var totalRegistros = await query.CountAsync(cancellationToken);
+        var lidas = await query.CountAsync(x => x.DataLeitura != null, cancellationToken);
+        var naoLidas = totalRegistros - lidas;
+
+        decimal percentualLidas = 0;
+        decimal percentualNaoLidas = 0;
+
+        if (totalRegistros > 0)
+        {
+            percentualLidas = Math.Round((decimal)lidas * 100m / totalRegistros, 2);
+            percentualNaoLidas = Math.Round((decimal)naoLidas * 100m / totalRegistros, 2);
+        }
+
+        return new NotificacaoArquivadaResumoLeituraResponse
+        {
+            UsuarioId = usuarioId,
+            TipoNotificacao = tipoNotificacao,
+            DataCriacaoInicial = dataCriacaoInicial,
+            DataCriacaoFinal = dataCriacaoFinal,
+            TotalRegistros = totalRegistros,
+            Lidas = lidas,
+            NaoLidas = naoLidas,
+            PercentualLidas = percentualLidas,
+            PercentualNaoLidas = percentualNaoLidas
+        };
+    }
+
     public async Task<NotificacaoArquivadaExclusaoDashboardResponse> ObterDashboardExclusaoNotificacoesArquivadasAsync(
         Guid? usuarioId = null,
         TipoNotificacao? tipoNotificacao = null,

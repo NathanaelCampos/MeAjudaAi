@@ -183,7 +183,7 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         var notificacao = Assert.Single(notificacoesProfissional!.Where(x => x.Tipo == TipoNotificacao.ServicoSolicitado));
 
         var marcarLidaResponse = await profissionalClient.PutAsync($"/api/notificacoes/{notificacao.Id}/marcar-lida", null);
-        Assert.Equal(HttpStatusCode.OK, marcarLidaResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, marcarLidaResponse.StatusCode);
 
         var resumo = await adminClient.GetFromJsonAsync<NotificacaoResumoOperacionalResponse>(
             $"/api/notificacoes/resumo-operacional?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
@@ -635,6 +635,61 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
 
         var idsOrdenados = antigas.Antigas.OrderBy(x => x.DataCriacao).Select(x => x.Id).ToList();
         Assert.Equal(idsOrdenados, antigas.Antigas.Select(x => x.Id).ToList());
+    }
+
+    [Fact]
+    public async Task ObterResumoLeituraExclusaoNotificacoesArquivadas_DeveConsolidarLidasENaoLidas()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-resumo-leitura-exclusao-arq");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-resumo-leitura-exclusao-arq");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para resumo de leitura exclusao",
+            Descricao = "Gera notificacao arquivada para resumo de leitura",
+            ValorCombinado = 666m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var marcarLidaResponse = await profissionalClient.PutAsync("/api/notificacoes/minhas/marcar-todas-lidas", null);
+        Assert.Equal(HttpStatusCode.NoContent, marcarLidaResponse.StatusCode);
+
+        var arquivarResponse = await adminClient.PutAsJsonAsync("/api/notificacoes/arquivar-lote", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = true,
+            Limite = 100
+        });
+
+        Assert.Equal(HttpStatusCode.OK, arquivarResponse.StatusCode);
+
+        var resumo = await adminClient.GetFromJsonAsync<NotificacaoArquivadaResumoLeituraResponse>(
+            $"/api/notificacoes/arquivadas/excluir-lote/resumo-leitura?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
+
+        Assert.NotNull(resumo);
+        Assert.Equal(authProfissional.UsuarioId, resumo!.UsuarioId);
+        Assert.Equal(TipoNotificacao.ServicoSolicitado, resumo.TipoNotificacao);
+        Assert.True(resumo.TotalRegistros >= 1);
+        Assert.True(resumo.Lidas >= 1);
+        Assert.Equal(0, resumo.NaoLidas);
+        Assert.Equal(100m, resumo.PercentualLidas);
+        Assert.Equal(0m, resumo.PercentualNaoLidas);
     }
 
     [Fact]
