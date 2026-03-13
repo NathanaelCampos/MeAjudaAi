@@ -842,6 +842,9 @@ public class NotificacaoService : INotificacaoService
             : totalRegistros <= 100
                 ? 100
                 : 500;
+        var quantidadeLotesEstimados = totalRegistros == 0
+            ? 0
+            : (int)Math.Ceiling(totalRegistros / (double)limiteRecomendado);
 
         return new NotificacaoArquivadaResumoLimitesResponse
         {
@@ -852,6 +855,7 @@ public class NotificacaoService : INotificacaoService
             TotalRegistros = totalRegistros,
             LimiteRecomendado = limiteRecomendado,
             ModoSeguro = totalRegistros <= limiteRecomendado,
+            QuantidadeLotesEstimados = quantidadeLotesEstimados,
             Limites = limites
         };
     }

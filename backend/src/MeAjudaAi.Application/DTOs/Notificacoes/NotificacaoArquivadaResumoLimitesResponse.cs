@@ -11,5 +11,6 @@ public class NotificacaoArquivadaResumoLimitesResponse
     public int TotalRegistros { get; set; }
     public int LimiteRecomendado { get; set; }
     public bool ModoSeguro { get; set; }
+    public int QuantidadeLotesEstimados { get; set; }
     public List<NotificacaoArquivadaResumoLimiteItemResponse> Limites { get; set; } = [];
 }
