@@ -498,6 +498,21 @@ public class NotificacaoService : INotificacaoService
             cancellationToken);
     }
 
+    public async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalExclusaoNotificacoesArquivadasAsync(
+        Guid? usuarioId = null,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await ObterResumoOperacionalNotificacoesArquivadasAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+    }
+
     private async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesPorAtividadeAsync(
         bool ativo,
         Guid? usuarioId,

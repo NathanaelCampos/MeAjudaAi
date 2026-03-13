@@ -85,6 +85,13 @@ public interface INotificacaoService
         DateTime? dataCriacaoFinal = null,
         CancellationToken cancellationToken = default);
 
+    Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalExclusaoNotificacoesArquivadasAsync(
+        Guid? usuarioId = null,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default);
+
     Task<NotificacaoUsuarioDashboardResponse> ObterDashboardNotificacoesPorUsuarioAsync(
         Guid usuarioId,
         TipoNotificacao? tipoNotificacao = null,
