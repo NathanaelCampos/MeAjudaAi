@@ -13,5 +13,6 @@ public class NotificacaoArquivadaResumoLimitesResponse
     public bool ModoSeguro { get; set; }
     public int QuantidadeLotesEstimados { get; set; }
     public string CapacidadePorExecucao { get; set; } = string.Empty;
+    public string NivelOperacional { get; set; } = string.Empty;
     public List<NotificacaoArquivadaResumoLimiteItemResponse> Limites { get; set; } = [];
 }

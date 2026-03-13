@@ -845,6 +845,13 @@ public class NotificacaoService : INotificacaoService
         var quantidadeLotesEstimados = totalRegistros == 0
             ? 0
             : (int)Math.Ceiling(totalRegistros / (double)limiteRecomendado);
+        var nivelOperacional = quantidadeLotesEstimados switch
+        {
+            0 => "baixo",
+            1 => "baixo",
+            <= 3 => "medio",
+            _ => "alto"
+        };
 
         return new NotificacaoArquivadaResumoLimitesResponse
         {
@@ -857,6 +864,7 @@ public class NotificacaoService : INotificacaoService
             ModoSeguro = totalRegistros <= limiteRecomendado,
             QuantidadeLotesEstimados = quantidadeLotesEstimados,
             CapacidadePorExecucao = $"Ate {limiteRecomendado} notificacoes por execucao",
+            NivelOperacional = nivelOperacional,
             Limites = limites
         };
     }
