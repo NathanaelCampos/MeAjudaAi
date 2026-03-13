@@ -356,37 +356,20 @@ public class NotificacaoService : INotificacaoService
         ArquivarNotificacoesEmLoteRequest request,
         CancellationToken cancellationToken = default)
     {
-        var query = AplicarFiltrosAtividade(
-            _context.Set<NotificacaoUsuario>().AsNoTracking(),
+        return await PreviewAtualizacaoAtividadeNotificacoesAsync(
+            request,
             ativo: true,
-            request);
+            cancellationToken);
+    }
 
-        var quantidadeCandidata = await query.CountAsync(cancellationToken);
-
-        var recentes = await query
-            .OrderByDescending(x => x.DataCriacao)
-            .Take(Math.Min(request.Limite, 20))
-            .Select(x => new NotificacaoAdminResponse
-            {
-                Id = x.Id,
-                UsuarioId = x.UsuarioId,
-                NomeUsuario = x.Usuario.Nome,
-                EmailUsuario = x.Usuario.Email,
-                Tipo = x.Tipo,
-                Titulo = x.Titulo,
-                Mensagem = x.Mensagem,
-                ReferenciaId = x.ReferenciaId,
-                Lida = x.DataLeitura != null,
-                DataCriacao = x.DataCriacao,
-                DataLeitura = x.DataLeitura
-            })
-            .ToListAsync(cancellationToken);
-
-        return new PreviewArquivamentoNotificacoesResponse
-        {
-            QuantidadeCandidata = quantidadeCandidata,
-            Recentes = recentes
-        };
+    public async Task<PreviewArquivamentoNotificacoesResponse> PreviewRestauracaoNotificacoesAsync(
+        ArquivarNotificacoesEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return await PreviewAtualizacaoAtividadeNotificacoesAsync(
+            request,
+            ativo: false,
+            cancellationToken);
     }
 
     public async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesAsync(
@@ -1473,6 +1456,44 @@ public class NotificacaoService : INotificacaoService
             query = query.Where(x => x.DataCriacao <= request.DataCriacaoFinal.Value);
 
         return query;
+    }
+
+    private async Task<PreviewArquivamentoNotificacoesResponse> PreviewAtualizacaoAtividadeNotificacoesAsync(
+        ArquivarNotificacoesEmLoteRequest request,
+        bool ativo,
+        CancellationToken cancellationToken)
+    {
+        var query = AplicarFiltrosAtividade(
+            _context.Set<NotificacaoUsuario>().AsNoTracking(),
+            ativo,
+            request);
+
+        var quantidadeCandidata = await query.CountAsync(cancellationToken);
+
+        var recentes = await query
+            .OrderByDescending(x => x.DataCriacao)
+            .Take(Math.Min(request.Limite, 20))
+            .Select(x => new NotificacaoAdminResponse
+            {
+                Id = x.Id,
+                UsuarioId = x.UsuarioId,
+                NomeUsuario = x.Usuario.Nome,
+                EmailUsuario = x.Usuario.Email,
+                Tipo = x.Tipo,
+                Titulo = x.Titulo,
+                Mensagem = x.Mensagem,
+                ReferenciaId = x.ReferenciaId,
+                Lida = x.DataLeitura != null,
+                DataCriacao = x.DataCriacao,
+                DataLeitura = x.DataLeitura
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PreviewArquivamentoNotificacoesResponse
+        {
+            QuantidadeCandidata = quantidadeCandidata,
+            Recentes = recentes
+        };
     }
 
     private static TipoNotificacao[] ListarTiposSuportados()

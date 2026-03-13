@@ -323,6 +323,15 @@ curl -X PUT "http://localhost:5231/api/notificacoes/restaurar-lote" \
   -d '{"usuarioId":"USUARIO_ID","tipoNotificacao":"ServicoSolicitado","lida":false,"limite":100}'
 ```
 
+Preview da restauracao em lote de notificacoes internas arquivadas:
+
+```bash
+curl -X POST "http://localhost:5231/api/notificacoes/restaurar-lote/preview" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN" \
+  -H "Content-Type: application/json" \
+  -d '{"usuarioId":"USUARIO_ID","tipoNotificacao":"ServicoSolicitado","lida":false,"limite":100}'
+```
+
 Preview do arquivamento em lote de notificacoes internas:
 
 ```bash

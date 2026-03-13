@@ -183,6 +183,19 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("restaurar-lote/preview")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(PreviewArquivamentoNotificacoesResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> PreviewRestaurarEmLote(
+        [FromBody] ArquivarNotificacoesEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.PreviewRestauracaoNotificacoesAsync(request, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPost("retencao/executar")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(typeof(ExecutarRetencaoNotificacoesResponse), StatusCodes.Status200OK)]
