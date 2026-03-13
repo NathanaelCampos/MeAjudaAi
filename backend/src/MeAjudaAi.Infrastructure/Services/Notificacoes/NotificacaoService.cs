@@ -379,9 +379,42 @@ public class NotificacaoService : INotificacaoService
         DateTime? dataCriacaoFinal = null,
         CancellationToken cancellationToken = default)
     {
+        return await ObterResumoOperacionalNotificacoesPorAtividadeAsync(
+            ativo: true,
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+    }
+
+    public async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesArquivadasAsync(
+        Guid? usuarioId = null,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await ObterResumoOperacionalNotificacoesPorAtividadeAsync(
+            ativo: false,
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+    }
+
+    private async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesPorAtividadeAsync(
+        bool ativo,
+        Guid? usuarioId,
+        TipoNotificacao? tipoNotificacao,
+        DateTime? dataCriacaoInicial,
+        DateTime? dataCriacaoFinal,
+        CancellationToken cancellationToken)
+    {
         var query = _context.Set<NotificacaoUsuario>()
             .AsNoTracking()
-            .Where(x => x.Ativo);
+            .Where(x => x.Ativo == ativo);
 
         if (usuarioId.HasValue)
             query = query.Where(x => x.UsuarioId == usuarioId.Value);
