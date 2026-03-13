@@ -307,6 +307,57 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
     }
 
     [Fact]
+    public async Task ObterResumoIdadeExclusaoNotificacoesArquivadas_DeveAgruparPorFaixa()
+    {
+        using var clienteClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+
+        var authCliente = await RegistrarUsuarioAsync(clienteClient, TipoPerfil.Cliente, "cliente-resumo-idade-exclusao-arq");
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "profissional-resumo-idade-exclusao-arq");
+        var authAdmin = await LoginAdminAsync(adminClient);
+
+        clienteClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authCliente.Token);
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authAdmin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var profissionalId = await _factory.ObterProfissionalIdPorUsuarioIdAsync(authProfissional.UsuarioId);
+
+        var criarServicoResponse = await clienteClient.PostAsJsonAsync("/api/servicos", new CriarServicoRequest
+        {
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            Titulo = "Servico para resumo por idade arquivado",
+            Descricao = "Gera notificacao arquivada por faixa de idade",
+            ValorCombinado = 111m
+        });
+
+        Assert.Equal(HttpStatusCode.OK, criarServicoResponse.StatusCode);
+
+        var arquivarResponse = await adminClient.PutAsJsonAsync("/api/notificacoes/arquivar-lote", new ArquivarNotificacoesEmLoteRequest
+        {
+            UsuarioId = authProfissional.UsuarioId,
+            TipoNotificacao = TipoNotificacao.ServicoSolicitado,
+            Lida = false,
+            Limite = 100
+        });
+
+        Assert.Equal(HttpStatusCode.OK, arquivarResponse.StatusCode);
+
+        var resumo = await adminClient.GetFromJsonAsync<NotificacaoArquivadaResumoIdadeResponse>(
+            $"/api/notificacoes/arquivadas/excluir-lote/resumo-idade?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
+
+        Assert.NotNull(resumo);
+        Assert.Equal(authProfissional.UsuarioId, resumo!.UsuarioId);
+        Assert.Equal(TipoNotificacao.ServicoSolicitado, resumo.TipoNotificacao);
+        Assert.True(resumo.TotalRegistros >= 1);
+        Assert.Equal(4, resumo.Faixas.Count);
+        Assert.Contains(resumo.Faixas, x => x.Faixa == "0-7" && x.Quantidade >= 1);
+        Assert.Contains(resumo.Faixas, x => x.Faixa == "91+" && x.Quantidade == 0);
+    }
+
+    [Fact]
     public async Task ListarNotificacoesArquivadasAdmin_DevePermitirFiltrarPorUsuarioTipoELidaComPaginacao()
     {
         using var clienteClient = _factory.CreateClient();

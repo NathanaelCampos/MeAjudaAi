@@ -513,6 +513,68 @@ public class NotificacaoService : INotificacaoService
             cancellationToken);
     }
 
+    public async Task<NotificacaoArquivadaResumoIdadeResponse> ObterResumoIdadeExclusaoNotificacoesArquivadasAsync(
+        Guid? usuarioId = null,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Set<NotificacaoUsuario>()
+            .AsNoTracking()
+            .Where(x => !x.Ativo);
+
+        if (usuarioId.HasValue)
+            query = query.Where(x => x.UsuarioId == usuarioId.Value);
+
+        if (tipoNotificacao.HasValue)
+            query = query.Where(x => x.Tipo == tipoNotificacao.Value);
+
+        if (dataCriacaoInicial.HasValue)
+            query = query.Where(x => x.DataCriacao >= dataCriacaoInicial.Value);
+
+        if (dataCriacaoFinal.HasValue)
+            query = query.Where(x => x.DataCriacao <= dataCriacaoFinal.Value);
+
+        var agora = DateTime.UtcNow.Date;
+        var datasCriacao = await query
+            .Select(x => x.DataCriacao)
+            .ToListAsync(cancellationToken);
+
+        var faixas = new[]
+        {
+            new { Nome = "0-7", DiasIniciais = 0, DiasFinais = (int?)7 },
+            new { Nome = "8-30", DiasIniciais = 8, DiasFinais = (int?)30 },
+            new { Nome = "31-90", DiasIniciais = 31, DiasFinais = (int?)90 },
+            new { Nome = "91+", DiasIniciais = 91, DiasFinais = (int?)null }
+        };
+
+        var itens = faixas
+            .Select(faixa => new NotificacaoArquivadaFaixaIdadeItemResponse
+            {
+                Faixa = faixa.Nome,
+                DiasIniciais = faixa.DiasIniciais,
+                DiasFinais = faixa.DiasFinais,
+                Quantidade = datasCriacao.Count(dataCriacao =>
+                {
+                    var dias = Math.Max(0, (agora - dataCriacao.Date).Days);
+                    return dias >= faixa.DiasIniciais &&
+                           (!faixa.DiasFinais.HasValue || dias <= faixa.DiasFinais.Value);
+                })
+            })
+            .ToList();
+
+        return new NotificacaoArquivadaResumoIdadeResponse
+        {
+            UsuarioId = usuarioId,
+            TipoNotificacao = tipoNotificacao,
+            DataCriacaoInicial = dataCriacaoInicial,
+            DataCriacaoFinal = dataCriacaoFinal,
+            TotalRegistros = datasCriacao.Count,
+            Faixas = itens
+        };
+    }
+
     private async Task<NotificacaoResumoOperacionalResponse> ObterResumoOperacionalNotificacoesPorAtividadeAsync(
         bool ativo,
         Guid? usuarioId,
