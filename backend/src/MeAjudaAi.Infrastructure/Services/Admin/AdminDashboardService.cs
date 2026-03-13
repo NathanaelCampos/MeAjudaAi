@@ -600,6 +600,13 @@ public class AdminDashboardService : IAdminDashboardService
                 comparativoAvaliacoes,
                 comparativoWebhooks,
                 comparativoEmails).DirecaoPrincipal,
+            StatusComparativoPrincipal = CriarStatusComparativoPreset(
+                CriarResumoComparativoPreset(
+                    presetAnterior != null,
+                    comparativoServicos,
+                    comparativoAvaliacoes,
+                    comparativoWebhooks,
+                    comparativoEmails)),
             Pendencias = new AdminDashboardPendenciasResponse
             {
                 AvaliacoesPendentesModeracao = avaliacoesPendentes,
@@ -824,6 +831,19 @@ public class AdminDashboardService : IAdminDashboardService
             Titulo = $"Preset em {resumoComparativo.DirecaoPrincipal} com destaque para {resumoComparativo.EixoPrincipal}",
             Detalhe = resumoComparativo.Resumo,
             Recomendacao = resumoComparativo.Recomendacao
+        };
+    }
+
+    private static string CriarStatusComparativoPreset(AdminDashboardResumoComparativoPresetResponse resumoComparativo)
+    {
+        if (!resumoComparativo.Disponivel || resumoComparativo.DirecaoPrincipal == "estavel")
+            return "neutro";
+
+        return resumoComparativo.DirecaoPrincipal switch
+        {
+            "alta" => "positivo",
+            "queda" => "negativo",
+            _ => "neutro"
         };
     }
 

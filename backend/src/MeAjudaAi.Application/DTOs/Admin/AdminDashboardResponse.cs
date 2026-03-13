@@ -18,6 +18,7 @@ public class AdminDashboardResponse
     public string EixoComparativoPrincipal { get; set; } = string.Empty;
     public decimal? VariacaoComparativaPrincipal { get; set; }
     public string DirecaoComparativaPrincipal { get; set; } = "indisponivel";
+    public string StatusComparativoPrincipal { get; set; } = "neutro";
     public AdminDashboardPendenciasResponse Pendencias { get; set; } = new();
     public AdminDashboardAlertasResponse Alertas { get; set; } = new();
     public string RiscoOperacional { get; set; } = "baixo";
