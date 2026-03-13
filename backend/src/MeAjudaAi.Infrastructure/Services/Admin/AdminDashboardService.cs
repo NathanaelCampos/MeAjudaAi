@@ -28,7 +28,10 @@ public class AdminDashboardService : IAdminDashboardService
         var janelaQualidadeDias = request?.JanelaQualidadeDias is > 0
             ? request.JanelaQualidadeDias.Value
             : _options.JanelaQualidadeDias;
-        var janelaAcaoAdminRecente = TimeSpan.FromHours(_options.JanelaAcaoAdminRecenteHoras);
+        var janelaAcaoAdminRecenteHoras = request?.JanelaAcaoAdminRecenteHoras is > 0
+            ? request.JanelaAcaoAdminRecenteHoras.Value
+            : _options.JanelaAcaoAdminRecenteHoras;
+        var janelaAcaoAdminRecente = TimeSpan.FromHours(janelaAcaoAdminRecenteHoras);
         var janelaQualidadeOperacional = TimeSpan.FromDays(janelaQualidadeDias);
         var inicioJanelaQualidade = agora.Subtract(janelaQualidadeOperacional);
         var inicioUltimos7Dias = hoje.AddDays(-6);
@@ -434,7 +437,7 @@ public class AdminDashboardService : IAdminDashboardService
             Configuracao = new AdminDashboardConfiguracaoResponse
             {
                 JanelaQualidadeDias = janelaQualidadeDias,
-                JanelaAcaoAdminRecenteHoras = _options.JanelaAcaoAdminRecenteHoras
+                JanelaAcaoAdminRecenteHoras = janelaAcaoAdminRecenteHoras
             },
             Usuarios = new AdminDashboardUsuariosResponse
             {

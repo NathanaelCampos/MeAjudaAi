@@ -341,6 +341,60 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.NotEqual("baixo", payload.RiscoOperacional);
     }
 
+    [Fact]
+    public async Task Obter_ComJanelaAcaoAdminRecenteHorasMaior_DeveSinalizarAusenciaDeAcaoAdmin()
+    {
+        using var adminClient = _factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var adminUsuario = await context.Usuarios.FirstAsync(x => x.Id == admin.UsuarioId);
+            var dataAcao = DateTime.UtcNow.AddHours(-30);
+
+            context.AuditoriasAdminAcoes.Add(new AuditoriaAdminAcao
+            {
+                AdminUsuarioId = adminUsuario.Id,
+                Entidade = "usuario",
+                EntidadeId = adminUsuario.Id,
+                Acao = "bloquear",
+                Descricao = "Acao fora da janela customizada",
+                PayloadJson = "{}",
+                DataCriacao = dataAcao
+            });
+
+            context.WebhookPagamentoImpulsionamentoEventos.Add(new WebhookPagamentoImpulsionamentoEvento
+            {
+                Provedor = "manual",
+                EventoExternoId = $"evt-risco-janela-acao-{Guid.NewGuid():N}",
+                CodigoReferenciaPagamento = $"ref-risco-janela-acao-{Guid.NewGuid():N}",
+                StatusPagamento = "pago",
+                PayloadJson = "{}",
+                HeadersJson = "{}",
+                IpOrigem = "127.0.0.1",
+                RequestId = "req-risco-janela-acao",
+                UserAgent = "integration-test",
+                ProcessadoComSucesso = false,
+                MensagemResultado = "Falha simulada recente",
+                DataCriacao = DateTime.UtcNow
+            });
+
+            await context.SaveChangesAsync();
+        }
+
+        var response = await adminClient.GetAsync("/api/admin/dashboard?janelaAcaoAdminRecenteHoras=12");
+        var payload = await response.Content.ReadFromJsonAsync<AdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal(12, payload!.Configuracao.JanelaAcaoAdminRecenteHoras);
+        Assert.True(payload.Alertas.SemAcaoAdminRecenteSobRisco);
+        Assert.Equal("alto", payload.RiscoOperacional);
+    }
+
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/pagamentos/impulsionamentos")
