@@ -552,16 +552,56 @@ public class NotificacaoService : INotificacaoService
         DateTime? dataCriacaoFinal = null,
         CancellationToken cancellationToken = default)
     {
-        var resumo = await ObterResumoOperacionalNotificacoesAsync(
+        return await ObterDashboardNotificacoesPorUsuarioEAtividadeAsync(
             usuarioId,
+            ativo: true,
             tipoNotificacao,
             dataCriacaoInicial,
             dataCriacaoFinal,
             cancellationToken);
+    }
+
+    public async Task<NotificacaoUsuarioDashboardResponse> ObterDashboardNotificacoesArquivadasPorUsuarioAsync(
+        Guid usuarioId,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        return await ObterDashboardNotificacoesPorUsuarioEAtividadeAsync(
+            usuarioId,
+            ativo: false,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+    }
+
+    private async Task<NotificacaoUsuarioDashboardResponse> ObterDashboardNotificacoesPorUsuarioEAtividadeAsync(
+        Guid usuarioId,
+        bool ativo,
+        TipoNotificacao? tipoNotificacao,
+        DateTime? dataCriacaoInicial,
+        DateTime? dataCriacaoFinal,
+        CancellationToken cancellationToken)
+    {
+        var resumo = ativo
+            ? await ObterResumoOperacionalNotificacoesAsync(
+                usuarioId,
+                tipoNotificacao,
+                dataCriacaoInicial,
+                dataCriacaoFinal,
+                cancellationToken)
+            : await ObterResumoOperacionalNotificacoesArquivadasAsync(
+                usuarioId,
+                tipoNotificacao,
+                dataCriacaoInicial,
+                dataCriacaoFinal,
+                cancellationToken);
 
         var query = _context.Set<NotificacaoUsuario>()
             .AsNoTracking()
-            .Where(x => x.Ativo && x.UsuarioId == usuarioId);
+            .Where(x => x.Ativo == ativo && x.UsuarioId == usuarioId);
 
         if (tipoNotificacao.HasValue)
             query = query.Where(x => x.Tipo == tipoNotificacao.Value);

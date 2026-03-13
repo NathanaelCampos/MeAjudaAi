@@ -84,6 +84,13 @@ public interface INotificacaoService
         DateTime? dataCriacaoFinal = null,
         CancellationToken cancellationToken = default);
 
+    Task<NotificacaoUsuarioDashboardResponse> ObterDashboardNotificacoesArquivadasPorUsuarioAsync(
+        Guid usuarioId,
+        TipoNotificacao? tipoNotificacao = null,
+        DateTime? dataCriacaoInicial = null,
+        DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<PreferenciaNotificacaoResponse>> ListarPreferenciasAsync(
         Guid usuarioId,
         CancellationToken cancellationToken = default);

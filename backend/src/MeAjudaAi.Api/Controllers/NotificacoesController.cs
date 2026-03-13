@@ -376,6 +376,27 @@ public class NotificacoesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("arquivadas/usuarios/{usuarioId:guid}/dashboard")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(NotificacaoUsuarioDashboardResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterDashboardArquivadasPorUsuario(
+        Guid usuarioId,
+        [FromQuery] TipoNotificacao? tipoNotificacao = null,
+        [FromQuery] DateTime? dataCriacaoInicial = null,
+        [FromQuery] DateTime? dataCriacaoFinal = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _notificacaoService.ObterDashboardNotificacoesArquivadasPorUsuarioAsync(
+            usuarioId,
+            tipoNotificacao,
+            dataCriacaoInicial,
+            dataCriacaoFinal,
+            cancellationToken);
+
+        return Ok(response);
+    }
+
     [HttpGet("minhas/preferencias")]
     [ProducesResponseType(typeof(IReadOnlyList<PreferenciaNotificacaoResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
