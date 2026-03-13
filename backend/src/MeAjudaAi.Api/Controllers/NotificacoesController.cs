@@ -130,6 +130,23 @@ public class NotificacoesController : ControllerBase
         });
     }
 
+    [HttpPut("arquivar-lote")]
+    [Authorize(Roles = "Administrador")]
+    [ProducesResponseType(typeof(AtualizarEmailsOutboxEmLoteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErroValidacaoResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ArquivarEmLote(
+        [FromBody] ArquivarNotificacoesEmLoteRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var quantidade = await _notificacaoService.ArquivarNotificacoesEmLoteAsync(request, cancellationToken);
+
+        return Ok(new AtualizarEmailsOutboxEmLoteResponse
+        {
+            QuantidadeAfetada = quantidade
+        });
+    }
+
     [HttpGet("minhas/nao-lidas/quantidade")]
     [ProducesResponseType(typeof(QuantidadeNotificacoesNaoLidasResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

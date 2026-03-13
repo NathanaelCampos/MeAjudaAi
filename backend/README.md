@@ -305,6 +305,15 @@ curl -X PUT "http://localhost:5231/api/notificacoes/marcar-lidas-lote" \
   -d '{"usuarioId":"USUARIO_ID","tipoNotificacao":"ServicoSolicitado","limite":100}'
 ```
 
+Arquivar notificacoes internas em lote:
+
+```bash
+curl -X PUT "http://localhost:5231/api/notificacoes/arquivar-lote" \
+  -H "Authorization: Bearer SEU_TOKEN_ADMIN" \
+  -H "Content-Type: application/json" \
+  -d '{"usuarioId":"USUARIO_ID","tipoNotificacao":"ServicoSolicitado","lida":false,"limite":100}'
+```
+
 Exportacao CSV das notificacoes internas:
 
 ```bash
