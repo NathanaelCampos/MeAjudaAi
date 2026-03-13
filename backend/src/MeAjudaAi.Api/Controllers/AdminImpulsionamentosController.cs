@@ -63,4 +63,20 @@ public class AdminImpulsionamentosController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpGet("{impulsionamentoId:guid}/dashboard")]
+    [ProducesResponseType(typeof(ImpulsionamentoAdminDashboardResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterDashboard(
+        Guid impulsionamentoId,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _adminImpulsionamentoService.ObterDashboardAsync(impulsionamentoId, cancellationToken);
+
+        if (response is null)
+            return NotFound(new MensagemErroResponse { Mensagem = "Impulsionamento não encontrado." });
+
+        return Ok(response);
+    }
 }

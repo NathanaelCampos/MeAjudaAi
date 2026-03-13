@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using MeAjudaAi.Application.DTOs.Admin;
 using MeAjudaAi.Application.DTOs.Auth;
 using MeAjudaAi.Application.DTOs.Common;
+using MeAjudaAi.Application.DTOs.Impulsionamentos;
 using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.IntegrationTests.Infrastructure;
 
@@ -11,6 +12,9 @@ namespace MeAjudaAi.IntegrationTests.Admin;
 
 public class AdminImpulsionamentosEndpointsTests : IntegrationTestBase, IClassFixture<TestWebApplicationFactory>
 {
+    private const string SegredoWebhook = "segredo-webhook-teste";
+    private const string HeaderAssinatura = "X-Webhook-Signature";
+
     private readonly TestWebApplicationFactory _factory;
 
     public AdminImpulsionamentosEndpointsTests(TestWebApplicationFactory factory)
@@ -97,6 +101,65 @@ public class AdminImpulsionamentosEndpointsTests : IntegrationTestBase, IClassFi
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.NotNull(payload);
         Assert.Equal("Impulsionamento não encontrado.", payload!.Mensagem);
+    }
+
+    [Fact]
+    public async Task ObterDashboard_DeveRetornarConsolidadoDoImpulsionamento()
+    {
+        using var profissionalClient = _factory.CreateClient();
+        using var adminClient = _factory.CreateClient();
+        using var webhookClient = _factory.CreateClient();
+
+        var profissional = await RegistrarProfissionalAsync(profissionalClient, "prof-admin-impulsionamentos-dashboard");
+        var admin = await LoginAdminAsync(adminClient);
+
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", profissional.Auth.Token);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var planoId = await ObterPlanoIdAsync();
+        var contratarResponse = await profissionalClient.PostAsJsonAsync("/api/impulsionamentos/contratar", new
+        {
+            planoImpulsionamentoId = planoId,
+            codigoReferenciaPagamento = "admin-impulsionamento-dashboard"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, contratarResponse.StatusCode);
+        var impulsionamento = await contratarResponse.Content.ReadFromJsonAsync<ImpulsionamentoProfissionalResponse>();
+        Assert.NotNull(impulsionamento);
+
+        var webhookRequest = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/pagamentos/impulsionamentos")
+        {
+            Content = JsonContent.Create(new WebhookPagamentoImpulsionamentoRequest
+            {
+                CodigoReferenciaPagamento = "admin-impulsionamento-dashboard",
+                StatusPagamento = "pago",
+                EventoExternoId = "admin-impulsionamento-dashboard-evt"
+            })
+        };
+        webhookRequest.Headers.UserAgent.ParseAdd("integration-test-agent/1.0");
+        AssinarRequest(webhookRequest);
+
+        var webhookResponse = await webhookClient.SendAsync(webhookRequest);
+        Assert.Equal(HttpStatusCode.OK, webhookResponse.StatusCode);
+
+        var response = await adminClient.GetAsync($"/api/admin/impulsionamentos/{impulsionamento!.Id}/dashboard");
+        var payload = await response.Content.ReadFromJsonAsync<ImpulsionamentoAdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal(impulsionamento.Id, payload!.Impulsionamento.Id);
+        Assert.Equal("admin-impulsionamento-dashboard", payload.Impulsionamento.CodigoReferenciaPagamento);
+        Assert.True(payload.Webhooks.Total >= 1);
+        Assert.True(payload.Webhooks.Sucessos >= 1);
+        Assert.True(payload.Notificacoes.TotalAtivas >= 1 || payload.Emails.Total >= 0);
+    }
+
+    private static void AssinarRequest(HttpRequestMessage request)
+    {
+        var payload = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+        using var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(SegredoWebhook));
+        var hash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(payload));
+        request.Headers.Add(HeaderAssinatura, Convert.ToHexString(hash).ToLowerInvariant());
     }
 
     private async Task<Guid> ObterPlanoIdAsync()

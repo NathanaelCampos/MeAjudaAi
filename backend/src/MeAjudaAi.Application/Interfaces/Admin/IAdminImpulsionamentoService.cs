@@ -12,4 +12,8 @@ public interface IAdminImpulsionamentoService
     Task<ImpulsionamentoAdminDetalheResponse?> ObterPorIdAsync(
         Guid impulsionamentoId,
         CancellationToken cancellationToken = default);
+
+    Task<ImpulsionamentoAdminDashboardResponse?> ObterDashboardAsync(
+        Guid impulsionamentoId,
+        CancellationToken cancellationToken = default);
 }
