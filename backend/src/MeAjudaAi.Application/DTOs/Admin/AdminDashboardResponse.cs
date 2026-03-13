@@ -21,6 +21,7 @@ public class AdminDashboardResponse
     public string StatusComparativoPrincipal { get; set; } = "neutro";
     public string IndicadorComparativoPrincipal { get; set; } = "amarelo";
     public string PrioridadeComparativaPrincipal { get; set; } = "media";
+    public string AcaoComparativaPrincipal { get; set; } = string.Empty;
     public AdminDashboardPendenciasResponse Pendencias { get; set; } = new();
     public AdminDashboardAlertasResponse Alertas { get; set; } = new();
     public string RiscoOperacional { get; set; } = "baixo";
