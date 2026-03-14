@@ -528,6 +528,47 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.False(string.IsNullOrWhiteSpace(payload.TooltipComparativoPrincipal));
     }
 
+    [Fact]
+    public async Task Obter_ComPresetPeriodo_DeveCompararContraJanelaAnteriorSemIncluirPeriodoAtual()
+    {
+        using var adminClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var clienteClient = _factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        var profissional = await RegistrarProfissionalAsync(profissionalClient, "prof-dashboard-comparativo");
+        var cliente = await RegistrarClienteAsync(clienteClient, "cli-dashboard-comparativo");
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var bairroId = await _factory.ObterBairroIdAsync();
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var hoje = DateTime.UtcNow.Date;
+            var clienteId = await context.Clientes
+                .Where(x => x.UsuarioId == cliente.UsuarioId)
+                .Select(x => x.Id)
+                .FirstAsync();
+
+            context.Servicos.AddRange(
+                CriarServicoDashboard(clienteId, profissional.ProfissionalId, cidadeId, bairroId, hoje.AddDays(-5)),
+                CriarServicoDashboard(clienteId, profissional.ProfissionalId, cidadeId, bairroId, hoje.AddDays(-35)),
+                CriarServicoDashboard(clienteId, profissional.ProfissionalId, cidadeId, bairroId, hoje.AddDays(-40)));
+
+            await context.SaveChangesAsync();
+        }
+
+        var response = await adminClient.GetAsync("/api/admin/dashboard?presetPeriodo=30d");
+        var payload = await response.Content.ReadFromJsonAsync<AdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal(1, payload!.ComparativoPresetAnterior.Servicos.TotalPresetAtual);
+        Assert.Equal(2, payload.ComparativoPresetAnterior.Servicos.TotalPresetAnterior);
+    }
+
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/pagamentos/impulsionamentos")
@@ -547,6 +588,23 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         request.Headers.Add(HeaderAssinatura, Convert.ToHexString(hash).ToLowerInvariant());
 
         return request;
+    }
+
+    private static Servico CriarServicoDashboard(Guid clienteId, Guid profissionalId, Guid cidadeId, Guid bairroId, DateTime dataCriacao)
+    {
+        return new Servico
+        {
+            Id = Guid.NewGuid(),
+            ClienteId = clienteId,
+            ProfissionalId = profissionalId,
+            CidadeId = cidadeId,
+            BairroId = bairroId,
+            Titulo = "Servico dashboard",
+            Descricao = "Servico para comparativo",
+            ValorCombinado = 100m,
+            Status = StatusServico.Solicitado,
+            DataCriacao = DateTime.SpecifyKind(dataCriacao, DateTimeKind.Utc)
+        };
     }
 
     private async Task<Guid> ObterPlanoIdAsync()

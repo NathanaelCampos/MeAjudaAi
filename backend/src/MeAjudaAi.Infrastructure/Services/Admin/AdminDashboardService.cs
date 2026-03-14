@@ -48,7 +48,10 @@ public class AdminDashboardService : IAdminDashboardService
         var fimJanelaAnterior = inicioJanelaSerie.AddDays(-1);
         var janelaSerieComparativoDias = janelaSerieAnteriorPreset ?? 0;
         var inicioComparativoPresetAnterior = janelaSerieComparativoDias > 0
-            ? hoje.AddDays(-(janelaSerieComparativoDias - 1))
+            ? inicioJanelaSerie.AddDays(-janelaSerieComparativoDias)
+            : (DateTime?)null;
+        var fimComparativoPresetAnterior = janelaSerieComparativoDias > 0
+            ? inicioJanelaSerie.AddDays(-1)
             : (DateTime?)null;
 
         var totalUsuarios = await _context.Usuarios.CountAsync(cancellationToken);
@@ -188,17 +191,29 @@ public class AdminDashboardService : IAdminDashboardService
         var emailsUltimos7Dias = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioJanelaSerie, cancellationToken);
         var emailsSeteDiasAnteriores = await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioJanelaAnterior && x.DataCriacao.Date <= fimJanelaAnterior, cancellationToken);
 
-        var servicosPresetAnterior = inicioComparativoPresetAnterior.HasValue
-            ? await _context.Servicos.CountAsync(x => x.DataCriacao.Date >= inicioComparativoPresetAnterior.Value, cancellationToken)
+        var servicosPresetAnterior = inicioComparativoPresetAnterior.HasValue && fimComparativoPresetAnterior.HasValue
+            ? await _context.Servicos.CountAsync(
+                x => x.DataCriacao.Date >= inicioComparativoPresetAnterior.Value &&
+                     x.DataCriacao.Date <= fimComparativoPresetAnterior.Value,
+                cancellationToken)
             : 0;
-        var avaliacoesPresetAnterior = inicioComparativoPresetAnterior.HasValue
-            ? await _context.Avaliacoes.CountAsync(x => x.DataCriacao.Date >= inicioComparativoPresetAnterior.Value, cancellationToken)
+        var avaliacoesPresetAnterior = inicioComparativoPresetAnterior.HasValue && fimComparativoPresetAnterior.HasValue
+            ? await _context.Avaliacoes.CountAsync(
+                x => x.DataCriacao.Date >= inicioComparativoPresetAnterior.Value &&
+                     x.DataCriacao.Date <= fimComparativoPresetAnterior.Value,
+                cancellationToken)
             : 0;
-        var webhooksPresetAnterior = inicioComparativoPresetAnterior.HasValue
-            ? await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(x => x.DataCriacao.Date >= inicioComparativoPresetAnterior.Value, cancellationToken)
+        var webhooksPresetAnterior = inicioComparativoPresetAnterior.HasValue && fimComparativoPresetAnterior.HasValue
+            ? await _context.WebhookPagamentoImpulsionamentoEventos.CountAsync(
+                x => x.DataCriacao.Date >= inicioComparativoPresetAnterior.Value &&
+                     x.DataCriacao.Date <= fimComparativoPresetAnterior.Value,
+                cancellationToken)
             : 0;
-        var emailsPresetAnterior = inicioComparativoPresetAnterior.HasValue
-            ? await _context.EmailsNotificacoesOutbox.CountAsync(x => x.DataCriacao.Date >= inicioComparativoPresetAnterior.Value, cancellationToken)
+        var emailsPresetAnterior = inicioComparativoPresetAnterior.HasValue && fimComparativoPresetAnterior.HasValue
+            ? await _context.EmailsNotificacoesOutbox.CountAsync(
+                x => x.DataCriacao.Date >= inicioComparativoPresetAnterior.Value &&
+                     x.DataCriacao.Date <= fimComparativoPresetAnterior.Value,
+                cancellationToken)
             : 0;
 
         var webhooksFalhosRecentes = await _context.WebhookPagamentoImpulsionamentoEventos
