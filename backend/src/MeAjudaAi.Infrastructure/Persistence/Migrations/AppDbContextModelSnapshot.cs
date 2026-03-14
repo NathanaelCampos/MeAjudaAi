@@ -112,6 +112,73 @@ namespace MeAjudaAi.Infrastructure.Persistence.Migrations
                     b.ToTable("auditorias_admin_acoes", (string)null);
                 });
 
+            modelBuilder.Entity("MeAjudaAi.Domain.Entities.BackgroundJobExecucao", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("DataAtualizacao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DataFinalizacao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DataInicioProcessamento")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("JobId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("MensagemResultado")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("NomeJob")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Origem")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("ProcessarAposUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RegistrosProcessados")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SolicitadoPorAdminUsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TentativasProcessamento")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobId", "DataCriacao");
+
+                    b.HasIndex("SolicitadoPorAdminUsuarioId");
+
+                    b.HasIndex("Status", "ProcessarAposUtc");
+
+                    b.ToTable("background_jobs_execucoes", (string)null);
+                });
+
             modelBuilder.Entity("MeAjudaAi.Domain.Entities.Avaliacao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1024,6 +1091,16 @@ namespace MeAjudaAi.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("AdminUsuario");
+                });
+
+            modelBuilder.Entity("MeAjudaAi.Domain.Entities.BackgroundJobExecucao", b =>
+                {
+                    b.HasOne("MeAjudaAi.Domain.Entities.Usuario", "SolicitadoPorAdminUsuario")
+                        .WithMany()
+                        .HasForeignKey("SolicitadoPorAdminUsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("SolicitadoPorAdminUsuario");
                 });
 
             modelBuilder.Entity("MeAjudaAi.Domain.Entities.Avaliacao", b =>

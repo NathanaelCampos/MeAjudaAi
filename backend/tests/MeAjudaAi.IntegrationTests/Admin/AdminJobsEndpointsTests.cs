@@ -64,6 +64,67 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
         Assert.Equal("Job não encontrado.", payload!.Mensagem);
     }
 
+    [Fact]
+    public async Task Enfileirar_DeveCriarExecucaoPendente()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var response = await adminClient.PostAsync("/api/admin/jobs/notificacoes-retencao/enfileirar", null);
+        var payload = await response.Content.ReadFromJsonAsync<EnfileirarBackgroundJobAdminResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal("notificacoes-retencao", payload!.JobId);
+        Assert.Equal("Pendente", payload.Status);
+    }
+
+    [Fact]
+    public async Task ListarFila_DeveRetornarExecucaoEnfileirada()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        await adminClient.PostAsync("/api/admin/jobs/notificacoes-retencao/enfileirar", null);
+
+        var response = await adminClient.GetAsync("/api/admin/jobs/fila");
+        var payload = await response.Content.ReadFromJsonAsync<List<BackgroundJobFilaItemResponse>>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Contains(payload!, x => x.JobId == "notificacoes-retencao" && x.Status == "Pendente");
+    }
+
+    [Fact]
+    public async Task ProcessarFila_DeveExecutarPendentes()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var enfileirarResponse = await adminClient.PostAsync("/api/admin/jobs/notificacoes-retencao/enfileirar", null);
+        var enfileirarPayload = await enfileirarResponse.Content.ReadFromJsonAsync<EnfileirarBackgroundJobAdminResponse>();
+
+        var response = await adminClient.PostAsync("/api/admin/jobs/fila/processar", null);
+        var payload = await response.Content.ReadFromJsonAsync<ProcessarFilaBackgroundJobAdminResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.True(payload!.ExecucoesProcessadas >= 1);
+
+        var filaResponse = await adminClient.GetAsync("/api/admin/jobs/fila");
+        var filaPayload = await filaResponse.Content.ReadFromJsonAsync<List<BackgroundJobFilaItemResponse>>();
+
+        Assert.NotNull(enfileirarPayload);
+        Assert.NotNull(filaPayload);
+        Assert.Contains(filaPayload!, x => x.ExecucaoId == enfileirarPayload!.ExecucaoId && x.Status == "Sucesso");
+    }
+
     private static async Task<AuthResponse> LoginAdminAsync(HttpClient client)
     {
         var response = await client.PostAsJsonAsync("/api/auth/login", new

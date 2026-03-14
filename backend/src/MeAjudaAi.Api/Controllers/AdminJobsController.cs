@@ -1,5 +1,6 @@
 using MeAjudaAi.Application.DTOs.Admin;
 using MeAjudaAi.Application.DTOs.Common;
+using MeAjudaAi.Api.Extensions;
 using MeAjudaAi.Application.Interfaces.Admin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,6 +28,15 @@ public class AdminJobsController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("fila")]
+    [ProducesResponseType(typeof(IReadOnlyList<BackgroundJobFilaItemResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListarFila(CancellationToken cancellationToken = default)
+    {
+        var response = await _adminJobService.ListarFilaAsync(cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPost("{jobId}/executar")]
     [ProducesResponseType(typeof(ExecutarBackgroundJobAdminResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
@@ -37,6 +47,28 @@ public class AdminJobsController : ControllerBase
         if (response is null)
             return NotFound(new MensagemErroResponse { Mensagem = "Job não encontrado." });
 
+        return Ok(response);
+    }
+
+    [HttpPost("{jobId}/enfileirar")]
+    [ProducesResponseType(typeof(EnfileirarBackgroundJobAdminResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Enfileirar(string jobId, CancellationToken cancellationToken = default)
+    {
+        var response = await _adminJobService.EnfileirarAsync(jobId, User.ObterUsuarioId(), cancellationToken);
+        if (response is null)
+            return NotFound(new MensagemErroResponse { Mensagem = "Job não encontrado." });
+
+        return Ok(response);
+    }
+
+    [HttpPost("fila/processar")]
+    [ProducesResponseType(typeof(ProcessarFilaBackgroundJobAdminResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ProcessarFila(CancellationToken cancellationToken = default)
+    {
+        var response = await _adminJobService.ProcessarFilaAsync(cancellationToken);
         return Ok(response);
     }
 }

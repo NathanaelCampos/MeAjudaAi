@@ -5,5 +5,8 @@ namespace MeAjudaAi.Application.Interfaces.Admin;
 public interface IAdminJobService
 {
     Task<IReadOnlyList<BackgroundJobAdminItemResponse>> ListarAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BackgroundJobFilaItemResponse>> ListarFilaAsync(CancellationToken cancellationToken = default);
     Task<ExecutarBackgroundJobAdminResponse?> ExecutarAsync(string jobId, CancellationToken cancellationToken = default);
+    Task<EnfileirarBackgroundJobAdminResponse?> EnfileirarAsync(string jobId, Guid? adminUsuarioId, CancellationToken cancellationToken = default);
+    Task<ProcessarFilaBackgroundJobAdminResponse> ProcessarFilaAsync(CancellationToken cancellationToken = default);
 }

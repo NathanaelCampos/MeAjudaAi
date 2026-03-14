@@ -107,6 +107,20 @@ public static class InfrastructureDependencyInjection
                 : 7;
         });
 
+        var jobsQueueSection = configuration.GetSection("Jobs:Fila");
+        services.Configure<BackgroundJobQueueOptions>(options =>
+        {
+            options.Habilitada = bool.TryParse(jobsQueueSection["Habilitada"], out var habilitada)
+                ? habilitada
+                : false;
+            options.IntervaloSegundos = int.TryParse(jobsQueueSection["IntervaloSegundos"], out var intervaloSegundos)
+                ? Math.Max(intervaloSegundos, 5)
+                : 30;
+            options.LoteProcessamento = int.TryParse(jobsQueueSection["LoteProcessamento"], out var loteProcessamento)
+                ? Math.Max(loteProcessamento, 1)
+                : 20;
+        });
+
         services.AddScoped<IHashSenhaService, HashSenhaService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthService, AuthService>();
@@ -135,11 +149,14 @@ public static class InfrastructureDependencyInjection
         services.AddSingleton<IWebhookPagamentoMetricsService, WebhookPagamentoMetricsService>();
         services.AddSingleton<INotificacaoRetentionMetricsService, NotificacaoRetentionMetricsService>();
         services.AddSingleton<IBackgroundJobExecutionMetricsService, BackgroundJobExecutionMetricsService>();
+        services.AddSingleton<BackgroundJobQueueProcessor>();
+        services.AddSingleton<IBackgroundJobQueueProcessor>(sp => sp.GetRequiredService<BackgroundJobQueueProcessor>());
         services.AddSingleton<EmailNotificacaoOutboxProcessor>();
         services.AddSingleton<IBackgroundJobProcessor>(sp => sp.GetRequiredService<EmailNotificacaoOutboxProcessor>());
         services.AddSingleton<NotificacaoInternaRetentionProcessor>();
         services.AddSingleton<IBackgroundJobProcessor>(sp => sp.GetRequiredService<NotificacaoInternaRetentionProcessor>());
         services.AddSingleton<INotificacaoRetentionService>(sp => sp.GetRequiredService<NotificacaoInternaRetentionProcessor>());
+        services.AddHostedService(sp => sp.GetRequiredService<BackgroundJobQueueProcessor>());
         services.AddHostedService(sp => sp.GetRequiredService<EmailNotificacaoOutboxProcessor>());
         services.AddHostedService(sp => sp.GetRequiredService<NotificacaoInternaRetentionProcessor>());
 
