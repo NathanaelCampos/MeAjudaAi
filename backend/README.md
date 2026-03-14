@@ -139,6 +139,30 @@ Quando usar cada artefato:
 - Postman: colecao compartilhavel para times que ja usam Postman
 - Insomnia: colecao compartilhavel para times que preferem Insomnia
 
+## Painel Operacional de Jobs
+
+O grupo `/api/admin/jobs` agora expõe métricas e alertas para alimentar um dashboard sem precisar ler o banco direto:
+
+- `GET /api/admin/jobs/fila/metricas` retorna contagens por status, volume por job e tempos médios de espera, processamento e falha. O payload corresponde ao DTO `BackgroundJobFilaMetricasResponse` (ej. `tempoMedioFilaSegundos`, `tempoMedioProcessamentoSegundos`, `tempoMedioFalhaSegundos`).
+- `GET /api/admin/jobs/fila/alertas` resume os jobs críticos, incluindo `nivelAlerta`, `mensagem` e `cor` para acionarem sinais visuais/sonoros no dashboard. O alerta aparece quando o tempo médio de espera ou processamento ultrapassa os limites configurados (`Jobs:Alertas`) ou quando houver falhas recentes.
+
+Exemplo de alerta:
+
+```json
+{
+  "jobId": "emails-outbox",
+  "tempoMedioFilaSegundos": 55.2,
+  "tempoMedioProcessamentoSegundos": 61.9,
+  "totalPendentes": 12,
+  "totalFalhas": 2,
+  "nivelAlerta": "Filas longas",
+  "mensagem": "Fila crescendo; revisar workers.",
+  "cor": "#F57C00"
+}
+```
+
+A configuração default no `appsettings` fica sob `Jobs:Alertas`. Ajuste `TempoEsperaLimiteSegundos` e `TempoProcessamentoLimiteSegundos` para calibrar o limiar antes dos alertas acenderem no dashboard.
+
 ### Uso rapido da colecao Postman
 
 1. Importe [MeAjudaAi.postman_collection.json](/home/nathanael-campos/dev/src/me-ajuda-ai/backend/MeAjudaAi.postman_collection.json) no Postman
