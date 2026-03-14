@@ -1,69 +1,55 @@
 using MeAjudaAi.Domain.Entities;
+using MeAjudaAi.Application.Interfaces.Jobs;
 using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Infrastructure.Configurations;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
+using MeAjudaAi.Infrastructure.Services.Jobs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace MeAjudaAi.Infrastructure.Services.Notificacoes;
 
-public class NotificacaoInternaRetentionProcessor : BackgroundService, INotificacaoRetentionService
+public class NotificacaoInternaRetentionProcessor : ScheduledBackgroundJobProcessor<NotificacaoInternaRetentionProcessor>, INotificacaoRetentionService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOptions<NotificacaoInternaRetentionOptions> _options;
     private readonly INotificacaoRetentionMetricsService _metricsService;
-    private readonly ILogger<NotificacaoInternaRetentionProcessor> _logger;
 
     public NotificacaoInternaRetentionProcessor(
         IServiceScopeFactory scopeFactory,
         IOptions<NotificacaoInternaRetentionOptions> options,
+        IBackgroundJobExecutionMetricsService backgroundJobMetricsService,
         INotificacaoRetentionMetricsService metricsService,
         ILogger<NotificacaoInternaRetentionProcessor> logger)
+        : base(backgroundJobMetricsService, logger)
     {
         _scopeFactory = scopeFactory;
         _options = options;
         _metricsService = metricsService;
-        _logger = logger;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public override string JobId => "notificacoes-retencao";
+    public override string Nome => "Retenção de notificações internas";
+    public override bool Habilitado => _options.Value.Habilitada;
+    public override int IntervaloSegundos => _options.Value.IntervaloSegundos;
+    protected override int IntervaloMinimoSegundos => 60;
+    protected override string MensagemDesabilitado => "Retenção automática de notificações internas desabilitada por configuração.";
+    protected override string MensagemErro => "Erro ao processar retenção de notificações internas.";
+
+    public Task<int> ProcessarRetencaoAsync(CancellationToken cancellationToken = default)
     {
-        var config = _options.Value;
-
-        if (!config.Habilitada)
-        {
-            _logger.LogInformation("Retenção automática de notificações internas desabilitada por configuração.");
-            return;
-        }
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await ProcessarRetencaoAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _metricsService.RegistrarErro(DateTime.UtcNow, ex.Message);
-                _logger.LogError(ex, "Erro ao processar retenção de notificações internas.");
-            }
-
-            await Task.Delay(TimeSpan.FromSeconds(Math.Max(60, config.IntervaloSegundos)), stoppingToken);
-        }
+        return ExecutarAsync(cancellationToken);
     }
 
-    public async Task<int> ProcessarRetencaoAsync(CancellationToken cancellationToken = default)
+    protected override async Task<int> ExecutarInternoAsync(CancellationToken cancellationToken)
     {
         var options = _options.Value;
         var iniciadoEm = DateTime.UtcNow;
 
         if (!options.Habilitada || options.DiasRetencao <= 0)
             return 0;
-
-        _metricsService.RegistrarInicio(iniciadoEm);
 
         await using var scope = _scopeFactory.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -93,11 +79,6 @@ public class NotificacaoInternaRetentionProcessor : BackgroundService, INotifica
         await context.SaveChangesAsync(cancellationToken);
 
         _metricsService.RegistrarSucesso(agora, notificacoes.Count);
-
-        _logger.LogInformation(
-            "Retenção de notificações internas arquivou {Quantidade} registros com corte em {DataLimite}.",
-            notificacoes.Count,
-            dataLimite);
 
         return notificacoes.Count;
     }

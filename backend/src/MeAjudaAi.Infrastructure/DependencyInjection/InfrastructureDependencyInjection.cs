@@ -20,9 +20,11 @@ using MeAjudaAi.Infrastructure.Importacao;
 using MeAjudaAi.Application.Interfaces.Storage;
 using MeAjudaAi.Infrastructure.Services.Storage;
 using MeAjudaAi.Application.Interfaces.Impulsionamentos;
+using MeAjudaAi.Application.Interfaces.Jobs;
 using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Infrastructure.Configurations;
 using MeAjudaAi.Infrastructure.Services.Impulsionamentos;
+using MeAjudaAi.Infrastructure.Services.Jobs;
 using MeAjudaAi.Infrastructure.Services.Notificacoes;
 namespace MeAjudaAi.Infrastructure.DependencyInjection;
 
@@ -111,6 +113,7 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<IAdminUsuarioService, AdminUsuarioService>();
         services.AddScoped<IAdminAuditoriaService, AdminAuditoriaService>();
         services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+        services.AddScoped<IAdminJobService, AdminJobService>();
         services.AddScoped<IAdminProfissionalService, AdminProfissionalService>();
         services.AddScoped<IAdminServicoService, AdminServicoService>();
         services.AddScoped<IAdminAvaliacaoService, AdminAvaliacaoService>();
@@ -131,9 +134,13 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<IEmailNotificacaoSender, EmailNotificacaoSender>();
         services.AddSingleton<IWebhookPagamentoMetricsService, WebhookPagamentoMetricsService>();
         services.AddSingleton<INotificacaoRetentionMetricsService, NotificacaoRetentionMetricsService>();
+        services.AddSingleton<IBackgroundJobExecutionMetricsService, BackgroundJobExecutionMetricsService>();
+        services.AddSingleton<EmailNotificacaoOutboxProcessor>();
+        services.AddSingleton<IBackgroundJobProcessor>(sp => sp.GetRequiredService<EmailNotificacaoOutboxProcessor>());
         services.AddSingleton<NotificacaoInternaRetentionProcessor>();
+        services.AddSingleton<IBackgroundJobProcessor>(sp => sp.GetRequiredService<NotificacaoInternaRetentionProcessor>());
         services.AddSingleton<INotificacaoRetentionService>(sp => sp.GetRequiredService<NotificacaoInternaRetentionProcessor>());
-        services.AddHostedService<EmailNotificacaoOutboxProcessor>();
+        services.AddHostedService(sp => sp.GetRequiredService<EmailNotificacaoOutboxProcessor>());
         services.AddHostedService(sp => sp.GetRequiredService<NotificacaoInternaRetentionProcessor>());
 
         return services;

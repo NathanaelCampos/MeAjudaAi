@@ -1,58 +1,42 @@
 using MeAjudaAi.Application.Interfaces.Notificacoes;
+using MeAjudaAi.Application.Interfaces.Jobs;
 using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.Infrastructure.Configurations;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
+using MeAjudaAi.Infrastructure.Services.Jobs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace MeAjudaAi.Infrastructure.Services.Notificacoes;
 
-public class EmailNotificacaoOutboxProcessor : BackgroundService
+public class EmailNotificacaoOutboxProcessor : ScheduledBackgroundJobProcessor<EmailNotificacaoOutboxProcessor>
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOptions<EmailNotificacaoOptions> _options;
-    private readonly ILogger<EmailNotificacaoOutboxProcessor> _logger;
 
     public EmailNotificacaoOutboxProcessor(
         IServiceScopeFactory scopeFactory,
         IOptions<EmailNotificacaoOptions> options,
+        IBackgroundJobExecutionMetricsService metricsService,
         ILogger<EmailNotificacaoOutboxProcessor> logger)
+        : base(metricsService, logger)
     {
         _scopeFactory = scopeFactory;
         _options = options;
-        _logger = logger;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        var config = _options.Value;
+    public override string JobId => "emails-outbox";
+    public override string Nome => "Processador do outbox de e-mails";
+    public override bool Habilitado => _options.Value.ProcessadorHabilitado;
+    public override int IntervaloSegundos => _options.Value.IntervaloSegundos;
+    protected override int IntervaloMinimoSegundos => 5;
+    protected override string MensagemDesabilitado => "Processador de e-mails do outbox desabilitado por configuração.";
+    protected override string MensagemErro => "Erro ao processar lote de e-mails do outbox.";
 
-        if (!config.ProcessadorHabilitado)
-        {
-            _logger.LogInformation("Processador de e-mails do outbox desabilitado por configuração.");
-            return;
-        }
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await ProcessarLoteAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erro ao processar lote de e-mails do outbox.");
-            }
-
-            await Task.Delay(TimeSpan.FromSeconds(Math.Max(5, config.IntervaloSegundos)), stoppingToken);
-        }
-    }
-
-    public async Task<int> ProcessarLoteAsync(CancellationToken cancellationToken = default)
+    protected override async Task<int> ExecutarInternoAsync(CancellationToken cancellationToken)
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
