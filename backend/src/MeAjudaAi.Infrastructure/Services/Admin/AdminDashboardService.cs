@@ -399,6 +399,7 @@ public class AdminDashboardService : IAdminDashboardService
 
         var acoesAdminRecentes = await _context.AuditoriasAdminAcoes
             .AsNoTracking()
+            .Where(x => x.DataCriacao >= inicioJanelaAcaoAdminRecente)
             .Include(x => x.AdminUsuario)
             .OrderByDescending(x => x.DataCriacao)
             .Take(5)
