@@ -330,7 +330,30 @@ public class AdminJobService : IAdminJobService
             })
             .ToList();
 
-        return alerts.AsReadOnly();
+        var resultado = alerts.AsReadOnly();
+        await RegistrarHistoricoAsync(resultado, cancellationToken);
+        return resultado;
+    }
+
+    private async Task RegistrarHistoricoAsync(IEnumerable<BackgroundJobFilaAlertaResponse> alerts, CancellationToken cancellationToken)
+    {
+        if (!alerts.Any())
+            return;
+
+        var historico = alerts.Select(x => new BackgroundJobFilaAlertaHistorico
+        {
+            JobId = x.JobId,
+            NivelAlerta = x.NivelAlerta,
+            Mensagem = x.Mensagem,
+            Cor = x.Cor,
+            TempoMedioFilaSegundos = x.TempoMedioFilaSegundos,
+            TempoMedioProcessamentoSegundos = x.TempoMedioProcessamentoSegundos,
+            TotalPendentes = x.TotalPendentes,
+            TotalFalhas = x.TotalFalhas
+        });
+
+        await _context.BackgroundJobFilaAlertasHistorico.AddRangeAsync(historico, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     private static string BuildNivelAlerta(double tempoFila, double tempoProcessamento, int totalFalhas)

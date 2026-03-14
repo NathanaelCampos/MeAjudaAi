@@ -328,6 +328,34 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
     }
 
     [Fact]
+    public async Task Alertas_PersisteHistorico()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var agora = DateTime.UtcNow;
+        await CriarExecucaoAsync(
+            StatusExecucaoBackgroundJob.Pendente,
+            jobId: "hist-alerta",
+            dataCriacao: agora.AddSeconds(-60));
+
+        var response = await adminClient.GetAsync("/api/admin/jobs/fila/alertas");
+        response.EnsureSuccessStatusCode();
+
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var historico = await context.BackgroundJobFilaAlertasHistorico
+            .Where(x => x.JobId == "hist-alerta")
+            .ToListAsync();
+
+        Assert.NotEmpty(historico);
+        Assert.All(historico, entry => Assert.Equal("hist-alerta", entry.JobId));
+    }
+
+    [Fact]
     public async Task CancelarExecucao_DeveAtualizarStatusParaCancelado()
     {
         using var adminClient = Factory.CreateClient();

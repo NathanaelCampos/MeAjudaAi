@@ -1,4 +1,5 @@
 using MeAjudaAi.Domain.Entities;
+using MeAjudaAi.Infrastructure.Persistence.Configurations.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace MeAjudaAi.Infrastructure.Persistence.Contexts;
@@ -28,6 +29,7 @@ public class AppDbContext : DbContext
     public DbSet<WebhookPagamentoImpulsionamentoEvento> WebhookPagamentoImpulsionamentoEventos => Set<WebhookPagamentoImpulsionamentoEvento>();
     public DbSet<AuditoriaAdminAcao> AuditoriasAdminAcoes => Set<AuditoriaAdminAcao>();
     public DbSet<BackgroundJobExecucao> BackgroundJobsExecucoes => Set<BackgroundJobExecucao>();
+    public DbSet<BackgroundJobFilaAlertaHistorico> BackgroundJobFilaAlertasHistorico => Set<BackgroundJobFilaAlertaHistorico>();
     public DbSet<NotificacaoUsuario> NotificacoesUsuarios => Set<NotificacaoUsuario>();
     public DbSet<PreferenciaNotificacaoUsuario> PreferenciasNotificacoesUsuarios => Set<PreferenciaNotificacaoUsuario>();
     public DbSet<EmailNotificacaoOutbox> EmailsNotificacoesOutbox => Set<EmailNotificacaoOutbox>();
