@@ -63,6 +63,23 @@ public class AdminJobsController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("{jobId}/agendar")]
+    [ProducesResponseType(typeof(EnfileirarBackgroundJobAdminResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Agendar(string jobId, [FromBody] AgendarBackgroundJobAdminRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request is null)
+            return BadRequest(new MensagemErroResponse { Mensagem = "Requisição inválida." });
+
+        var response = await _adminJobService.AgendarAsync(jobId, request.ProcessarAposUtc, User.ObterUsuarioId(), cancellationToken);
+        if (response is null)
+            return NotFound(new MensagemErroResponse { Mensagem = "Job não encontrado." });
+
+        return Ok(response);
+    }
+
     [HttpPost("fila/processar")]
     [ProducesResponseType(typeof(ProcessarFilaBackgroundJobAdminResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

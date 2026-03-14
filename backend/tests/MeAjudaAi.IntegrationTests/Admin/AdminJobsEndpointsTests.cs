@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -85,6 +86,36 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
         Assert.NotNull(payload);
         Assert.Equal("notificacoes-retencao", payload!.JobId);
         Assert.Equal("Pendente", payload.Status);
+    }
+
+    [Fact]
+    public async Task Agendar_DevePersistirProcessarAposFuturo()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var processarApos = DateTime.UtcNow.AddMinutes(45);
+        var response = await adminClient.PostAsJsonAsync("/api/admin/jobs/notificacoes-retencao/agendar", new
+        {
+            processarAposUtc = processarApos
+        });
+        var payload = await response.Content.ReadFromJsonAsync<EnfileirarBackgroundJobAdminResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal("notificacoes-retencao", payload!.JobId);
+        Assert.Equal("Pendente", payload.Status);
+
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var execucao = await context.BackgroundJobsExecucoes.FirstAsync(x => x.Id == payload!.ExecucaoId);
+        Assert.Equal(StatusExecucaoBackgroundJob.Pendente, execucao.Status);
+        Assert.NotNull(execucao.ProcessarAposUtc);
+        Assert.True(Math.Abs((execucao.ProcessarAposUtc!.Value - processarApos).TotalSeconds) < 1);
+        Assert.Equal("Execução agendada.", execucao.MensagemResultado);
     }
 
     [Fact]

@@ -8,6 +8,7 @@ public interface IAdminJobService
     Task<IReadOnlyList<BackgroundJobFilaItemResponse>> ListarFilaAsync(CancellationToken cancellationToken = default);
     Task<ExecutarBackgroundJobAdminResponse?> ExecutarAsync(string jobId, CancellationToken cancellationToken = default);
     Task<EnfileirarBackgroundJobAdminResponse?> EnfileirarAsync(string jobId, Guid? adminUsuarioId, CancellationToken cancellationToken = default);
+    Task<EnfileirarBackgroundJobAdminResponse?> AgendarAsync(string jobId, DateTime processarAposUtc, Guid? adminUsuarioId, CancellationToken cancellationToken = default);
     Task<ProcessarFilaBackgroundJobAdminResponse> ProcessarFilaAsync(CancellationToken cancellationToken = default);
     Task<BackgroundJobFilaItemResponse?> CancelarExecucaoAsync(Guid execucaoId, CancellationToken cancellationToken = default);
     Task<BackgroundJobFilaItemResponse?> ReabrirExecucaoAsync(Guid execucaoId, CancellationToken cancellationToken = default);

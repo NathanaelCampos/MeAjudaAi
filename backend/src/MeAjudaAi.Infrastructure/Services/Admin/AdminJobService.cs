@@ -82,7 +82,22 @@ public class AdminJobService : IAdminJobService
         };
     }
 
-    public async Task<EnfileirarBackgroundJobAdminResponse?> EnfileirarAsync(string jobId, Guid? adminUsuarioId, CancellationToken cancellationToken = default)
+    public Task<EnfileirarBackgroundJobAdminResponse?> EnfileirarAsync(string jobId, Guid? adminUsuarioId, CancellationToken cancellationToken = default)
+    {
+        return CriarExecucaoAsync(jobId, adminUsuarioId, DateTime.UtcNow, "Execução enfileirada.", cancellationToken);
+    }
+
+    public Task<EnfileirarBackgroundJobAdminResponse?> AgendarAsync(string jobId, DateTime processarAposUtc, Guid? adminUsuarioId, CancellationToken cancellationToken = default)
+    {
+        return CriarExecucaoAsync(jobId, adminUsuarioId, processarAposUtc, "Execução agendada.", cancellationToken);
+    }
+
+    private async Task<EnfileirarBackgroundJobAdminResponse?> CriarExecucaoAsync(
+        string jobId,
+        Guid? adminUsuarioId,
+        DateTime processarAposUtc,
+        string mensagemResultado,
+        CancellationToken cancellationToken)
     {
         var job = _jobs.FirstOrDefault(x => string.Equals(x.JobId, jobId, StringComparison.OrdinalIgnoreCase));
         if (job is null)
@@ -95,8 +110,8 @@ public class AdminJobService : IAdminJobService
             Origem = "manual-admin",
             SolicitadoPorAdminUsuarioId = adminUsuarioId,
             Status = StatusExecucaoBackgroundJob.Pendente,
-            ProcessarAposUtc = DateTime.UtcNow,
-            MensagemResultado = "Execução enfileirada."
+            ProcessarAposUtc = processarAposUtc,
+            MensagemResultado = mensagemResultado
         };
 
         _context.BackgroundJobsExecucoes.Add(execucao);
