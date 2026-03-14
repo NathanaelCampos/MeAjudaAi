@@ -220,6 +220,32 @@ public class AdminJobService : IAdminJobService
             .Where(x => x.Ativo)
             .ToListAsync(cancellationToken);
 
+        var agora = DateTime.UtcNow;
+
+        static double AverageSeconds(IEnumerable<double> values)
+        {
+            return values.Any() ? values.Average() : 0d;
+        }
+
+        var temposFila = execucoes
+            .Where(x => x.Status == StatusExecucaoBackgroundJob.Pendente)
+            .Select(x => (agora - x.DataCriacao).TotalSeconds);
+
+        var temposEspera = execucoes
+            .Where(x => x.DataInicioProcessamento.HasValue)
+            .Select(x => (x.DataInicioProcessamento!.Value - x.DataCriacao).TotalSeconds);
+
+        var temposProcessamento = execucoes
+            .Where(x => x.DataInicioProcessamento.HasValue && x.DataFinalizacao.HasValue)
+            .Select(x => (x.DataFinalizacao!.Value - x.DataInicioProcessamento!.Value).TotalSeconds);
+
+        var temposFalha = execucoes
+            .Where(x =>
+                x.Status == StatusExecucaoBackgroundJob.Falha &&
+                x.DataInicioProcessamento.HasValue &&
+                x.DataFinalizacao.HasValue)
+            .Select(x => (x.DataFinalizacao!.Value - x.DataInicioProcessamento!.Value).TotalSeconds);
+
         var response = new BackgroundJobFilaMetricasResponse
         {
             TotalPendentes = execucoes.Count(x => x.Status == StatusExecucaoBackgroundJob.Pendente),
@@ -230,6 +256,11 @@ public class AdminJobService : IAdminJobService
             PorJob = execucoes
                 .GroupBy(x => x.JobId)
                 .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase)
+            ,
+            TempoMedioEsperaSegundos = AverageSeconds(temposEspera),
+            TempoMedioProcessamentoSegundos = AverageSeconds(temposProcessamento),
+            TempoMedioFalhaSegundos = AverageSeconds(temposFalha),
+            TempoMedioFilaSegundos = AverageSeconds(temposFila)
         };
 
         return response;

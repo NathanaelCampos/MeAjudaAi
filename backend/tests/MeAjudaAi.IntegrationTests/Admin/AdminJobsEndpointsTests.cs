@@ -11,7 +11,6 @@ using MeAjudaAi.IntegrationTests.Infrastructure;
 using MeAjudaAi.IntegrationTests.Jobs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
 
 namespace MeAjudaAi.IntegrationTests.Admin;
 
@@ -255,11 +254,27 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
         var admin = await LoginAdminAsync(adminClient);
         adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
 
-        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Pendente);
-        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Processando);
-        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Sucesso);
-        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Falha);
-        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Cancelado);
+        var agora = DateTime.UtcNow;
+        await CriarExecucaoAsync(
+            StatusExecucaoBackgroundJob.Pendente,
+            dataCriacao: agora.AddSeconds(-5));
+        await CriarExecucaoAsync(
+            StatusExecucaoBackgroundJob.Processando,
+            dataInicioProcessamento: agora.AddSeconds(-3),
+            dataCriacao: agora.AddSeconds(-8));
+        await CriarExecucaoAsync(
+            StatusExecucaoBackgroundJob.Sucesso,
+            dataInicioProcessamento: agora.AddSeconds(-10),
+            dataFinalizacao: agora.AddSeconds(-5),
+            dataCriacao: agora.AddSeconds(-15));
+        await CriarExecucaoAsync(
+            StatusExecucaoBackgroundJob.Falha,
+            dataInicioProcessamento: agora.AddSeconds(-20),
+            dataFinalizacao: agora.AddSeconds(-10),
+            dataCriacao: agora.AddSeconds(-25));
+        await CriarExecucaoAsync(
+            StatusExecucaoBackgroundJob.Cancelado,
+            dataCriacao: agora.AddSeconds(-30));
 
         var response = await adminClient.GetAsync("/api/admin/jobs/fila/metricas");
         var payload = await response.Content.ReadFromJsonAsync<BackgroundJobFilaMetricasResponse>();
@@ -272,6 +287,10 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
         Assert.Equal(1, payload.TotalFalhas);
         Assert.Equal(1, payload.TotalCancelados);
         Assert.Contains("notificacoes-retencao", payload.PorJob.Keys);
+        Assert.True(payload.TempoMedioFilaSegundos >= 0);
+        Assert.True(payload.TempoMedioEsperaSegundos > 0);
+        Assert.True(payload.TempoMedioProcessamentoSegundos > 0);
+        Assert.True(payload.TempoMedioFalhaSegundos > 0);
     }
 
     [Fact]
@@ -349,7 +368,10 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
         DateTime? processarAposUtc = null,
         string? jobId = null,
         string? nomeJob = null,
-        int tentativasProcessamento = 0)
+        int tentativasProcessamento = 0,
+        DateTime? dataInicioProcessamento = null,
+        DateTime? dataFinalizacao = null,
+        DateTime? dataCriacao = null)
     {
         await using var scope = Factory.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -364,6 +386,14 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
             TentativasProcessamento = tentativasProcessamento,
             MensagemResultado = "Execução de teste."
         };
+
+        if (dataCriacao.HasValue)
+        {
+            execucao.DataCriacao = dataCriacao.Value;
+        }
+
+        execucao.DataInicioProcessamento = dataInicioProcessamento;
+        execucao.DataFinalizacao = dataFinalizacao;
 
         context.BackgroundJobsExecucoes.Add(execucao);
         await context.SaveChangesAsync();
