@@ -495,7 +495,7 @@ public class AdminDashboardService : IAdminDashboardService
         var insightComparativoPrincipal = CriarInsightComparativoPreset(resumoComparativoPreset, statusComparativoPrincipal);
         var indicadorComparativoPrincipal = CriarIndicadorComparativoPreset(statusComparativoPrincipal);
         var prioridadeComparativaPrincipal = CriarPrioridadeComparativaPreset(statusComparativoPrincipal);
-        var acaoComparativaPrincipal = CriarAcaoComparativaPreset(resumoComparativoPreset);
+        var acaoComparativaPrincipal = CriarAcaoComparativaPreset(resumoComparativoPreset, statusComparativoPrincipal);
         var linkComparativoPrincipal = CriarLinkComparativoPreset(resumoComparativoPreset.EixoPrincipal);
         var tooltipComparativoPrincipal = CriarTooltipComparativoPreset(resumoComparativoPreset);
 
@@ -889,17 +889,23 @@ public class AdminDashboardService : IAdminDashboardService
         };
     }
 
-    private static string CriarAcaoComparativaPreset(AdminDashboardResumoComparativoPresetResponse resumoComparativo)
+    private static string CriarAcaoComparativaPreset(
+        AdminDashboardResumoComparativoPresetResponse resumoComparativo,
+        string statusComparativo)
     {
         if (!resumoComparativo.Disponivel)
             return "Selecionar preset comparavel";
 
-        return resumoComparativo.EixoPrincipal switch
+        return (resumoComparativo.EixoPrincipal, statusComparativo) switch
         {
-            "webhooks" => "Revisar operacao de webhooks",
-            "emails" => "Revisar operacao de emails",
-            "servicos" => "Revisar capacidade de atendimento",
-            "avaliacoes" => "Revisar fila de moderacao",
+            ("webhooks", "positivo") => "Confirmar estabilidade da operacao de webhooks",
+            ("webhooks", "negativo") => "Revisar operacao de webhooks",
+            ("emails", "positivo") => "Confirmar estabilidade da operacao de emails",
+            ("emails", "negativo") => "Revisar operacao de emails",
+            ("servicos", "positivo") => "Sustentar capacidade de atendimento",
+            ("servicos", "negativo") => "Revisar capacidade de atendimento",
+            ("avaliacoes", "positivo") => "Acompanhar crescimento da moderacao",
+            ("avaliacoes", "negativo") => "Revisar fila de moderacao",
             _ => "Revisar comparativo entre presets"
         };
     }

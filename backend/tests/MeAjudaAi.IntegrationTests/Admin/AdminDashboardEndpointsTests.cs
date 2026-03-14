@@ -602,7 +602,53 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal("negativo", payload.StatusComparativoPrincipal);
         Assert.Equal("vermelho", payload.IndicadorComparativoPrincipal);
         Assert.Equal("alta", payload.PrioridadeComparativaPrincipal);
+        Assert.Equal("Revisar operacao de webhooks", payload.AcaoComparativaPrincipal);
         Assert.Contains("exige atencao", payload.InsightComparativoPrincipal.Titulo, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Obter_ComAumentoDeServicosNoPresetAtual_DeveSugerirAcaoPositiva()
+    {
+        using var adminClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+        using var clienteClient = _factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        var profissional = await RegistrarProfissionalAsync(profissionalClient, "prof-dashboard-comparativo-servico");
+        var cliente = await RegistrarClienteAsync(clienteClient, "cli-dashboard-comparativo-servico");
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var cidadeId = await _factory.ObterCidadeIdAsync();
+        var bairroId = await _factory.ObterBairroIdAsync();
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var hoje = DateTime.UtcNow.Date;
+            var clienteId = await context.Clientes
+                .Where(x => x.UsuarioId == cliente.UsuarioId)
+                .Select(x => x.Id)
+                .FirstAsync();
+
+            context.Servicos.AddRange(
+                CriarServicoDashboard(clienteId, profissional.ProfissionalId, cidadeId, bairroId, hoje.AddDays(-5)),
+                CriarServicoDashboard(clienteId, profissional.ProfissionalId, cidadeId, bairroId, hoje.AddDays(-6)),
+                CriarServicoDashboard(clienteId, profissional.ProfissionalId, cidadeId, bairroId, hoje.AddDays(-35)));
+
+            await context.SaveChangesAsync();
+        }
+
+        var response = await adminClient.GetAsync("/api/admin/dashboard?presetPeriodo=30d");
+        var payload = await response.Content.ReadFromJsonAsync<AdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal("servicos", payload!.EixoComparativoPrincipal);
+        Assert.Equal("alta", payload.DirecaoComparativaPrincipal);
+        Assert.Equal("positivo", payload.StatusComparativoPrincipal);
+        Assert.Equal("verde", payload.IndicadorComparativoPrincipal);
+        Assert.Equal("baixa", payload.PrioridadeComparativaPrincipal);
+        Assert.Equal("Sustentar capacidade de atendimento", payload.AcaoComparativaPrincipal);
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
