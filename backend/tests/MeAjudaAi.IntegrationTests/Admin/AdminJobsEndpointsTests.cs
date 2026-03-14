@@ -11,6 +11,7 @@ using MeAjudaAi.IntegrationTests.Infrastructure;
 using MeAjudaAi.IntegrationTests.Jobs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 
 namespace MeAjudaAi.IntegrationTests.Admin;
 
@@ -156,6 +157,37 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
         Assert.Single(payload!);
         Assert.Equal("Falha", payload[0].Status);
         Assert.Equal("notificacoes-retencao", payload[0].JobId);
+    }
+
+    [Fact]
+    public async Task CancelarPorJob_DeveMarcarTodasExecucoesPendentes()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var execucao1 = await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Pendente, jobId: "notificacoes-retencao");
+        var execucao2 = await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Processando, jobId: "notificacoes-retencao");
+        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Pendente, jobId: "emails-outbox");
+
+        var response = await adminClient.PostAsync("/api/admin/jobs/notificacoes-retencao/cancelar-todos", null);
+        var payload = await response.Content.ReadFromJsonAsync<CancelarBackgroundJobAdminResponse>();
+        var texto = await response.Content.ReadAsStringAsync();
+
+        Assert.True(response.IsSuccessStatusCode, texto);
+        Assert.NotNull(payload);
+        Assert.Equal("notificacoes-retencao", payload!.JobId);
+        Assert.Equal(2, payload.Canceladas);
+
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var canceladas = await context.BackgroundJobsExecucoes
+            .Where(x => x.Id == execucao1 || x.Id == execucao2)
+            .ToListAsync();
+
+        Assert.All(canceladas, x => Assert.Equal(StatusExecucaoBackgroundJob.Cancelado, x.Status));
     }
 
     [Fact]

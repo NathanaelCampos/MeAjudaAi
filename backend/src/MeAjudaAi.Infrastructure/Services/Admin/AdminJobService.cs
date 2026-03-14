@@ -47,7 +47,8 @@ public class AdminJobService : IAdminJobService
 
         if (!string.IsNullOrWhiteSpace(jobId))
         {
-            query = query.Where(x => x.JobId == jobId);
+            var jobIdNormalized = jobId.Trim().ToLowerInvariant();
+            query = query.Where(x => x.JobId.ToLower() == jobIdNormalized);
         }
 
         var statusEnum = ParseStatus(status);
@@ -232,6 +233,45 @@ public class AdminJobService : IAdminJobService
         };
 
         return response;
+    }
+
+    public async Task<CancelarBackgroundJobAdminResponse> CancelarPorJobAsync(string jobId, CancellationToken cancellationToken = default)
+    {
+        var jobIdNormalized = jobId.Trim().ToLowerInvariant();
+        var execucoes = await _context.BackgroundJobsExecucoes
+            .Where(x =>
+                x.Ativo &&
+                x.JobId.ToLower() == jobIdNormalized &&
+                x.Status != StatusExecucaoBackgroundJob.Sucesso &&
+                x.Status != StatusExecucaoBackgroundJob.Cancelado)
+            .ToListAsync(cancellationToken);
+
+        if (execucoes.Count == 0)
+        {
+            return new CancelarBackgroundJobAdminResponse
+            {
+                JobId = jobId,
+                Canceladas = 0
+            };
+        }
+
+        var agora = DateTime.UtcNow;
+        foreach (var execucao in execucoes)
+        {
+            execucao.Status = StatusExecucaoBackgroundJob.Cancelado;
+            execucao.ProcessarAposUtc = null;
+            execucao.MensagemResultado = "Execução cancelada manualmente em lote.";
+            execucao.DataAtualizacao = agora;
+            execucao.DataFinalizacao = agora;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new CancelarBackgroundJobAdminResponse
+        {
+            JobId = jobId,
+            Canceladas = execucoes.Count
+        };
     }
 
     private static BackgroundJobFilaItemResponse MapearFila(BackgroundJobExecucao x)

@@ -102,6 +102,15 @@ public class AdminJobsController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPost("{jobId}/cancelar-todos")]
+    [ProducesResponseType(typeof(CancelarBackgroundJobAdminResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CancelarPorJob(string jobId, CancellationToken cancellationToken = default)
+    {
+        var response = await _adminJobService.CancelarPorJobAsync(jobId, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPut("fila/{execucaoId:guid}/reabrir")]
     [ProducesResponseType(typeof(BackgroundJobFilaItemResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]
