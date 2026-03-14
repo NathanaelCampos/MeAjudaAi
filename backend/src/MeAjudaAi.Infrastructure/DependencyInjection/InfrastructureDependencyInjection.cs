@@ -119,6 +119,12 @@ public static class InfrastructureDependencyInjection
             options.LoteProcessamento = int.TryParse(jobsQueueSection["LoteProcessamento"], out var loteProcessamento)
                 ? Math.Max(loteProcessamento, 1)
                 : 20;
+            options.MaxTentativas = int.TryParse(jobsQueueSection["MaxTentativas"], out var maxTentativas)
+                ? Math.Max(maxTentativas, 1)
+                : 3;
+            options.AtrasoBaseSegundos = int.TryParse(jobsQueueSection["AtrasoBaseSegundos"], out var atrasoBaseSegundos)
+                ? Math.Max(atrasoBaseSegundos, 5)
+                : 60;
         });
 
         services.AddScoped<IHashSenhaService, HashSenhaService>();

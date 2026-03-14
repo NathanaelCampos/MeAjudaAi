@@ -3,7 +3,11 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using MeAjudaAi.Application.DTOs.Admin;
 using MeAjudaAi.Application.DTOs.Auth;
+using MeAjudaAi.Domain.Entities;
+using MeAjudaAi.Domain.Enums;
+using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using MeAjudaAi.IntegrationTests.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MeAjudaAi.IntegrationTests.Admin;
 
@@ -125,6 +129,64 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
         Assert.Contains(filaPayload!, x => x.ExecucaoId == enfileirarPayload!.ExecucaoId && x.Status == "Sucesso");
     }
 
+    [Fact]
+    public async Task CancelarExecucao_DeveAtualizarStatusParaCancelado()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var execucaoId = await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Pendente);
+
+        var response = await adminClient.PutAsync($"/api/admin/jobs/fila/{execucaoId}/cancelar", null);
+        var payload = await response.Content.ReadFromJsonAsync<BackgroundJobFilaItemResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal("Cancelado", payload!.Status);
+    }
+
+    [Fact]
+    public async Task ReabrirExecucao_DeveRetornarParaPendente()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var execucaoId = await CriarExecucaoAsync(
+            StatusExecucaoBackgroundJob.Falha,
+            processarAposUtc: DateTime.UtcNow.AddMinutes(10));
+
+        var response = await adminClient.PutAsync($"/api/admin/jobs/fila/{execucaoId}/reabrir", null);
+        var payload = await response.Content.ReadFromJsonAsync<BackgroundJobFilaItemResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal("Pendente", payload!.Status);
+        Assert.NotNull(payload.ProcessarAposUtc);
+        Assert.True(payload.ProcessarAposUtc <= DateTime.UtcNow.AddSeconds(5));
+    }
+
+    [Fact]
+    public async Task CancelarExecucao_SucessoNaoDevePermitirAlteracao()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var execucaoId = await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Sucesso);
+
+        var response = await adminClient.PutAsync($"/api/admin/jobs/fila/{execucaoId}/cancelar", null);
+        var payload = await response.Content.ReadFromJsonAsync<MeAjudaAi.Application.DTOs.Common.MensagemErroResponse>();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal("Execução não pode ser cancelada.", payload!.Mensagem);
+    }
+
     private static async Task<AuthResponse> LoginAdminAsync(HttpClient client)
     {
         var response = await client.PostAsJsonAsync("/api/auth/login", new
@@ -135,5 +197,28 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
 
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<AuthResponse>())!;
+    }
+
+    private async Task<Guid> CriarExecucaoAsync(
+        StatusExecucaoBackgroundJob status,
+        DateTime? processarAposUtc = null)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var execucao = new BackgroundJobExecucao
+        {
+            JobId = "notificacoes-retencao",
+            NomeJob = "Retenção de notificações internas",
+            Origem = "teste",
+            Status = status,
+            ProcessarAposUtc = processarAposUtc,
+            MensagemResultado = "Execução de teste."
+        };
+
+        context.BackgroundJobsExecucoes.Add(execucao);
+        await context.SaveChangesAsync();
+
+        return execucao.Id;
     }
 }

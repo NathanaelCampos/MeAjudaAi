@@ -121,4 +121,66 @@ public class AdminJobService : IAdminJobService
             ProcessadoEm = DateTime.UtcNow
         };
     }
+
+    public async Task<BackgroundJobFilaItemResponse?> CancelarExecucaoAsync(Guid execucaoId, CancellationToken cancellationToken = default)
+    {
+        var execucao = await _context.BackgroundJobsExecucoes
+            .FirstOrDefaultAsync(x => x.Id == execucaoId && x.Ativo, cancellationToken);
+
+        if (execucao is null)
+            return null;
+
+        if (execucao.Status == StatusExecucaoBackgroundJob.Sucesso || execucao.Status == StatusExecucaoBackgroundJob.Cancelado)
+            return null;
+
+        execucao.Status = StatusExecucaoBackgroundJob.Cancelado;
+        execucao.ProcessarAposUtc = null;
+        execucao.DataAtualizacao = DateTime.UtcNow;
+        execucao.MensagemResultado = "Execução cancelada manualmente.";
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return MapearFila(execucao);
+    }
+
+    public async Task<BackgroundJobFilaItemResponse?> ReabrirExecucaoAsync(Guid execucaoId, CancellationToken cancellationToken = default)
+    {
+        var execucao = await _context.BackgroundJobsExecucoes
+            .FirstOrDefaultAsync(x => x.Id == execucaoId && x.Ativo, cancellationToken);
+
+        if (execucao is null)
+            return null;
+
+        if (execucao.Status == StatusExecucaoBackgroundJob.Processando || execucao.Status == StatusExecucaoBackgroundJob.Pendente)
+            return null;
+
+        execucao.Status = StatusExecucaoBackgroundJob.Pendente;
+        execucao.ProcessarAposUtc = DateTime.UtcNow;
+        execucao.DataInicioProcessamento = null;
+        execucao.DataFinalizacao = null;
+        execucao.MensagemResultado = "Execução reaberta manualmente.";
+        execucao.DataAtualizacao = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return MapearFila(execucao);
+    }
+
+    private static BackgroundJobFilaItemResponse MapearFila(BackgroundJobExecucao x)
+    {
+        return new BackgroundJobFilaItemResponse
+        {
+            ExecucaoId = x.Id,
+            JobId = x.JobId,
+            NomeJob = x.NomeJob,
+            Origem = x.Origem,
+            SolicitadoPorAdminUsuarioId = x.SolicitadoPorAdminUsuarioId,
+            Status = x.Status.ToString(),
+            TentativasProcessamento = x.TentativasProcessamento,
+            RegistrosProcessados = x.RegistrosProcessados,
+            ProcessarAposUtc = x.ProcessarAposUtc,
+            DataInicioProcessamento = x.DataInicioProcessamento,
+            DataFinalizacao = x.DataFinalizacao,
+            MensagemResultado = x.MensagemResultado,
+            DataCriacao = x.DataCriacao
+        };
+    }
 }

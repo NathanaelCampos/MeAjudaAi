@@ -105,9 +105,20 @@ public class BackgroundJobQueueProcessor : BackgroundService, IBackgroundJobQueu
             }
             catch (Exception ex)
             {
-                execucao.Status = StatusExecucaoBackgroundJob.Falha;
+                if (execucao.TentativasProcessamento >= Math.Max(1, _options.Value.MaxTentativas))
+                {
+                    execucao.Status = StatusExecucaoBackgroundJob.Cancelado;
+                    execucao.ProcessarAposUtc = null;
+                    execucao.MensagemResultado = $"Execução cancelada após atingir o limite de tentativas. Último erro: {ex.Message}";
+                }
+                else
+                {
+                    execucao.Status = StatusExecucaoBackgroundJob.Falha;
+                    execucao.ProcessarAposUtc = DateTime.UtcNow.AddSeconds(Math.Max(5, _options.Value.AtrasoBaseSegundos) * execucao.TentativasProcessamento);
+                    execucao.MensagemResultado = ex.Message;
+                }
+
                 execucao.DataFinalizacao = DateTime.UtcNow;
-                execucao.MensagemResultado = ex.Message;
                 execucao.DataAtualizacao = DateTime.UtcNow;
             }
         }

@@ -71,4 +71,30 @@ public class AdminJobsController : ControllerBase
         var response = await _adminJobService.ProcessarFilaAsync(cancellationToken);
         return Ok(response);
     }
+
+    [HttpPut("fila/{execucaoId:guid}/cancelar")]
+    [ProducesResponseType(typeof(BackgroundJobFilaItemResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CancelarExecucao(Guid execucaoId, CancellationToken cancellationToken = default)
+    {
+        var response = await _adminJobService.CancelarExecucaoAsync(execucaoId, cancellationToken);
+        if (response is null)
+            return BadRequest(new MensagemErroResponse { Mensagem = "Execução não pode ser cancelada." });
+
+        return Ok(response);
+    }
+
+    [HttpPut("fila/{execucaoId:guid}/reabrir")]
+    [ProducesResponseType(typeof(BackgroundJobFilaItemResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ReabrirExecucao(Guid execucaoId, CancellationToken cancellationToken = default)
+    {
+        var response = await _adminJobService.ReabrirExecucaoAsync(execucaoId, cancellationToken);
+        if (response is null)
+            return BadRequest(new MensagemErroResponse { Mensagem = "Execução não pode ser reaberta." });
+
+        return Ok(response);
+    }
 }
