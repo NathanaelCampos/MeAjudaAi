@@ -164,6 +164,28 @@ public class AdminJobService : IAdminJobService
         return MapearFila(execucao);
     }
 
+    public async Task<BackgroundJobFilaMetricasResponse> ObterMetricasAsync(CancellationToken cancellationToken = default)
+    {
+        var execucoes = await _context.BackgroundJobsExecucoes
+            .AsNoTracking()
+            .Where(x => x.Ativo)
+            .ToListAsync(cancellationToken);
+
+        var response = new BackgroundJobFilaMetricasResponse
+        {
+            TotalPendentes = execucoes.Count(x => x.Status == StatusExecucaoBackgroundJob.Pendente),
+            TotalProcessando = execucoes.Count(x => x.Status == StatusExecucaoBackgroundJob.Processando),
+            TotalSucesso = execucoes.Count(x => x.Status == StatusExecucaoBackgroundJob.Sucesso),
+            TotalFalhas = execucoes.Count(x => x.Status == StatusExecucaoBackgroundJob.Falha),
+            TotalCancelados = execucoes.Count(x => x.Status == StatusExecucaoBackgroundJob.Cancelado),
+            PorJob = execucoes
+                .GroupBy(x => x.JobId)
+                .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase)
+        };
+
+        return response;
+    }
+
     private static BackgroundJobFilaItemResponse MapearFila(BackgroundJobExecucao x)
     {
         return new BackgroundJobFilaItemResponse

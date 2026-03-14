@@ -130,6 +130,33 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
     }
 
     [Fact]
+    public async Task Metricas_DeveReportarContagemPorStatus()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Pendente);
+        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Processando);
+        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Sucesso);
+        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Falha);
+        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Cancelado);
+
+        var response = await adminClient.GetAsync("/api/admin/jobs/fila/metricas");
+        var payload = await response.Content.ReadFromJsonAsync<BackgroundJobFilaMetricasResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal(1, payload!.TotalPendentes);
+        Assert.Equal(1, payload.TotalProcessando);
+        Assert.Equal(1, payload.TotalSucesso);
+        Assert.Equal(1, payload.TotalFalhas);
+        Assert.Equal(1, payload.TotalCancelados);
+        Assert.Contains("notificacoes-retencao", payload.PorJob.Keys);
+    }
+
+    [Fact]
     public async Task CancelarExecucao_DeveAtualizarStatusParaCancelado()
     {
         using var adminClient = Factory.CreateClient();

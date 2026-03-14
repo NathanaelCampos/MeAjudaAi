@@ -97,4 +97,13 @@ public class AdminJobsController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpGet("fila/metricas")]
+    [ProducesResponseType(typeof(BackgroundJobFilaMetricasResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterMetricas(CancellationToken cancellationToken = default)
+    {
+        var response = await _adminJobService.ObterMetricasAsync(cancellationToken);
+        return Ok(response);
+    }
 }
