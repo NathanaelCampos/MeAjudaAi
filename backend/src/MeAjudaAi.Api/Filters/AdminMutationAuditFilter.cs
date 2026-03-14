@@ -84,8 +84,23 @@ public class AdminMutationAuditFilter : IAsyncActionFilter
 
     private static bool DeveIgnorar(string path)
     {
-        return path.StartsWith("/api/admin/usuarios/", StringComparison.OrdinalIgnoreCase) ||
-               path.StartsWith("/api/admin/profissionais/", StringComparison.OrdinalIgnoreCase);
+        return EhMutacaoUsuariosAuditadaManualmente(path) || EhMutacaoProfissionaisAuditadaManualmente(path);
+    }
+
+    private static bool EhMutacaoUsuariosAuditadaManualmente(string path)
+    {
+        return path.StartsWith("/api/admin/usuarios/", StringComparison.OrdinalIgnoreCase) &&
+               (path.EndsWith("/bloquear", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("/desbloquear", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool EhMutacaoProfissionaisAuditadaManualmente(string path)
+    {
+        return path.StartsWith("/api/admin/profissionais/", StringComparison.OrdinalIgnoreCase) &&
+               (path.EndsWith("/verificar", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("/desverificar", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("/ativar", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith("/desativar", StringComparison.OrdinalIgnoreCase));
     }
 
     private static string MapearEntidade(string controller)

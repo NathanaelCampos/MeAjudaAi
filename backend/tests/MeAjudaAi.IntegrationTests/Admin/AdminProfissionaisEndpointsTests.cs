@@ -112,7 +112,7 @@ public class AdminProfissionaisEndpointsTests : IntegrationTestBase, IClassFixtu
     }
 
     [Fact]
-    public async Task AtivarProfissional_DevePermitirNovoLogin()
+    public async Task AtivarProfissional_NaoDeveReativarUsuarioBloqueadoAutomaticamente()
     {
         using var profissionalClient = _factory.CreateClient();
         using var adminClient = _factory.CreateClient();
@@ -137,7 +137,18 @@ public class AdminProfissionaisEndpointsTests : IntegrationTestBase, IClassFixtu
             Senha = profissional.Senha
         });
 
-        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, login.StatusCode);
+
+        var desbloquear = await adminClient.PutAsync($"/api/admin/usuarios/{profissional.Auth.UsuarioId}/desbloquear", null);
+        Assert.Equal(HttpStatusCode.OK, desbloquear.StatusCode);
+
+        var loginDesbloqueado = await profissionalClient.PostAsJsonAsync("/api/auth/login", new LoginRequest
+        {
+            Email = profissional.Email,
+            Senha = profissional.Senha
+        });
+
+        Assert.Equal(HttpStatusCode.OK, loginDesbloqueado.StatusCode);
     }
 
     [Fact]

@@ -18,9 +18,9 @@ public class AdminDashboardResponse
     public string EixoComparativoPrincipal { get; set; } = string.Empty;
     public decimal? VariacaoComparativaPrincipal { get; set; }
     public string DirecaoComparativaPrincipal { get; set; } = "indisponivel";
-    public string StatusComparativoPrincipal { get; set; } = "neutro";
-    public string IndicadorComparativoPrincipal { get; set; } = "amarelo";
-    public string PrioridadeComparativaPrincipal { get; set; } = "media";
+    public string StatusComparativoPrincipal { get; set; } = "indisponivel";
+    public string IndicadorComparativoPrincipal { get; set; } = "cinza";
+    public string PrioridadeComparativaPrincipal { get; set; } = "baixa";
     public string AcaoComparativaPrincipal { get; set; } = string.Empty;
     public string LinkComparativoPrincipal { get; set; } = "/admin/dashboard";
     public string TooltipComparativoPrincipal { get; set; } = string.Empty;

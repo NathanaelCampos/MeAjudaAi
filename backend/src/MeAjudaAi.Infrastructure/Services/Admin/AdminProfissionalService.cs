@@ -314,9 +314,9 @@ public class AdminProfissionalService : IAdminProfissionalService
         profissional.DataAtualizacao = DateTime.UtcNow;
 
         var usuario = await _context.Usuarios.FirstOrDefaultAsync(x => x.Id == profissional.UsuarioId, cancellationToken);
-        if (usuario is not null)
+        if (usuario is not null && !ativo)
         {
-            usuario.Ativo = ativo;
+            usuario.Ativo = false;
             usuario.DataAtualizacao = DateTime.UtcNow;
         }
 

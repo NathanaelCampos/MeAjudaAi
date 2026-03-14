@@ -529,6 +529,27 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
     }
 
     [Fact]
+    public async Task Obter_SemPresetComparativo_DeveSinalizarComparativoIndisponivel()
+    {
+        using var adminClient = _factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var response = await adminClient.GetAsync("/api/admin/dashboard");
+        var payload = await response.Content.ReadFromJsonAsync<AdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.False(payload!.InsightComparativoPrincipal.Disponivel);
+        Assert.Equal("indisponivel", payload.StatusComparativoPrincipal);
+        Assert.Equal("cinza", payload.IndicadorComparativoPrincipal);
+        Assert.Equal("baixa", payload.PrioridadeComparativaPrincipal);
+        Assert.Equal("Selecionar preset comparavel", payload.AcaoComparativaPrincipal);
+        Assert.Equal("/admin/dashboard", payload.LinkComparativoPrincipal);
+    }
+
+    [Fact]
     public async Task Obter_ComPresetPeriodo_DeveCompararContraJanelaAnteriorSemIncluirPeriodoAtual()
     {
         using var adminClient = _factory.CreateClient();

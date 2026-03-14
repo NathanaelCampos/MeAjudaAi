@@ -860,7 +860,10 @@ public class AdminDashboardService : IAdminDashboardService
 
     private static string CriarStatusComparativoPreset(AdminDashboardResumoComparativoPresetResponse resumoComparativo)
     {
-        if (!resumoComparativo.Disponivel || resumoComparativo.DirecaoPrincipal == "estavel")
+        if (!resumoComparativo.Disponivel)
+            return "indisponivel";
+
+        if (resumoComparativo.DirecaoPrincipal == "estavel")
             return "neutro";
 
         var eixosVolumePositivo = new HashSet<string>(StringComparer.Ordinal)
@@ -883,6 +886,7 @@ public class AdminDashboardService : IAdminDashboardService
     {
         return statusComparativo switch
         {
+            "indisponivel" => "cinza",
             "positivo" => "verde",
             "negativo" => "vermelho",
             _ => "amarelo"
@@ -893,6 +897,7 @@ public class AdminDashboardService : IAdminDashboardService
     {
         return statusComparativo switch
         {
+            "indisponivel" => "baixa",
             "positivo" => "baixa",
             "negativo" => "alta",
             _ => "media"
