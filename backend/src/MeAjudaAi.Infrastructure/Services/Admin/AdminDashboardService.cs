@@ -40,6 +40,7 @@ public class AdminDashboardService : IAdminDashboardService
             ? request.JanelaSerieDias.Value
             : janelaSeriePreset ?? _options.JanelaSerieDias;
         var janelaAcaoAdminRecente = TimeSpan.FromHours(janelaAcaoAdminRecenteHoras);
+        var inicioJanelaAcaoAdminRecente = agora.Subtract(janelaAcaoAdminRecente);
         var janelaQualidadeOperacional = TimeSpan.FromDays(janelaQualidadeDias);
         var inicioJanelaQualidade = agora.Subtract(janelaQualidadeOperacional);
         var inicioJanelaSerie = hoje.AddDays(-(janelaSerieDias - 1));
@@ -417,6 +418,7 @@ public class AdminDashboardService : IAdminDashboardService
 
         var topAdminsAtivos = await _context.AuditoriasAdminAcoes
             .AsNoTracking()
+            .Where(x => x.DataCriacao >= inicioJanelaAcaoAdminRecente)
             .Include(x => x.AdminUsuario)
             .GroupBy(x => new { x.AdminUsuarioId, x.AdminUsuario.Nome, x.AdminUsuario.Email })
             .Select(x => new AdminDashboardAdminAtivoItemResponse

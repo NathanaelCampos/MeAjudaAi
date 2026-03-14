@@ -401,6 +401,41 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
     }
 
     [Fact]
+    public async Task Obter_DeveIgnorarTopAdminsAtivosForaDaJanelaRecente()
+    {
+        using var adminClient = _factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var adminUsuario = await context.Usuarios.FirstAsync(x => x.Id == admin.UsuarioId);
+
+            context.AuditoriasAdminAcoes.Add(new AuditoriaAdminAcao
+            {
+                AdminUsuarioId = adminUsuario.Id,
+                Entidade = "dashboard",
+                EntidadeId = Guid.NewGuid(),
+                Acao = "acao-antiga",
+                Descricao = "Acao antiga para top admins",
+                PayloadJson = "{}",
+                DataCriacao = DateTime.UtcNow.AddDays(-5)
+            });
+
+            await context.SaveChangesAsync();
+        }
+
+        var response = await adminClient.GetAsync("/api/admin/dashboard");
+        var payload = await response.Content.ReadFromJsonAsync<AdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Empty(payload!.TopAdminsAtivos);
+    }
+
+    [Fact]
     public async Task Obter_ComJanelaSerieDiasCustomizada_DeveRefletirConfiguracaoEfetiva()
     {
         using var adminClient = _factory.CreateClient();
