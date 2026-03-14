@@ -294,6 +294,36 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
     }
 
     [Fact]
+    public async Task Alertas_DeveRetornarJobsComFilaLongaOuFalhas()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var agora = DateTime.UtcNow;
+        await CriarExecucaoAsync(
+            StatusExecucaoBackgroundJob.Falha,
+            dataInicioProcessamento: agora.AddSeconds(-30),
+            dataFinalizacao: agora.AddSeconds(-20),
+            jobId: "critico-falha",
+            dataCriacao: agora.AddSeconds(-40));
+
+        await CriarExecucaoAsync(
+            StatusExecucaoBackgroundJob.Pendente,
+            jobId: "critico-fila",
+            dataCriacao: agora.AddSeconds(-90));
+
+        var response = await adminClient.GetAsync("/api/admin/jobs/fila/alertas");
+        var payload = await response.Content.ReadFromJsonAsync<List<BackgroundJobFilaAlertaResponse>>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Contains(payload!, x => x.JobId == "critico-falha" && x.NivelAlerta == "Falhas");
+        Assert.Contains(payload, x => x.JobId == "critico-fila");
+    }
+
+    [Fact]
     public async Task CancelarExecucao_DeveAtualizarStatusParaCancelado()
     {
         using var adminClient = Factory.CreateClient();

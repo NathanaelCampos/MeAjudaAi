@@ -132,4 +132,13 @@ public class AdminJobsController : ControllerBase
         var response = await _adminJobService.ObterMetricasAsync(cancellationToken);
         return Ok(response);
     }
+
+    [HttpGet("fila/alertas")]
+    [ProducesResponseType(typeof(IReadOnlyList<BackgroundJobFilaAlertaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterAlertas(CancellationToken cancellationToken = default)
+    {
+        var response = await _adminJobService.ObterAlertasFilaAsync(cancellationToken);
+        return Ok(response);
+    }
 }

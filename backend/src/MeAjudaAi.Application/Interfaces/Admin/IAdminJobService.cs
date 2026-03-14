@@ -13,5 +13,6 @@ public interface IAdminJobService
     Task<BackgroundJobFilaItemResponse?> CancelarExecucaoAsync(Guid execucaoId, CancellationToken cancellationToken = default);
     Task<BackgroundJobFilaItemResponse?> ReabrirExecucaoAsync(Guid execucaoId, CancellationToken cancellationToken = default);
     Task<BackgroundJobFilaMetricasResponse> ObterMetricasAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<BackgroundJobFilaAlertaResponse>> ObterAlertasFilaAsync(CancellationToken cancellationToken = default);
     Task<CancelarBackgroundJobAdminResponse> CancelarPorJobAsync(string jobId, CancellationToken cancellationToken = default);
 }

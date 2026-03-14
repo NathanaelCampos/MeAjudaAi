@@ -127,6 +127,20 @@ public static class InfrastructureDependencyInjection
                 : 60;
         });
 
+        var jobsAlertSection = configuration.GetSection("Jobs:Alertas");
+        services.Configure<JobsAlertOptions>(options =>
+        {
+            options.Habilitado = bool.TryParse(jobsAlertSection["Habilitado"], out var habilitado)
+                ? habilitado
+                : true;
+            options.TempoEsperaLimiteSegundos = double.TryParse(jobsAlertSection["TempoEsperaLimiteSegundos"], out var espera)
+                ? Math.Max(espera, 1)
+                : 30;
+            options.TempoProcessamentoLimiteSegundos = double.TryParse(jobsAlertSection["TempoProcessamentoLimiteSegundos"], out var processamento)
+                ? Math.Max(processamento, 1)
+                : 30;
+        });
+
         services.AddScoped<IHashSenhaService, HashSenhaService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthService, AuthService>();

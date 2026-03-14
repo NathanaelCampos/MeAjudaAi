@@ -1,10 +1,15 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using MeAjudaAi.Application.DTOs.Admin;
 using MeAjudaAi.Application.Interfaces.Admin;
 using MeAjudaAi.Application.Interfaces.Jobs;
 using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
+using MeAjudaAi.Infrastructure.Configurations;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace MeAjudaAi.Infrastructure.Services.Admin;
 
@@ -14,17 +19,20 @@ public class AdminJobService : IAdminJobService
     private readonly AppDbContext _context;
     private readonly IBackgroundJobExecutionMetricsService _metricsService;
     private readonly IBackgroundJobQueueProcessor _queueProcessor;
+    private readonly JobsAlertOptions _alertOptions;
 
     public AdminJobService(
         AppDbContext context,
         IEnumerable<IBackgroundJobProcessor> jobs,
         IBackgroundJobExecutionMetricsService metricsService,
-        IBackgroundJobQueueProcessor queueProcessor)
+        IBackgroundJobQueueProcessor queueProcessor,
+        IOptions<JobsAlertOptions> alertOptions)
     {
         _context = context;
         _jobs = jobs;
         _metricsService = metricsService;
         _queueProcessor = queueProcessor;
+        _alertOptions = alertOptions.Value;
     }
 
     public Task<IReadOnlyList<BackgroundJobAdminItemResponse>> ListarAsync(CancellationToken cancellationToken = default)
@@ -264,6 +272,71 @@ public class AdminJobService : IAdminJobService
         };
 
         return response;
+    }
+
+    public async Task<IReadOnlyList<BackgroundJobFilaAlertaResponse>> ObterAlertasFilaAsync(CancellationToken cancellationToken = default)
+    {
+        if (!_alertOptions.Habilitado)
+            return Array.Empty<BackgroundJobFilaAlertaResponse>();
+
+        var agora = DateTime.UtcNow;
+        var execucoes = await _context.BackgroundJobsExecucoes
+            .AsNoTracking()
+            .Where(x => x.Ativo)
+            .ToListAsync(cancellationToken);
+
+        var alerts = execucoes
+            .GroupBy(x => x.JobId, StringComparer.OrdinalIgnoreCase)
+            .Select(g =>
+            {
+                var tempoFila = g
+                    .Where(x => x.Status == StatusExecucaoBackgroundJob.Pendente)
+                    .Select(x => (agora - x.DataCriacao).TotalSeconds);
+
+                var tempoProcessamento = g
+                    .Where(x => x.DataInicioProcessamento.HasValue && x.DataFinalizacao.HasValue)
+                    .Select(x => (x.DataFinalizacao!.Value - x.DataInicioProcessamento!.Value).TotalSeconds);
+
+                var totalPendentes = g.Count(x => x.Status == StatusExecucaoBackgroundJob.Pendente);
+                var totalFalhas = g.Count(x => x.Status == StatusExecucaoBackgroundJob.Falha);
+
+                return new
+                {
+                    JobId = g.Key,
+                    TempoFilaMedio = tempoFila.Any() ? tempoFila.Average() : 0d,
+                    TempoProcessamentoMedio = tempoProcessamento.Any() ? tempoProcessamento.Average() : 0d,
+                    totalPendentes,
+                    totalFalhas
+                };
+            })
+            .Where(x => x.TempoFilaMedio >= _alertOptions.TempoEsperaLimiteSegundos ||
+                        x.TempoProcessamentoMedio >= _alertOptions.TempoProcessamentoLimiteSegundos ||
+                        x.totalFalhas > 0)
+            .Select(x =>
+            {
+                var nivel = BuildNivelAlerta(x.TempoFilaMedio, x.TempoProcessamentoMedio, x.totalFalhas);
+                return new BackgroundJobFilaAlertaResponse
+                {
+                    JobId = x.JobId,
+                    TempoMedioFilaSegundos = x.TempoFilaMedio,
+                    TempoMedioProcessamentoSegundos = x.TempoProcessamentoMedio,
+                    TotalPendentes = x.totalPendentes,
+                    TotalFalhas = x.totalFalhas,
+                    NivelAlerta = nivel
+                };
+            })
+            .ToList();
+
+        return alerts.AsReadOnly();
+    }
+
+    private static string BuildNivelAlerta(double tempoFila, double tempoProcessamento, int totalFalhas)
+    {
+        if (totalFalhas > 0)
+            return "Falhas";
+        if (tempoFila > tempoProcessamento)
+            return "Fila longa";
+        return "Processamento lento";
     }
 
     public async Task<CancelarBackgroundJobAdminResponse> CancelarPorJobAsync(string jobId, CancellationToken cancellationToken = default)
