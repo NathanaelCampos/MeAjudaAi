@@ -38,12 +38,34 @@ public class AdminJobService : IAdminJobService
         return Task.FromResult<IReadOnlyList<BackgroundJobAdminItemResponse>>(itens);
     }
 
-    public async Task<IReadOnlyList<BackgroundJobFilaItemResponse>> ListarFilaAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BackgroundJobFilaItemResponse>> ListarFilaAsync(string? jobId = null, string? status = null, int? limit = null, CancellationToken cancellationToken = default)
     {
-        var itens = await _context.BackgroundJobsExecucoes
+        var query = _context.BackgroundJobsExecucoes
             .AsNoTracking()
             .OrderByDescending(x => x.DataCriacao)
-            .Take(100)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(jobId))
+        {
+            query = query.Where(x => x.JobId == jobId);
+        }
+
+        var statusEnum = ParseStatus(status);
+        if (statusEnum != null)
+        {
+            query = query.Where(x => x.Status == statusEnum.Value);
+        }
+
+        if (limit.HasValue && limit.Value > 0)
+        {
+            query = query.Take(limit.Value);
+        }
+        else
+        {
+            query = query.Take(100);
+        }
+
+        var itens = await query
             .Select(x => new BackgroundJobFilaItemResponse
             {
                 ExecucaoId = x.Id,
@@ -63,6 +85,17 @@ public class AdminJobService : IAdminJobService
             .ToListAsync(cancellationToken);
 
         return itens.AsReadOnly();
+    }
+
+    private static StatusExecucaoBackgroundJob? ParseStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+            return null;
+
+        if (Enum.TryParse<StatusExecucaoBackgroundJob>(status, ignoreCase: true, out var resultado))
+            return resultado;
+
+        return null;
     }
 
     public async Task<ExecutarBackgroundJobAdminResponse?> ExecutarAsync(string jobId, CancellationToken cancellationToken = default)

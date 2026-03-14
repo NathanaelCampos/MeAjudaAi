@@ -31,9 +31,9 @@ public class AdminJobsController : ControllerBase
     [HttpGet("fila")]
     [ProducesResponseType(typeof(IReadOnlyList<BackgroundJobFilaItemResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ListarFila(CancellationToken cancellationToken = default)
+    public async Task<IActionResult> ListarFila([FromQuery] string? jobId = null, [FromQuery] string? status = null, [FromQuery] int? limit = null, CancellationToken cancellationToken = default)
     {
-        var response = await _adminJobService.ListarFilaAsync(cancellationToken);
+        var response = await _adminJobService.ListarFilaAsync(jobId, status, limit, cancellationToken);
         return Ok(response);
     }
 

@@ -137,6 +137,28 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
     }
 
     [Fact]
+    public async Task ListarFila_FiltraPorJobIdEStatus()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Pendente, jobId: "notificacoes-retencao");
+        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Falha, jobId: "notificacoes-retencao");
+        await CriarExecucaoAsync(StatusExecucaoBackgroundJob.Pendente, jobId: "emails-outbox");
+
+        var response = await adminClient.GetAsync("/api/admin/jobs/fila?jobId=notificacoes-retencao&status=Falha&limit=2");
+        var payload = await response.Content.ReadFromJsonAsync<List<BackgroundJobFilaItemResponse>>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Single(payload!);
+        Assert.Equal("Falha", payload[0].Status);
+        Assert.Equal("notificacoes-retencao", payload[0].JobId);
+    }
+
+    [Fact]
     public async Task ProcessarFila_DeveExecutarPendentes()
     {
         using var adminClient = Factory.CreateClient();
