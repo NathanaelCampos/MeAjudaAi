@@ -8,4 +8,6 @@ public class BackgroundJobFilaAlertaResponse
     public int TotalPendentes { get; set; }
     public int TotalFalhas { get; set; }
     public string NivelAlerta { get; set; } = string.Empty;
+    public string Mensagem { get; set; } = string.Empty;
+    public string Cor { get; set; } = "#FF0000";
 }

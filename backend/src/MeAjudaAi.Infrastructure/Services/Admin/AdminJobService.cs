@@ -315,6 +315,7 @@ public class AdminJobService : IAdminJobService
             .Select(x =>
             {
                 var nivel = BuildNivelAlerta(x.TempoFilaMedio, x.TempoProcessamentoMedio, x.totalFalhas);
+                var (mensagem, cor) = BuildMensagemCor(nivel);
                 return new BackgroundJobFilaAlertaResponse
                 {
                     JobId = x.JobId,
@@ -322,7 +323,9 @@ public class AdminJobService : IAdminJobService
                     TempoMedioProcessamentoSegundos = x.TempoProcessamentoMedio,
                     TotalPendentes = x.totalPendentes,
                     TotalFalhas = x.totalFalhas,
-                    NivelAlerta = nivel
+                    NivelAlerta = nivel,
+                    Mensagem = mensagem,
+                    Cor = cor
                 };
             })
             .ToList();
@@ -337,6 +340,17 @@ public class AdminJobService : IAdminJobService
         if (tempoFila > tempoProcessamento)
             return "Fila longa";
         return "Processamento lento";
+    }
+
+    private static (string Mensagem, string Cor) BuildMensagemCor(string nivel)
+    {
+        return nivel switch
+        {
+            "Falhas" => ("Há execuções com falhas recentes; verifique logs e retries.", "#D32F2F"),
+            "Fila longa" => ("Fila crescendo; talvez aumentar workers ou ajustar lote.", "#F57C00"),
+            "Processamento lento" => ("Jobs com tempo de processamento alto; revisar desempenho.", "#1976D2"),
+            _ => ("Nenhum alerta crítico.", "#4CAF50")
+        };
     }
 
     public async Task<CancelarBackgroundJobAdminResponse> CancelarPorJobAsync(string jobId, CancellationToken cancellationToken = default)

@@ -319,7 +319,11 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.NotNull(payload);
-        Assert.Contains(payload!, x => x.JobId == "critico-falha" && x.NivelAlerta == "Falhas");
+        var alertaFalhas = Assert.Single(payload!, x => x.JobId == "critico-falha");
+        Assert.Equal("Falhas", alertaFalhas.NivelAlerta);
+        Assert.Equal("#D32F2F", alertaFalhas.Cor);
+        Assert.Contains("falhas", alertaFalhas.Mensagem.ToLowerInvariant());
+
         Assert.Contains(payload, x => x.JobId == "critico-fila");
     }
 
