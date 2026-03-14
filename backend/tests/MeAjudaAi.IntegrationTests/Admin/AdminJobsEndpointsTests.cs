@@ -7,6 +7,8 @@ using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using MeAjudaAi.IntegrationTests.Infrastructure;
+using MeAjudaAi.IntegrationTests.Jobs;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MeAjudaAi.IntegrationTests.Admin;
@@ -130,6 +132,37 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
     }
 
     [Fact]
+    public async Task ProcessarFila_ReprocessaExecucaoFalhaAgendada()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var execucaoId = await CriarExecucaoAsync(
+            StatusExecucaoBackgroundJob.Falha,
+            processarAposUtc: DateTime.UtcNow.AddSeconds(-1),
+            jobId: IntegrationTestQueueJobProcessor.JobIdConst,
+            nomeJob: "Job de teste da fila",
+            tentativasProcessamento: 1);
+
+        var response = await adminClient.PostAsync("/api/admin/jobs/fila/processar", null);
+        response.EnsureSuccessStatusCode();
+
+        Assert.Equal(1, IntegrationTestQueueJobProcessor.ExecutionCount);
+
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var execucao = await context.BackgroundJobsExecucoes.FirstAsync(x => x.Id == execucaoId);
+
+        Assert.Equal(StatusExecucaoBackgroundJob.Sucesso, execucao.Status);
+        Assert.Equal(2, execucao.TentativasProcessamento);
+        Assert.Null(execucao.ProcessarAposUtc);
+        Assert.Equal("Execução concluída com sucesso.", execucao.MensagemResultado);
+        Assert.Equal(1, execucao.RegistrosProcessados);
+    }
+
+    [Fact]
     public async Task Metricas_DeveReportarContagemPorStatus()
     {
         using var adminClient = Factory.CreateClient();
@@ -228,18 +261,22 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
 
     private async Task<Guid> CriarExecucaoAsync(
         StatusExecucaoBackgroundJob status,
-        DateTime? processarAposUtc = null)
+        DateTime? processarAposUtc = null,
+        string? jobId = null,
+        string? nomeJob = null,
+        int tentativasProcessamento = 0)
     {
         await using var scope = Factory.Services.CreateAsyncScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var execucao = new BackgroundJobExecucao
         {
-            JobId = "notificacoes-retencao",
-            NomeJob = "Retenção de notificações internas",
+            JobId = jobId ?? "notificacoes-retencao",
+            NomeJob = nomeJob ?? "Retenção de notificações internas",
             Origem = "teste",
             Status = status,
             ProcessarAposUtc = processarAposUtc,
+            TentativasProcessamento = tentativasProcessamento,
             MensagemResultado = "Execução de teste."
         };
 

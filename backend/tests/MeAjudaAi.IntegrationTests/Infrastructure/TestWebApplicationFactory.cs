@@ -1,8 +1,10 @@
 using MeAjudaAi.Domain.Entities;
 using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.Application.Interfaces.Impulsionamentos;
+using MeAjudaAi.Application.Interfaces.Jobs;
 using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
+using MeAjudaAi.IntegrationTests.Jobs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -72,6 +74,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>, IAsyncL
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlite(_connection));
 
+            services.AddSingleton<IntegrationTestQueueJobProcessor>();
+            services.AddSingleton<IBackgroundJobProcessor>(sp => sp.GetRequiredService<IntegrationTestQueueJobProcessor>());
+
             var serviceProvider = services.BuildServiceProvider();
 
             using var scope = serviceProvider.CreateScope();
@@ -139,6 +144,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>, IAsyncL
         metricsService.Reset();
         var retentionMetricsService = scope.ServiceProvider.GetRequiredService<INotificacaoRetentionMetricsService>();
         retentionMetricsService.Reset();
+        IntegrationTestQueueJobProcessor.Reset();
 
         var uploadsPath = Path.Combine(_contentRootPath, "Uploads");
         if (Directory.Exists(uploadsPath))

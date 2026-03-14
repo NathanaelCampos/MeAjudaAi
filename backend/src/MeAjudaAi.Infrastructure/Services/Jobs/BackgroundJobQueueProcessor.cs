@@ -63,7 +63,7 @@ public class BackgroundJobQueueProcessor : BackgroundService, IBackgroundJobQueu
         var pendentes = await context.Set<BackgroundJobExecucao>()
             .Where(x =>
                 x.Ativo &&
-                x.Status == StatusExecucaoBackgroundJob.Pendente &&
+                (x.Status == StatusExecucaoBackgroundJob.Pendente || x.Status == StatusExecucaoBackgroundJob.Falha) &&
                 (x.ProcessarAposUtc == null || x.ProcessarAposUtc <= agora))
             .OrderBy(x => x.DataCriacao)
             .Take(lote)
@@ -78,6 +78,7 @@ public class BackgroundJobQueueProcessor : BackgroundService, IBackgroundJobQueu
             execucao.DataInicioProcessamento = DateTime.UtcNow;
             execucao.TentativasProcessamento++;
             execucao.DataAtualizacao = DateTime.UtcNow;
+            execucao.ProcessarAposUtc = null;
         }
 
         await context.SaveChangesAsync(cancellationToken);
