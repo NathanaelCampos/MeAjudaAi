@@ -491,8 +491,8 @@ public class AdminDashboardService : IAdminDashboardService
             comparativoAvaliacoes,
             comparativoWebhooks,
             comparativoEmails);
-        var insightComparativoPrincipal = CriarInsightComparativoPreset(resumoComparativoPreset);
         var statusComparativoPrincipal = CriarStatusComparativoPreset(resumoComparativoPreset);
+        var insightComparativoPrincipal = CriarInsightComparativoPreset(resumoComparativoPreset, statusComparativoPrincipal);
         var indicadorComparativoPrincipal = CriarIndicadorComparativoPreset(statusComparativoPrincipal);
         var prioridadeComparativaPrincipal = CriarPrioridadeComparativaPreset(statusComparativoPrincipal);
         var acaoComparativaPrincipal = CriarAcaoComparativaPreset(resumoComparativoPreset);
@@ -818,7 +818,8 @@ public class AdminDashboardService : IAdminDashboardService
     }
 
     private static AdminDashboardInsightComparativoPresetResponse CriarInsightComparativoPreset(
-        AdminDashboardResumoComparativoPresetResponse resumoComparativo)
+        AdminDashboardResumoComparativoPresetResponse resumoComparativo,
+        string statusComparativo)
     {
         if (!resumoComparativo.Disponivel)
         {
@@ -831,10 +832,17 @@ public class AdminDashboardService : IAdminDashboardService
             };
         }
 
+        var titulo = statusComparativo switch
+        {
+            "positivo" => $"Comparativo favoravel com destaque para {resumoComparativo.EixoPrincipal}",
+            "negativo" => $"Comparativo exige atencao em {resumoComparativo.EixoPrincipal}",
+            _ => $"Comparativo estavel com destaque para {resumoComparativo.EixoPrincipal}"
+        };
+
         return new AdminDashboardInsightComparativoPresetResponse
         {
             Disponivel = true,
-            Titulo = $"Preset em {resumoComparativo.DirecaoPrincipal} com destaque para {resumoComparativo.EixoPrincipal}",
+            Titulo = titulo,
             Detalhe = resumoComparativo.Resumo,
             Recomendacao = resumoComparativo.Recomendacao
         };
