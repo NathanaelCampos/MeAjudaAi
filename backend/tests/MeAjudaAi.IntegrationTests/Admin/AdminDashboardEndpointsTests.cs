@@ -569,6 +569,41 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal(2, payload.ComparativoPresetAnterior.Servicos.TotalPresetAnterior);
     }
 
+    [Fact]
+    public async Task Obter_ComAumentoDeWebhooksNoPresetAtual_DeveClassificarComparativoComoNegativo()
+    {
+        using var adminClient = _factory.CreateClient();
+        using var profissionalClient = _factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        var profissional = await RegistrarProfissionalAsync(profissionalClient, "prof-dashboard-comparativo-webhook");
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        await using (var scope = _factory.Services.CreateAsyncScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var hoje = DateTime.UtcNow.Date;
+
+            context.WebhookPagamentoImpulsionamentoEventos.AddRange(
+                CriarWebhookDashboard(profissional.ProfissionalId, hoje.AddDays(-5), "evt-webhook-atual"),
+                CriarWebhookDashboard(profissional.ProfissionalId, hoje.AddDays(-6), "evt-webhook-atual-2"),
+                CriarWebhookDashboard(profissional.ProfissionalId, hoje.AddDays(-35), "evt-webhook-anterior"));
+
+            await context.SaveChangesAsync();
+        }
+
+        var response = await adminClient.GetAsync("/api/admin/dashboard?presetPeriodo=30d");
+        var payload = await response.Content.ReadFromJsonAsync<AdminDashboardResponse>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Equal("webhooks", payload!.EixoComparativoPrincipal);
+        Assert.Equal("alta", payload.DirecaoComparativaPrincipal);
+        Assert.Equal("negativo", payload.StatusComparativoPrincipal);
+        Assert.Equal("vermelho", payload.IndicadorComparativoPrincipal);
+        Assert.Equal("alta", payload.PrioridadeComparativaPrincipal);
+    }
+
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/pagamentos/impulsionamentos")
@@ -603,6 +638,27 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
             Descricao = "Servico para comparativo",
             ValorCombinado = 100m,
             Status = StatusServico.Solicitado,
+            DataCriacao = DateTime.SpecifyKind(dataCriacao, DateTimeKind.Utc)
+        };
+    }
+
+    private static WebhookPagamentoImpulsionamentoEvento CriarWebhookDashboard(Guid profissionalId, DateTime dataCriacao, string eventoExternoId)
+    {
+        return new WebhookPagamentoImpulsionamentoEvento
+        {
+            Id = Guid.NewGuid(),
+            Provedor = "manual",
+            EventoExternoId = $"{eventoExternoId}-{Guid.NewGuid():N}",
+            CodigoReferenciaPagamento = $"ref-{Guid.NewGuid():N}",
+            StatusPagamento = "pago",
+            PayloadJson = "{}",
+            HeadersJson = "{}",
+            IpOrigem = "127.0.0.1",
+            RequestId = $"req-{Guid.NewGuid():N}",
+            UserAgent = "integration-test",
+            ProcessadoComSucesso = false,
+            MensagemResultado = "Falha simulada para comparativo",
+            ImpulsionamentoProfissionalId = null,
             DataCriacao = DateTime.SpecifyKind(dataCriacao, DateTimeKind.Utc)
         };
     }

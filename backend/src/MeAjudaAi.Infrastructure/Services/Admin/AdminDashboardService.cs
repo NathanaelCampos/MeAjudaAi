@@ -845,10 +845,18 @@ public class AdminDashboardService : IAdminDashboardService
         if (!resumoComparativo.Disponivel || resumoComparativo.DirecaoPrincipal == "estavel")
             return "neutro";
 
+        var eixosVolumePositivo = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "servicos",
+            "avaliacoes"
+        };
+
+        var altaEhPositiva = eixosVolumePositivo.Contains(resumoComparativo.EixoPrincipal);
+
         return resumoComparativo.DirecaoPrincipal switch
         {
-            "alta" => "positivo",
-            "queda" => "negativo",
+            "alta" => altaEhPositiva ? "positivo" : "negativo",
+            "queda" => altaEhPositiva ? "negativo" : "positivo",
             _ => "neutro"
         };
     }
