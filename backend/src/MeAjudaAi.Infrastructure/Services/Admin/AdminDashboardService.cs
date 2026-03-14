@@ -202,7 +202,7 @@ public class AdminDashboardService : IAdminDashboardService
 
         var webhooksFalhosRecentes = await _context.WebhookPagamentoImpulsionamentoEventos
             .AsNoTracking()
-            .Where(x => !x.ProcessadoComSucesso)
+            .Where(x => !x.ProcessadoComSucesso && x.DataCriacao >= inicioJanelaQualidade)
             .OrderByDescending(x => x.DataCriacao)
             .Take(5)
             .Select(x => new AdminDashboardWebhookFalhoItemResponse
@@ -218,7 +218,7 @@ public class AdminDashboardService : IAdminDashboardService
 
         var emailsFalhosRecentes = await _context.EmailsNotificacoesOutbox
             .AsNoTracking()
-            .Where(x => x.Status == StatusEmailNotificacao.Falha)
+            .Where(x => x.Status == StatusEmailNotificacao.Falha && x.DataCriacao >= inicioJanelaQualidade)
             .OrderByDescending(x => x.DataCriacao)
             .Take(5)
             .Select(x => new AdminDashboardEmailFalhoItemResponse
@@ -271,14 +271,16 @@ public class AdminDashboardService : IAdminDashboardService
 
         var webhooksFalhosPorProfissional = await _context.WebhookPagamentoImpulsionamentoEventos
             .AsNoTracking()
-            .Where(x => !x.ProcessadoComSucesso && x.ImpulsionamentoProfissionalId != null)
+            .Where(x => !x.ProcessadoComSucesso &&
+                        x.ImpulsionamentoProfissionalId != null &&
+                        x.DataCriacao >= inicioJanelaQualidade)
             .GroupBy(x => x.ImpulsionamentoProfissional!.ProfissionalId)
             .Select(x => new { ProfissionalId = x.Key, Total = x.Count() })
             .ToDictionaryAsync(x => x.ProfissionalId, x => x.Total, cancellationToken);
 
         var emailsFalhosPorProfissional = await _context.EmailsNotificacoesOutbox
             .AsNoTracking()
-            .Where(x => x.Status == StatusEmailNotificacao.Falha)
+            .Where(x => x.Status == StatusEmailNotificacao.Falha && x.DataCriacao >= inicioJanelaQualidade)
             .Join(
                 _context.Profissionais.AsNoTracking(),
                 email => email.UsuarioId,
@@ -343,7 +345,7 @@ public class AdminDashboardService : IAdminDashboardService
 
         var emailsFalhosPorUsuario = await _context.EmailsNotificacoesOutbox
             .AsNoTracking()
-            .Where(x => x.Status == StatusEmailNotificacao.Falha)
+            .Where(x => x.Status == StatusEmailNotificacao.Falha && x.DataCriacao >= inicioJanelaQualidade)
             .GroupBy(x => x.UsuarioId)
             .Select(x => new { UsuarioId = x.Key, Total = x.Count() })
             .ToDictionaryAsync(x => x.UsuarioId, x => x.Total, cancellationToken);

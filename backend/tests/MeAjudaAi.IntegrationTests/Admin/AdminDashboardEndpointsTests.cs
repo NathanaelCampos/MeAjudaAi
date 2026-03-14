@@ -299,6 +299,8 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal(0m, payload.DisponibilidadeOperacional.PercentualFalhaEmails);
         Assert.Equal("baixo", payload.RiscoOperacional);
         Assert.Equal("saudavel", payload.SaudeOperacional.Status);
+        Assert.Empty(payload.ItensCriticosRecentes.WebhooksFalhos);
+        Assert.Empty(payload.ItensCriticosRecentes.EmailsFalhos);
     }
 
     [Fact]
@@ -341,6 +343,7 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal(15, payload!.Configuracao.JanelaQualidadeDias);
         Assert.True(payload.DisponibilidadeOperacional.PercentualFalhaWebhooks > 0m);
         Assert.NotEqual("baixo", payload.RiscoOperacional);
+        Assert.NotEmpty(payload.ItensCriticosRecentes.WebhooksFalhos);
     }
 
     [Fact]
