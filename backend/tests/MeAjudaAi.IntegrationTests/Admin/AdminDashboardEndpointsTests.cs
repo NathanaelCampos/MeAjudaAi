@@ -604,6 +604,7 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal("alta", payload.PrioridadeComparativaPrincipal);
         Assert.Equal("Revisar operacao de webhooks", payload.AcaoComparativaPrincipal);
         Assert.Contains("exige atencao", payload.InsightComparativoPrincipal.Titulo, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("exigindo atencao operacional", payload.ComparativoPresetAnterior.Resumo.Resumo, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -649,6 +650,7 @@ public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<T
         Assert.Equal("verde", payload.IndicadorComparativoPrincipal);
         Assert.Equal("baixa", payload.PrioridadeComparativaPrincipal);
         Assert.Equal("Sustentar capacidade de atendimento", payload.AcaoComparativaPrincipal);
+        Assert.Contains("Crescimento mais forte", payload.ComparativoPresetAnterior.Resumo.Resumo, StringComparison.OrdinalIgnoreCase);
     }
 
     private static HttpRequestMessage CriarWebhookRequest(string codigoReferenciaPagamento, string eventoExternoId)

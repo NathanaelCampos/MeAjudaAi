@@ -786,10 +786,20 @@ public class AdminDashboardService : IAdminDashboardService
             _ => "estavel"
         };
 
-        var resumo = direcaoPrincipal switch
+        var eixosVolumePositivo = new HashSet<string>(StringComparer.Ordinal)
         {
-            "alta" => $"Crescimento mais forte em {principal.Eixo}.",
-            "queda" => $"Reducao mais forte em {principal.Eixo}.",
+            "servicos",
+            "avaliacoes"
+        };
+
+        var altaEhPositiva = eixosVolumePositivo.Contains(principal.Eixo);
+
+        var resumo = (direcaoPrincipal, altaEhPositiva) switch
+        {
+            ("alta", true) => $"Crescimento mais forte em {principal.Eixo}.",
+            ("alta", false) => $"Aumento mais forte em {principal.Eixo}, exigindo atencao operacional.",
+            ("queda", true) => $"Reducao mais forte em {principal.Eixo}.",
+            ("queda", false) => $"Reducao mais forte em {principal.Eixo}, sugerindo alivio operacional.",
             _ => "Comparativo entre presets sem variacao relevante."
         };
 
