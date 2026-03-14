@@ -145,6 +145,7 @@ O grupo `/api/admin/jobs` agora expõe métricas e alertas para alimentar um das
 
 - `GET /api/admin/jobs/fila/metricas` retorna contagens por status, volume por job e tempos médios de espera, processamento e falha. O payload corresponde ao DTO `BackgroundJobFilaMetricasResponse` (ej. `tempoMedioFilaSegundos`, `tempoMedioProcessamentoSegundos`, `tempoMedioFalhaSegundos`).
 - `GET /api/admin/jobs/fila/alertas` resume os jobs críticos, incluindo `nivelAlerta`, `mensagem` e `cor` para acionarem sinais visuais/sonoros no dashboard. O alerta aparece quando o tempo médio de espera ou processamento ultrapassa os limites configurados (`Jobs:Alertas`) ou quando houver falhas recentes.
+- `GET /api/admin/jobs/fila/alertas/historico` agrega o histórico diário de alertas (`BackgroundJobFilaAlertasHistoricoResponse`), permitindo visualizar tendências por job no dashboard.
 
 Exemplo de alerta:
 

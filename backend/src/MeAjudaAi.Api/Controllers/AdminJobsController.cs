@@ -141,4 +141,13 @@ public class AdminJobsController : ControllerBase
         var response = await _adminJobService.ObterAlertasFilaAsync(cancellationToken);
         return Ok(response);
     }
+
+    [HttpGet("fila/alertas/historico")]
+    [ProducesResponseType(typeof(IReadOnlyList<BackgroundJobFilaAlertasHistoricoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterHistoricoAlertas([FromQuery] int? dias = 7, CancellationToken cancellationToken = default)
+    {
+        var response = await _adminJobService.ObterHistoricoAlertasAsync(dias ?? 7, cancellationToken);
+        return Ok(response);
+    }
 }

@@ -335,6 +335,35 @@ public class AdminJobService : IAdminJobService
         return resultado;
     }
 
+    public async Task<IReadOnlyList<BackgroundJobFilaAlertasHistoricoResponse>> ObterHistoricoAlertasAsync(int dias = 7, CancellationToken cancellationToken = default)
+    {
+        var intervaloDias = Math.Max(dias, 1);
+        var limite = DateTime.UtcNow.Date.AddDays(-intervaloDias + 1);
+
+        var historico = await _context.BackgroundJobFilaAlertasHistorico
+            .AsNoTracking()
+            .Where(x => x.DataCriacao >= limite)
+            .ToListAsync(cancellationToken);
+
+        var agrupado = historico
+            .GroupBy(x => new { JobIdKey = x.JobId.ToLowerInvariant(), Data = x.DataCriacao.Date })
+            .Select(g => new BackgroundJobFilaAlertasHistoricoResponse
+            {
+                JobId = g.Select(x => x.JobId).FirstOrDefault() ?? g.Key.JobIdKey,
+                Data = g.Key.Data,
+                TempoMedioFilaSegundos = g.Average(x => x.TempoMedioFilaSegundos),
+                TempoMedioProcessamentoSegundos = g.Average(x => x.TempoMedioProcessamentoSegundos),
+                TotalAlertas = g.Count(),
+                TotalPendentes = g.Sum(x => x.TotalPendentes),
+                TotalFalhas = g.Sum(x => x.TotalFalhas)
+            })
+            .OrderByDescending(x => x.Data)
+            .ThenBy(x => x.JobId)
+            .ToList();
+
+        return agrupado.AsReadOnly();
+    }
+
     private async Task RegistrarHistoricoAsync(IEnumerable<BackgroundJobFilaAlertaResponse> alerts, CancellationToken cancellationToken)
     {
         if (!alerts.Any())

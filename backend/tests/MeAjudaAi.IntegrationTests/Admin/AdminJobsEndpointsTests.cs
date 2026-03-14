@@ -328,6 +328,33 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
     }
 
     [Fact]
+    public async Task HistoricoAlertas_DeveAgruparPorDia()
+    {
+        using var adminClient = Factory.CreateClient();
+
+        var admin = await LoginAdminAsync(adminClient);
+        adminClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", admin.Token);
+
+        var agora = DateTime.UtcNow.Date;
+        await CriarHistoricoAlertasAsync("job-a", "Falhas", "#D32F2F", agora.AddDays(-1).AddHours(2), 60, 80, 3, 1);
+        await CriarHistoricoAlertasAsync("job-a", "Filas longas", "#F57C00", agora.AddDays(-1).AddHours(5), 70, 50, 4, 0);
+        await CriarHistoricoAlertasAsync("job-b", "Filas longas", "#F57C00", agora.AddHours(1), 40, 30, 2, 0);
+
+        var response = await adminClient.GetAsync("/api/admin/jobs/fila/alertas/historico?dias=2");
+        var payload = await response.Content.ReadFromJsonAsync<List<BackgroundJobFilaAlertasHistoricoResponse>>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(payload);
+        Assert.Single(payload!.Where(x => x.JobId == "job-a" && x.Data == agora.AddDays(-1)));
+        Assert.Single(payload.Where(x => x.JobId == "job-b"));
+        var aggregate = Assert.Single(payload.Where(x => x.JobId == "job-a" && x.Data == agora.AddDays(-1)));
+        Assert.Equal(2, aggregate.TotalAlertas);
+        Assert.Equal(7, aggregate.TotalPendentes);
+        Assert.Equal(1, aggregate.TotalFalhas);
+        Assert.True(aggregate.TempoMedioFilaSegundos > 0);
+    }
+
+    [Fact]
     public async Task Alertas_PersisteHistorico()
     {
         using var adminClient = Factory.CreateClient();
@@ -461,5 +488,35 @@ public class AdminJobsEndpointsTests : IntegrationTestBase, IClassFixture<TestWe
         await context.SaveChangesAsync();
 
         return execucao.Id;
+    }
+
+    private async Task CriarHistoricoAlertasAsync(
+        string jobId,
+        string nivelAlerta,
+        string cor,
+        DateTime dataCriacao,
+        double tempoFila,
+        double tempoProcessamento,
+        int pendentes,
+        int falhas)
+    {
+        await using var scope = Factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        context.BackgroundJobFilaAlertasHistorico.Add(new BackgroundJobFilaAlertaHistorico
+        {
+            JobId = jobId,
+            NivelAlerta = nivelAlerta,
+            Mensagem = $"{nivelAlerta} detectado.",
+            Cor = cor,
+            TempoMedioFilaSegundos = tempoFila,
+            TempoMedioProcessamentoSegundos = tempoProcessamento,
+            TotalPendentes = pendentes,
+            TotalFalhas = falhas,
+            DataCriacao = dataCriacao,
+            Ativo = true
+        });
+
+        await context.SaveChangesAsync();
     }
 }
