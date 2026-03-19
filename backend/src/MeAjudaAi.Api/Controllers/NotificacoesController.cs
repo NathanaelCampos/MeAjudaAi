@@ -1076,7 +1076,8 @@ public class NotificacoesController : ControllerBase
             });
         }
 
-        return Ok(response);
+        Response.StatusCode = StatusCodes.Status204NoContent;
+        return NoContent();
     }
 
     [HttpPut("minhas/marcar-todas-lidas")]
