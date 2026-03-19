@@ -59,9 +59,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>, IAsyncL
                 ["Jwt:Audience"] = "MeAjudaAi.Tests",
                 ["Jwt:Key"] = "me-ajuda-ai-chave-de-teste-com-no-minimo-32-caracteres",
                 ["Jwt:ExpiracaoEmMinutos"] = "120",
-                ["Webhooks:Pagamentos:Segredo"] = "segredo-webhook-teste",
+                ["Webhooks:Pagamentos:Segredo"] = "meajudaai-webhook-secret-dev",
                 ["Webhooks:Pagamentos:HeaderAssinatura"] = "X-Webhook-Signature",
-                ["Webhooks:Pagamentos:Provedores:asaas:Segredo"] = "segredo-webhook-asaas-teste",
+                ["Webhooks:Pagamentos:Provedores:asaas:Segredo"] = "meajudaai-webhook-secret-dev",
                 ["Webhooks:Pagamentos:Provedores:asaas:HeaderAssinatura"] = "X-Asaas-Signature"
             });
         });
