@@ -13,7 +13,7 @@ namespace MeAjudaAi.IntegrationTests.Impulsionamentos;
 
 public class ImpulsionamentosWebhookTests : IntegrationTestBase, IClassFixture<TestWebApplicationFactory>
 {
-    private const string SegredoWebhook = "segredo-webhook-teste";
+    private const string SegredoWebhook = "meajudaai-webhook-secret-dev";
     private const string SegredoWebhookAsaas = "segredo-webhook-asaas-teste";
     private const string HeaderAssinatura = "X-Webhook-Signature";
     private const string HeaderAssinaturaAsaas = "X-Asaas-Signature";

@@ -18,7 +18,7 @@ namespace MeAjudaAi.IntegrationTests.Admin;
 
 public class AdminDashboardEndpointsTests : IntegrationTestBase, IClassFixture<TestWebApplicationFactory>
 {
-    private const string SegredoWebhook = "segredo-webhook-teste";
+    private const string SegredoWebhook = "meajudaai-webhook-secret-dev";
     private const string HeaderAssinatura = "X-Webhook-Signature";
 
     private readonly TestWebApplicationFactory _factory;
