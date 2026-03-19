@@ -1,3 +1,8 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using MeAjudaAi.Application.DTOs.Auth;
 using MeAjudaAi.Application.DTOs.Avaliacoes;
 using MeAjudaAi.Application.DTOs.Common;
@@ -9,6 +14,7 @@ using MeAjudaAi.Domain.Enums;
 using MeAjudaAi.Infrastructure.Persistence.Contexts;
 using MeAjudaAi.Infrastructure.Services.Notificacoes;
 using MeAjudaAi.IntegrationTests.Infrastructure;
+using CommonMensagemErroResponse = MeAjudaAi.Application.DTOs.Common.MensagemErroResponse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +24,8 @@ namespace MeAjudaAi.IntegrationTests.Notificacoes;
 public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
+    private const string WebhookSecret = "meajudaai-webhook-secret-dev";
+    private const string WebhookHeader = "X-Webhook-Signature";
 
     public NotificacoesEndpointsTests(TestWebApplicationFactory factory)
         : base(factory)
@@ -183,7 +191,7 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         var notificacao = Assert.Single(notificacoesProfissional!.Where(x => x.Tipo == TipoNotificacao.ServicoSolicitado));
 
         var marcarLidaResponse = await profissionalClient.PutAsync($"/api/notificacoes/{notificacao.Id}/marcar-lida", null);
-        Assert.Equal(HttpStatusCode.NoContent, marcarLidaResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, marcarLidaResponse.StatusCode);
 
         var resumo = await adminClient.GetFromJsonAsync<NotificacaoResumoOperacionalResponse>(
             $"/api/notificacoes/resumo-operacional?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
@@ -3131,5 +3139,78 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
         Assert.NotNull(auth);
         return auth!;
+    }
+
+    [Fact]
+    public async Task WebhookPagamento_ComAssinaturaInvalida_DeveRetornarUnauthorized()
+    {
+        var payload = JsonSerializer.Serialize(new
+        {
+            codigoReferenciaPagamento = "invalid-webhook",
+            statusPagamento = "pago"
+        });
+
+        using var client = _factory.CreateClient();
+        var response = await client.PostAsync(
+            "/api/webhooks/pagamentos/impulsionamentos",
+            new StringContent(payload, Encoding.UTF8, "application/json"));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var erro = await response.Content.ReadFromJsonAsync<CommonMensagemErroResponse>();
+        Assert.NotNull(erro);
+        Assert.Equal("Webhook não autorizado.", erro!.Mensagem);
+    }
+
+    [Fact]
+    public async Task WebhookPagamento_ComAssinaturaValida_DeveProcessarPagamento()
+    {
+        using var profissionalClient = _factory.CreateClient();
+
+        var authProfissional = await RegistrarUsuarioAsync(profissionalClient, TipoPerfil.Profissional, "prof-webhook-sig");
+        profissionalClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authProfissional.Token);
+
+        var planos = await profissionalClient.GetFromJsonAsync<List<PlanoImpulsionamentoResponse>>("/api/impulsionamentos/planos");
+        var plano = Assert.Single(planos!.Where(x => x.QuantidadePeriodo == 1));
+
+        var contratarResponse = await profissionalClient.PostAsJsonAsync("/api/impulsionamentos/contratar", new ContratarPlanoImpulsionamentoRequest
+        {
+            PlanoImpulsionamentoId = plano.Id,
+            CodigoReferenciaPagamento = "webhook-456"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, contratarResponse.StatusCode);
+        var contratado = await contratarResponse.Content.ReadFromJsonAsync<ImpulsionamentoProfissionalResponse>();
+        Assert.NotNull(contratado);
+
+        var payload = JsonSerializer.Serialize(new WebhookPagamentoImpulsionamentoRequest
+        {
+            CodigoReferenciaPagamento = contratado!.CodigoReferenciaPagamento,
+            StatusPagamento = "pago",
+            EventoExternoId = "evt-webhook-01"
+        });
+
+        using var client = _factory.CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/pagamentos/impulsionamentos");
+        request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+        request.Headers.Add(WebhookHeader, ComputeWebhookSignature(payload));
+
+        var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var webhookResponse = await response.Content.ReadFromJsonAsync<WebhookPagamentoImpulsionamentoResponse>();
+        Assert.NotNull(webhookResponse);
+        Assert.Equal("pago", webhookResponse!.StatusRecebido);
+
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var impulsionamento = await context.ImpulsionamentosProfissionais.FirstAsync(x => x.Id == contratado.Id);
+        Assert.Equal(StatusImpulsionamento.Ativo, impulsionamento.Status);
+    }
+
+    private static string ComputeWebhookSignature(string payload)
+    {
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(WebhookSecret));
+        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
+        return Convert.ToHexString(hash).ToLowerInvariant();
     }
 }

@@ -1076,7 +1076,7 @@ public class NotificacoesController : ControllerBase
             });
         }
 
-        return NoContent();
+        return Ok(response);
     }
 
     [HttpPut("minhas/marcar-todas-lidas")]
