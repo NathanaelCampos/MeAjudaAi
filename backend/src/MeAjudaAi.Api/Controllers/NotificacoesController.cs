@@ -1051,7 +1051,7 @@ public class NotificacoesController : ControllerBase
     }
 
     [HttpPut("{notificacaoId:guid}/marcar-lida")]
-    [ProducesResponseType(typeof(NotificacaoResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(MensagemErroResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> MarcarComoLida(
@@ -1076,7 +1076,7 @@ public class NotificacoesController : ControllerBase
             });
         }
 
-        return Ok(response);
+        return NoContent();
     }
 
     [HttpPut("minhas/marcar-todas-lidas")]
