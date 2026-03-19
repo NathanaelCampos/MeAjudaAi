@@ -146,6 +146,7 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/uploads"
 });
 
+app.UseMiddleware<AuthorizationLoggingMiddleware>();
 app.UseAuthentication();
 app.UseMiddleware<UsuarioAtivoMiddleware>();
 app.UseAuthorization();
