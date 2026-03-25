@@ -10,6 +10,7 @@ internal static class TestAuthenticationExtensions
 {
     public static void ApplyTestAuthentication(this HttpClient client, AuthResponse auth, TipoPerfil profile)
     {
+        client.DefaultRequestHeaders.Authorization = null;
         client.DefaultRequestHeaders.Remove(TestAuthenticationHandler.UserIdHeader);
         client.DefaultRequestHeaders.Remove(TestAuthenticationHandler.UserEmailHeader);
         client.DefaultRequestHeaders.Remove(TestAuthenticationHandler.UserNameHeader);

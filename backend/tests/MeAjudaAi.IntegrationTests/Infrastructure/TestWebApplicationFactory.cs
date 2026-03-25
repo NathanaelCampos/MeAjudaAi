@@ -8,11 +8,13 @@ using MeAjudaAi.IntegrationTests.Jobs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.AspNetCore.Authentication;
 
 namespace MeAjudaAi.IntegrationTests.Infrastructure;
 
@@ -84,6 +86,19 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>, IAsyncL
             context.Database.EnsureCreated();
 
             SeedDadosBase(context);
+        });
+
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddAuthentication()
+                .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(TestAuthenticationHandler.Scheme, options => { });
+
+            services.PostConfigure<AuthenticationOptions>(options =>
+            {
+                options.DefaultScheme = TestAuthenticationHandler.Scheme;
+                options.DefaultAuthenticateScheme = TestAuthenticationHandler.Scheme;
+                options.DefaultChallengeScheme = TestAuthenticationHandler.Scheme;
+            });
         });
     }
 

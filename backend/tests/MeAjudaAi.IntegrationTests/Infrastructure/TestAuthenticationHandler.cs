@@ -64,6 +64,9 @@ public class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSch
 
         var identity = new ClaimsIdentity(claims, Scheme);
         var principal = new ClaimsPrincipal(identity);
+
+        Logger.LogDebug("TestAuthenticationHandler: authenticated user {UserId} role={Role}", userId, role);
+
         var ticket = new AuthenticationTicket(principal, Scheme);
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
