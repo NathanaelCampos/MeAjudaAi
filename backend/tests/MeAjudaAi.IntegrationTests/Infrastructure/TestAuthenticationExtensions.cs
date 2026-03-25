@@ -40,7 +40,7 @@ internal static class TestAuthenticationExtensions
         var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
         ArgumentNullException.ThrowIfNull(auth, nameof(auth));
 
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
+        client.DefaultRequestHeaders.Authorization = null;
         client.ApplyTestAuthentication(auth, TipoPerfil.Administrador);
 
         return auth;
