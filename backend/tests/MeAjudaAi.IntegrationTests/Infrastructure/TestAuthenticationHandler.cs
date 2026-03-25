@@ -18,7 +18,6 @@ public class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSch
     public const string UserEmailHeader = "X-Integration-Test-Email";
     public const string UserNameHeader = "X-Integration-Test-UserName";
     public const string AnonymousRole = "anonymous";
-    private const string DefaultRole = AccessRoles.Cliente;
 
     public TestAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -32,21 +31,27 @@ public class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSch
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var role = Request.Headers[RoleHeader].FirstOrDefault();
-        if (!string.IsNullOrWhiteSpace(role) && string.Equals(role, AnonymousRole, StringComparison.OrdinalIgnoreCase))
+        var hasRoleHeader = !string.IsNullOrWhiteSpace(role);
+
+        if (hasRoleHeader && string.Equals(role, AnonymousRole, StringComparison.OrdinalIgnoreCase))
             return Task.FromResult(AuthenticateResult.NoResult());
+
         var userIdHeader = Request.Headers[UserIdHeader].FirstOrDefault();
         var email = Request.Headers[UserEmailHeader].FirstOrDefault();
         var name = Request.Headers[UserNameHeader].FirstOrDefault();
 
-        if (string.IsNullOrWhiteSpace(role) && TryParseJwtFromAuthorization(out var jwtRole, out var jwtEmail, out var jwtUserId, out var jwtName))
+        if (!hasRoleHeader)
         {
+            if (!TryParseJwtFromAuthorization(out var jwtRole, out var jwtEmail, out var jwtUserId, out var jwtName))
+                return Task.FromResult(AuthenticateResult.NoResult());
+
             role = jwtRole;
             email = email ?? jwtEmail;
             name = name ?? jwtName;
             userIdHeader = userIdHeader ?? jwtUserId?.ToString();
         }
 
-        role ??= DefaultRole;
+        role ??= AccessRoles.Cliente;
         email ??= "test@integration.local";
         name ??= "Integration Test";
 
