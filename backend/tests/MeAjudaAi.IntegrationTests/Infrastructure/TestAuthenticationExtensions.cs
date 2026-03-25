@@ -20,12 +20,15 @@ internal static class TestAuthenticationExtensions
         client.DefaultRequestHeaders.Add(TestAuthenticationHandler.UserEmailHeader, auth.Email);
         client.DefaultRequestHeaders.Add(TestAuthenticationHandler.UserNameHeader, string.IsNullOrWhiteSpace(auth.Nome) ? auth.Email : auth.Nome);
         client.DefaultRequestHeaders.Add(TestAuthenticationHandler.RoleHeader, AccessRoles.FromTipoPerfil(profile));
+        if (!string.IsNullOrWhiteSpace(auth.Token))
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
     }
 
     public static void ApplyAnonymous(this HttpClient client)
     {
         client.DefaultRequestHeaders.Remove(TestAuthenticationHandler.RoleHeader);
         client.DefaultRequestHeaders.Add(TestAuthenticationHandler.RoleHeader, TestAuthenticationHandler.AnonymousRole);
+        client.DefaultRequestHeaders.Authorization = null;
     }
 
     public static async Task<AuthResponse> LoginAdminAsync(this HttpClient client)
