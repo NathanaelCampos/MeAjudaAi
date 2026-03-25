@@ -114,11 +114,11 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
 
         var notificacao = Assert.Single(notificacoesProfissional.Where(x => x.Tipo == TipoNotificacao.ServicoSolicitado));
         var marcarComoLidaResponse = await profissionalClient.PutAsync($"/api/notificacoes/{notificacao.Id}/marcar-lida", null);
-        var notificacaoLida = await marcarComoLidaResponse.Content.ReadFromJsonAsync<NotificacaoResponse>();
+        Assert.Equal(HttpStatusCode.NoContent, marcarComoLidaResponse.StatusCode);
 
-        Assert.Equal(HttpStatusCode.OK, marcarComoLidaResponse.StatusCode);
-        Assert.NotNull(notificacaoLida);
-        Assert.True(notificacaoLida!.Lida);
+        var notificacoesAposMarcar = await profissionalClient.GetFromJsonAsync<List<NotificacaoResponse>>("/api/notificacoes/minhas");
+        Assert.NotNull(notificacoesAposMarcar);
+        Assert.Contains(notificacoesAposMarcar!, x => x.Id == notificacao.Id && x.Lida);
 
         var marcarTodasResponse = await profissionalClient.PutAsync("/api/notificacoes/minhas/marcar-todas-lidas", null);
         Assert.Equal(HttpStatusCode.NoContent, marcarTodasResponse.StatusCode);
@@ -191,7 +191,7 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         var notificacao = Assert.Single(notificacoesProfissional!.Where(x => x.Tipo == TipoNotificacao.ServicoSolicitado));
 
         var marcarLidaResponse = await profissionalClient.PutAsync($"/api/notificacoes/{notificacao.Id}/marcar-lida", null);
-        Assert.Equal(HttpStatusCode.OK, marcarLidaResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, marcarLidaResponse.StatusCode);
 
         var resumo = await adminClient.GetFromJsonAsync<NotificacaoResumoOperacionalResponse>(
             $"/api/notificacoes/resumo-operacional?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}");
@@ -1205,7 +1205,7 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
             x.EmailUsuario.Contains("teste.local", StringComparison.OrdinalIgnoreCase));
 
         var marcarLidaResponse = await profissionalClient.PutAsync($"/api/notificacoes/{notificacao.Id}/marcar-lida", null);
-        Assert.Equal(HttpStatusCode.OK, marcarLidaResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, marcarLidaResponse.StatusCode);
 
         var lidas = await adminClient.GetFromJsonAsync<PaginacaoResponse<NotificacaoAdminResponse>>(
             $"/api/notificacoes?usuarioId={authProfissional.UsuarioId}&tipoNotificacao={TipoNotificacao.ServicoSolicitado}&lida=true&pagina=1&tamanhoPagina=10");
@@ -3151,6 +3151,7 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         });
 
         using var client = _factory.CreateClient();
+        client.ApplyAnonymous();
         var response = await client.PostAsync(
             "/api/webhooks/pagamentos/impulsionamentos",
             new StringContent(payload, Encoding.UTF8, "application/json"));
