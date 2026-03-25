@@ -1,5 +1,6 @@
 using System.Text.Json;
 using MeAjudaAi.Api.Extensions;
+using MeAjudaAi.Application.Common;
 using MeAjudaAi.Application.Interfaces.Admin;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -25,7 +26,7 @@ public class AdminMutationAuditFilter : IAsyncActionFilter
         if (!MetodosAuditaveis.Contains(httpContext.Request.Method))
             return;
 
-        if (!httpContext.User.IsInRole("Administrador"))
+        if (!httpContext.User.IsInRole(AccessRoles.Administrador))
             return;
 
         if (executedContext.Exception is not null && !executedContext.ExceptionHandled)

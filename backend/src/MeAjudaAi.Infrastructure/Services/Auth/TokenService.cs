@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using MeAjudaAi.Application.Common;
 using MeAjudaAi.Application.DTOs.Auth;
 using MeAjudaAi.Application.Interfaces.Auth;
 using MeAjudaAi.Domain.Entities;
@@ -40,7 +41,7 @@ public class TokenService : ITokenService
             new(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
             new(ClaimTypes.Name, usuario.Nome),
             new(ClaimTypes.Email, usuario.Email),
-            new(ClaimTypes.Role, usuario.TipoPerfil.ToString())
+            new(ClaimTypes.Role, AccessRoles.FromTipoPerfil(usuario.TipoPerfil))
         };
 
         var tokenDescriptor = new JwtSecurityToken(

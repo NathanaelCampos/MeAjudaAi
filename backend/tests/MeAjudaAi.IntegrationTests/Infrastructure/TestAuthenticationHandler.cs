@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using MeAjudaAi.Application.Common;
 using MeAjudaAi.Domain.Enums;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -17,7 +18,7 @@ public class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSch
     public const string UserEmailHeader = "X-Integration-Test-Email";
     public const string UserNameHeader = "X-Integration-Test-UserName";
     public const string AnonymousRole = "anonymous";
-    private const string DefaultRole = "Cliente";
+    private const string DefaultRole = AccessRoles.Cliente;
 
     public TestAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
