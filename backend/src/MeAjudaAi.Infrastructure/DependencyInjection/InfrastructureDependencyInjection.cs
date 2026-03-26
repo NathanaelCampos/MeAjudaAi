@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MeAjudaAi.Application.Interfaces.Cidades;
 using MeAjudaAi.Application.Interfaces.Profissoes;
+using Microsoft.Extensions.Configuration;
 using MeAjudaAi.Infrastructure.Services.Cidades;
 using MeAjudaAi.Infrastructure.Services.Profissoes;
 using MeAjudaAi.Application.Interfaces.Avaliacoes;
