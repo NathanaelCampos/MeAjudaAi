@@ -30,6 +30,8 @@ public class AppDbContext : DbContext
     public DbSet<AuditoriaAdminAcao> AuditoriasAdminAcoes => Set<AuditoriaAdminAcao>();
     public DbSet<BackgroundJobExecucao> BackgroundJobsExecucoes => Set<BackgroundJobExecucao>();
     public DbSet<BackgroundJobFilaAlertaHistorico> BackgroundJobFilaAlertasHistorico => Set<BackgroundJobFilaAlertaHistorico>();
+    public DbSet<BackgroundJobFilaAlertaNotificacaoEstado> BackgroundJobFilaAlertasNotificacaoEstados => Set<BackgroundJobFilaAlertaNotificacaoEstado>();
+    public DbSet<BackgroundJobRetryLog> BackgroundJobRetryLogs => Set<BackgroundJobRetryLog>();
     public DbSet<NotificacaoUsuario> NotificacoesUsuarios => Set<NotificacaoUsuario>();
     public DbSet<PreferenciaNotificacaoUsuario> PreferenciasNotificacoesUsuarios => Set<PreferenciaNotificacaoUsuario>();
     public DbSet<EmailNotificacaoOutbox> EmailsNotificacoesOutbox => Set<EmailNotificacaoOutbox>();
