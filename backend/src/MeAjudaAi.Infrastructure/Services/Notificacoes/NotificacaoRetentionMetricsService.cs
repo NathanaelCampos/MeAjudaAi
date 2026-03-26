@@ -53,21 +53,24 @@ public class NotificacaoRetentionMetricsService : INotificacaoRetentionMetricsSe
         }
     }
 
-    public RetencaoNotificacoesResumoResponse ObterResumo()
-    {
-        lock (_lock)
+        public RetencaoNotificacoesResumoResponse ObterResumo()
         {
-            return new RetencaoNotificacoesResumoResponse
+            lock (_lock)
             {
-                UltimaExecucaoIniciadaEm = _ultimaExecucaoIniciadaEm,
-                UltimaExecucaoFinalizadaEm = _ultimaExecucaoFinalizadaEm,
-                UltimaQuantidadeArquivada = _ultimaQuantidadeArquivada,
-                TotalArquivado = _totalArquivado,
-                UltimoStatus = _ultimoStatus,
-                UltimaMensagemErro = _ultimaMensagemErro
-            };
+                var inicio = _ultimaExecucaoIniciadaEm ?? DateTime.UtcNow;
+                var finalizado = _ultimaExecucaoFinalizadaEm ?? inicio;
+
+                return new RetencaoNotificacoesResumoResponse
+                {
+                    UltimaExecucaoIniciadaEm = inicio,
+                    UltimaExecucaoFinalizadaEm = finalizado,
+                    UltimaQuantidadeArquivada = _ultimaQuantidadeArquivada,
+                    TotalArquivado = _totalArquivado,
+                    UltimoStatus = _ultimoStatus,
+                    UltimaMensagemErro = _ultimaMensagemErro
+                };
+            }
         }
-    }
 
     public RetencaoNotificacoesResumoResponse ObterResumoComLog()
     {
