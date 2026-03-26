@@ -156,7 +156,10 @@ public static class InfrastructureDependencyInjection
 
             var niveisSection = jobsAlertNotificationSection.GetSection("NiveisParaNotificar");
             var niveis = niveisSection.Exists()
-                ? niveisSection.Get<string[]>()
+                ? niveisSection.GetChildren()
+                    .Select(child => child.Value)
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .ToArray()
                 : null;
 
             if (niveis is { Length: > 0 })
