@@ -1,6 +1,7 @@
 using MeAjudaAi.Application.DTOs.Notificacoes;
 using MeAjudaAi.Application.Interfaces.Notificacoes;
 using MeAjudaAi.Infrastructure.Configurations;
+using Microsoft.Extensions.Logging;
 
 namespace MeAjudaAi.Infrastructure.Services.Notificacoes;
 
@@ -68,7 +69,7 @@ public class NotificacaoRetentionMetricsService : INotificacaoRetentionMetricsSe
         }
     }
 
-    public RetencaoNotificacoesResumoResponse? ObterResumoComLog()
+    public RetencaoNotificacoesResumoResponse ObterResumoComLog()
     {
         var resumo = ObterResumo();
         _logger.LogInformation("Resumo de retenção acessado: status={Status}, ultimaExecucao={UltimaExecucaoFinalizada}, totalArquivado={TotalArquivado}",
