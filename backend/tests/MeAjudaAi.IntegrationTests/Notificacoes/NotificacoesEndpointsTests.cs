@@ -3126,20 +3126,8 @@ public class NotificacoesEndpointsTests : IntegrationTestBase, IClassFixture<Tes
         return auth!;
     }
 
-    private static async Task<AuthResponse> LoginAdminAsync(HttpClient client)
-    {
-        var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
-        {
-            Email = TestWebApplicationFactory.EmailAdmin,
-            Senha = TestWebApplicationFactory.SenhaAdmin
-        });
-
-        response.EnsureSuccessStatusCode();
-
-        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        Assert.NotNull(auth);
-        return auth!;
-    }
+    private static Task<AuthResponse> LoginAdminAsync(HttpClient client)
+        => client.LoginAdminAsync();
 
     [Fact]
     public async Task WebhookPagamento_ComAssinaturaInvalida_DeveRetornarUnauthorized()

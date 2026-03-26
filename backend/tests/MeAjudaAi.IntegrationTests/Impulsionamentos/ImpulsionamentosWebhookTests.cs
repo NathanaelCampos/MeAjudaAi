@@ -14,7 +14,7 @@ namespace MeAjudaAi.IntegrationTests.Impulsionamentos;
 public class ImpulsionamentosWebhookTests : IntegrationTestBase, IClassFixture<TestWebApplicationFactory>
 {
     private const string SegredoWebhook = "meajudaai-webhook-secret-dev";
-    private const string SegredoWebhookAsaas = "segredo-webhook-asaas-teste";
+    private const string SegredoWebhookAsaas = "meajudaai-webhook-secret-dev";
     private const string HeaderAssinatura = "X-Webhook-Signature";
     private const string HeaderAssinaturaAsaas = "X-Asaas-Signature";
 
@@ -30,6 +30,7 @@ public class ImpulsionamentosWebhookTests : IntegrationTestBase, IClassFixture<T
     public async Task Webhook_DeveRetornarUnauthorizedQuandoSegredoForInvalido()
     {
         using var client = _factory.CreateClient();
+        client.ApplyAnonymous();
 
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/pagamentos/impulsionamentos")
         {

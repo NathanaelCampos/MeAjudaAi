@@ -11,7 +11,7 @@ namespace MeAjudaAi.IntegrationTests.Impulsionamentos;
 
 public class ImpulsionamentosWebhooksConsultaTests : IntegrationTestBase, IClassFixture<TestWebApplicationFactory>
 {
-    private const string SegredoWebhookAsaas = "segredo-webhook-asaas-teste";
+    private const string SegredoWebhookAsaas = "meajudaai-webhook-secret-dev";
 
     private readonly TestWebApplicationFactory _factory;
 
@@ -35,6 +35,7 @@ public class ImpulsionamentosWebhooksConsultaTests : IntegrationTestBase, IClass
 
         adminClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", admin.Token);
+        adminClient.ApplyTestAuthentication(admin, TipoPerfil.Administrador);
 
         var planos = await client.GetFromJsonAsync<List<PlanoImpulsionamentoResponse>>("/api/impulsionamentos/planos");
         Assert.NotNull(planos);
@@ -108,21 +109,8 @@ public class ImpulsionamentosWebhooksConsultaTests : IntegrationTestBase, IClass
         return auth!;
     }
 
-    private static async Task<AuthResponse> LoginAdminAsync(HttpClient client)
-    {
-        var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest
-        {
-            Email = TestWebApplicationFactory.EmailAdmin,
-            Senha = TestWebApplicationFactory.SenhaAdmin
-        });
-
-        response.EnsureSuccessStatusCode();
-
-        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        Assert.NotNull(auth);
-
-        return auth!;
-    }
+    private static Task<AuthResponse> LoginAdminAsync(HttpClient client)
+        => client.LoginAdminAsync();
 
     private static HttpRequestMessage CriarRequestComPayload(
         string url,
