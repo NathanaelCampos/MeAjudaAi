@@ -90,15 +90,13 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>, IAsyncL
 
         builder.ConfigureTestServices(services =>
         {
-            services.AddAuthentication()
+            services.AddAuthentication(options =>
+                {
+                    options.DefaultScheme = TestAuthenticationHandler.Scheme;
+                    options.DefaultAuthenticateScheme = TestAuthenticationHandler.Scheme;
+                    options.DefaultChallengeScheme = TestAuthenticationHandler.Scheme;
+                })
                 .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(TestAuthenticationHandler.Scheme, options => { });
-
-            services.PostConfigure<AuthenticationOptions>(options =>
-            {
-                options.DefaultScheme = TestAuthenticationHandler.Scheme;
-                options.DefaultAuthenticateScheme = TestAuthenticationHandler.Scheme;
-                options.DefaultChallengeScheme = TestAuthenticationHandler.Scheme;
-            });
         });
     }
 
