@@ -141,6 +141,59 @@ public static class InfrastructureDependencyInjection
                 : 30;
         });
 
+        var jobsAlertNotificationSection = configuration.GetSection("Jobs:Alertas:Notificacoes");
+        services.Configure<JobsAlertNotificationOptions>(options =>
+        {
+            options.Habilitado = bool.TryParse(jobsAlertNotificationSection["Habilitado"], out var habilitadoNotification)
+                ? habilitadoNotification
+                : true;
+            options.IntervaloSegundos = int.TryParse(jobsAlertNotificationSection["IntervaloSegundos"], out var intervaloNotification)
+                ? Math.Max(intervaloNotification, 30)
+                : 60;
+            options.IntervaloMinutosEntreNotificacoes = int.TryParse(jobsAlertNotificationSection["IntervaloMinutosEntreNotificacoes"], out var intervaloMinutos)
+                ? Math.Max(intervaloMinutos, 1)
+                : 30;
+
+            var niveisSection = jobsAlertNotificationSection.GetSection("NiveisParaNotificar");
+            var niveis = niveisSection.Exists()
+                ? niveisSection.Get<string[]>()
+                : null;
+
+            if (niveis is { Length: > 0 })
+                options.NiveisParaNotificar = niveis;
+        });
+
+        var jobsWatchdogSection = configuration.GetSection("Jobs:Watchdog");
+        services.Configure<BackgroundJobWatchdogOptions>(options =>
+        {
+            options.Habilitado = bool.TryParse(jobsWatchdogSection["Habilitado"], out var habilitadoWatchdog)
+                ? habilitadoWatchdog
+                : true;
+            options.IntervaloSegundos = int.TryParse(jobsWatchdogSection["IntervaloSegundos"], out var intervaloWatchdog)
+                ? Math.Max(intervaloWatchdog, 30)
+                : 60;
+            options.TempoMaximoProcessandoSegundos = int.TryParse(jobsWatchdogSection["TempoMaximoProcessandoSegundos"], out var tempoMaximo)
+                ? Math.Max(tempoMaximo, 60)
+                : 300;
+        });
+
+        var jobsRetrySection = configuration.GetSection("Jobs:Retry");
+        services.Configure<BackgroundJobRetrySchedulerOptions>(options =>
+        {
+            options.Habilitado = bool.TryParse(jobsRetrySection["Habilitado"], out var habilitadoRetry)
+                ? habilitadoRetry
+                : true;
+            options.IntervaloSegundos = int.TryParse(jobsRetrySection["IntervaloSegundos"], out var intervaloRetry)
+                ? Math.Max(intervaloRetry, 60)
+                : 120;
+            options.FalhasParaRetentar = int.TryParse(jobsRetrySection["FalhasParaRetentar"], out var falhas)
+                ? Math.Max(falhas, 1)
+                : 1;
+            options.TempoMaximoDesdeFalhaSegundos = int.TryParse(jobsRetrySection["TempoMaximoDesdeFalhaSegundos"], out var tempoMaximo)
+                ? Math.Max(tempoMaximo, 60)
+                : 300;
+        });
+
         services.AddScoped<IHashSenhaService, HashSenhaService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IAuthService, AuthService>();
@@ -167,7 +220,8 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<SmtpEmailNotificacaoSender>();
         services.AddScoped<IEmailNotificacaoSender, EmailNotificacaoSender>();
         services.AddSingleton<IWebhookPagamentoMetricsService, WebhookPagamentoMetricsService>();
-        services.AddSingleton<INotificacaoRetentionMetricsService, NotificacaoRetentionMetricsService>();
+        services.AddSingleton<NotificacaoRetentionMetricsService>();
+        services.AddSingleton<INotificacaoRetentionMetricsService>(sp => sp.GetRequiredService<NotificacaoRetentionMetricsService>());
         services.AddSingleton<IBackgroundJobExecutionMetricsService, BackgroundJobExecutionMetricsService>();
         services.AddSingleton<BackgroundJobQueueProcessor>();
         services.AddSingleton<IBackgroundJobQueueProcessor>(sp => sp.GetRequiredService<BackgroundJobQueueProcessor>());
@@ -175,6 +229,15 @@ public static class InfrastructureDependencyInjection
         services.AddSingleton<IBackgroundJobProcessor>(sp => sp.GetRequiredService<EmailNotificacaoOutboxProcessor>());
         services.AddSingleton<NotificacaoInternaRetentionProcessor>();
         services.AddSingleton<IBackgroundJobProcessor>(sp => sp.GetRequiredService<NotificacaoInternaRetentionProcessor>());
+        services.AddSingleton<AlertasFilaNotificationProcessor>();
+        services.AddSingleton<IBackgroundJobProcessor>(sp => sp.GetRequiredService<AlertasFilaNotificationProcessor>());
+        services.AddSingleton<BackgroundJobWatchdogProcessor>();
+        services.AddSingleton<IBackgroundJobProcessor>(sp => sp.GetRequiredService<BackgroundJobWatchdogProcessor>());
+        services.AddSingleton<BackgroundJobRetryScheduler>();
+        services.AddSingleton<IBackgroundJobProcessor>(sp => sp.GetRequiredService<BackgroundJobRetryScheduler>());
+        services.AddHostedService(sp => sp.GetRequiredService<AlertasFilaNotificationProcessor>());
+        services.AddHostedService(sp => sp.GetRequiredService<BackgroundJobWatchdogProcessor>());
+        services.AddHostedService(sp => sp.GetRequiredService<BackgroundJobRetryScheduler>());
         services.AddSingleton<INotificacaoRetentionService>(sp => sp.GetRequiredService<NotificacaoInternaRetentionProcessor>());
         services.AddHostedService(sp => sp.GetRequiredService<BackgroundJobQueueProcessor>());
         services.AddHostedService(sp => sp.GetRequiredService<EmailNotificacaoOutboxProcessor>());

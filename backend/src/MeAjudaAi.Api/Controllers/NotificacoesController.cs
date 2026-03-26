@@ -317,7 +317,7 @@ public class NotificacoesController : ControllerBase
     public IActionResult ObterResumoRetencao(
         [FromServices] Microsoft.Extensions.Options.IOptions<MeAjudaAi.Infrastructure.Configurations.NotificacaoInternaRetentionOptions> options)
     {
-        var response = _notificacaoRetentionMetricsService.ObterResumo();
+        var response = _notificacaoRetentionMetricsService.ObterResumoComLog() ?? new RetencaoNotificacoesResumoResponse();
         response.Habilitada = options.Value.Habilitada;
         response.DiasRetencao = options.Value.DiasRetencao;
         response.LoteProcessamento = options.Value.LoteProcessamento;

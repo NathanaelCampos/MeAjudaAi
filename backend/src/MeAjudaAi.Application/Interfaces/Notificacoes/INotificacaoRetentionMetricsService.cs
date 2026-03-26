@@ -8,5 +8,6 @@ public interface INotificacaoRetentionMetricsService
     void RegistrarSucesso(DateTime finalizadoEm, int quantidadeArquivada);
     void RegistrarErro(DateTime finalizadoEm, string mensagemErro);
     RetencaoNotificacoesResumoResponse ObterResumo();
+    RetencaoNotificacoesResumoResponse ObterResumoComLog();
     void Reset();
 }

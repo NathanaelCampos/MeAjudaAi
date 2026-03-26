@@ -13,6 +13,12 @@ public class NotificacaoRetentionMetricsService : INotificacaoRetentionMetricsSe
     private long _totalArquivado;
     private string _ultimoStatus = "nao_executado";
     private string? _ultimaMensagemErro;
+    private readonly ILogger<NotificacaoRetentionMetricsService> _logger;
+
+    public NotificacaoRetentionMetricsService(ILogger<NotificacaoRetentionMetricsService> logger)
+    {
+        _logger = logger;
+    }
 
     public void RegistrarInicio(DateTime iniciadoEm)
     {
@@ -60,6 +66,16 @@ public class NotificacaoRetentionMetricsService : INotificacaoRetentionMetricsSe
                 UltimaMensagemErro = _ultimaMensagemErro
             };
         }
+    }
+
+    public RetencaoNotificacoesResumoResponse? ObterResumoComLog()
+    {
+        var resumo = ObterResumo();
+        _logger.LogInformation("Resumo de retenção acessado: status={Status}, ultimaExecucao={UltimaExecucaoFinalizada}, totalArquivado={TotalArquivado}",
+            resumo.UltimoStatus,
+            resumo.UltimaExecucaoFinalizadaEm?.ToString("o"),
+            resumo.TotalArquivado);
+        return resumo;
     }
 
     public void Reset()
