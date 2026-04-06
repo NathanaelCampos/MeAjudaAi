@@ -18,6 +18,8 @@
   - `cd frontend && docker build -t meajudaai-frontend .`
 - Subida via compose:
   - `cd devops && NEXT_PUBLIC_API_BASE_URL=http://host.docker.internal:5231 docker compose -f docker-compose.frontend.yml up -d --build`
+- Proxy unificado opcional:
+  - `cd devops && GATEWAY_PORT=8080 NEXT_PUBLIC_API_BASE_URL= docker compose -f docker-compose.gateway.yml up -d --build`
 
 ## Verificações pós-subida
 - Acesse `http://localhost:3000`
@@ -29,6 +31,11 @@
   - `/servicos/[id]`
   - `/jobs` e demais rotas admin, se o usuário for administrador
 - Confirme no DevTools que as chamadas usam o host configurado em `NEXT_PUBLIC_API_BASE_URL`
+- Se estiver usando o gateway unificado, valide também:
+  - `http://localhost:8080`
+  - `http://localhost:8080/api/...`
+  - `http://localhost:8080/swagger`
+  - `http://localhost:8080/uploads/...`
 
 ## PWA
 - Abra o app no celular ou DevTools mobile

@@ -1,6 +1,7 @@
 import { readAuthSession } from '@/lib/auth-storage';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:5231';
+const rawApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ?? '';
+const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '');
 
 export class ApiError extends Error {
   status: number;
@@ -18,7 +19,7 @@ export function buildApiUrl(path: string) {
   }
 
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${API_BASE_URL}${normalizedPath}`;
+  return API_BASE_URL ? `${API_BASE_URL}${normalizedPath}` : normalizedPath;
 }
 
 function buildHeaders(init?: { headers?: HeadersInit }) {

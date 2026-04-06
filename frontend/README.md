@@ -25,6 +25,8 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:5231
 PORT=3000
 ```
 
+Se o frontend estiver atrás de um reverse proxy no mesmo domínio da API, deixe `NEXT_PUBLIC_API_BASE_URL` vazio. Nesse modo, o app chama caminhos relativos como `/api/...`.
+
 ## Desenvolvimento
 ```bash
 cd frontend
@@ -71,6 +73,25 @@ cd devops
 NEXT_PUBLIC_API_BASE_URL=http://host.docker.internal:5231 \
 docker compose -f docker-compose.frontend.yml up -d --build
 ```
+
+## Proxy unificado para frontend + backend
+Para servir frontend e backend no mesmo host, use o gateway Nginx:
+
+```bash
+cd devops
+GATEWAY_PORT=8080 \
+NEXT_PUBLIC_API_BASE_URL= \
+docker compose -f docker-compose.gateway.yml up -d --build
+```
+
+Fluxo esperado:
+- frontend em `http://localhost:8080/`
+- API em `http://localhost:8080/api/...`
+- Swagger em `http://localhost:8080/swagger`
+- uploads em `http://localhost:8080/uploads/...`
+
+Pré-requisito:
+- backend rodando no host em `http://localhost:5231`
 
 Checklist formal de deploy:
 - [frontend-deploy-checklist.md](/home/nathanael-campos/dev/src/me-ajuda-ai/deploy/frontend-deploy-checklist.md)
