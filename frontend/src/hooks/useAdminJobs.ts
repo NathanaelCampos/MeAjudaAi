@@ -1,9 +1,39 @@
+'use client';
+
 import useSWR from 'swr';
+import { apiFetch } from '@/lib/api';
+import { BackgroundJobFilaItemResponse } from '@/types/api';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+export interface AdminJobsFilters {
+  limit?: number;
+  jobId?: string;
+  status?: string;
+}
 
-export function useAdminJobs(limit = 10) {
-  const { data, error, isLoading } = useSWR(`/api/admin/jobs/fila?limit=${limit}`, fetcher);
+function buildQueueUrl(filters: AdminJobsFilters) {
+  const params = new URLSearchParams();
+
+  if (filters.limit) {
+    params.set('limit', String(filters.limit));
+  }
+
+  if (filters.jobId?.trim()) {
+    params.set('jobId', filters.jobId.trim());
+  }
+
+  if (filters.status?.trim()) {
+    params.set('status', filters.status.trim());
+  }
+
+  const query = params.toString();
+  return query ? `/api/admin/jobs/fila?${query}` : '/api/admin/jobs/fila';
+}
+
+export function useAdminJobs(filters: AdminJobsFilters = {}) {
+  const { data, error, isLoading } = useSWR<BackgroundJobFilaItemResponse[]>(
+    buildQueueUrl(filters),
+    apiFetch,
+  );
 
   return {
     data: data ?? null,

@@ -1,7 +1,9 @@
-import useSWR from 'swr';
+'use client';
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import useSWR from 'swr';
+import { apiFetch } from '@/lib/api';
+import { BackgroundJobFilaMetricasResponse } from '@/types/api';
 
 export function useMetrics() {
-  return useSWR('/api/admin/jobs/fila/metricas', fetcher);
+  return useSWR<BackgroundJobFilaMetricasResponse>('/api/admin/jobs/fila/metricas', apiFetch);
 }
