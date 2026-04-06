@@ -1,49 +1,93 @@
-# Frontend mobile-first blueprint
+# Frontend
 
-Este projeto será construído com **React + Next.js** (pode ser iniciado com `npx create-next-app frontend --typescript`) + **Tailwind CSS** para garantir UI moderna, responsiva e leve. O foco é suportar qualquer tela mobile e, opcionalmente, virar um PWA.
+Frontend mobile-first do Me Ajuda Ai, construído com **Next.js 16**, **React 19**, **Tailwind CSS** e **SWR**.
 
-## Stack proposta
-- **Next.js 15 (app router)** para renderização híbrida (SSR/ISR para páginas críticas).\n- **Tailwind CSS** + `@headlessui/react`/`Radix` para componentes acessíveis.\n- **SWR** ou React Query para cache e revalidação das chamadas aos endpoints `/api/admin/jobs/...`.
-- **Storybook** (opcional) para iterar com designers mobile.
-- **Vercel** ou outro host com edge caching, mas o foco é mobile-first e offline-friendly.
+## O que já existe
+- descoberta pública de profissionais
+- perfil público do profissional
+- cadastro, login e onboarding
+- fluxo de solicitação e acompanhamento de serviços
+- área do profissional
+- avaliação de serviço
+- painel admin operacional
+- PWA com `manifest` e prompt de instalação
+- suíte inicial de testes com `Vitest`
 
-## Estrutura inicial sugerida
+## Variáveis
+Crie um `.env.local` com base em [`.env.example`](/home/nathanael-campos/dev/src/me-ajuda-ai/frontend/.env.example).
 
+Variável principal:
+- `NEXT_PUBLIC_API_BASE_URL`
+
+Exemplo local:
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5231
+PORT=3000
 ```
+
+## Desenvolvimento
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Qualidade
+```bash
+cd frontend
+npm run build
+npm run test:run
+```
+
+## CI/CD
+- Workflow dedicado: `.github/workflows/frontend-ci.yml`
+- O pipeline executa:
+  - `npm ci`
+  - `npm run test:run`
+  - `npm run build`
+  - upload do artefato `frontend-standalone-bundle`
+  - smoke test do `Dockerfile` com `docker build`
+- Esse workflow dispara em `push`, `pull_request` e `workflow_dispatch` quando houver mudanças relevantes no frontend.
+
+## Deploy com Docker
+O projeto está preparado para deploy com imagem standalone do Next.
+
+Build manual:
+```bash
+cd frontend
+docker build -t meajudaai-frontend .
+```
+
+Execução manual:
+```bash
+docker run --rm -p 3000:3000 \
+  -e NEXT_PUBLIC_API_BASE_URL=http://host.docker.internal:5231 \
+  meajudaai-frontend
+```
+
+Execução via compose:
+```bash
+cd devops
+NEXT_PUBLIC_API_BASE_URL=http://host.docker.internal:5231 \
+docker compose -f docker-compose.frontend.yml up -d --build
+```
+
+Checklist formal de deploy:
+- [frontend-deploy-checklist.md](/home/nathanael-campos/dev/src/me-ajuda-ai/deploy/frontend-deploy-checklist.md)
+
+## Estrutura relevante
+```text
 frontend/
-├── app/                # Next.js App Router
-│   ├── page.tsx        # Entrada principal (Dashboard)
-│   └── hooks/          # Hooks compartilhados (useJobs, useMetrics)
+├── app/
+├── public/
 ├── src/
 │   ├── components/
-│   │   ├── JobCard.tsx
-│   │   ├── MetricsPanel.tsx
-│   │   └── AlertsCarousel.tsx
-│   └── hooks/
-│       ├── useAdminJobs.ts
-│       └── useAlertsHistory.ts
-├── styles/
-│   └── globals.css     # Tailwind + resets para mobile
-├── public/             # ícones, logos e assets mobile
-├── README.md (este)
-└── package.json        # scripts e dependências (next, tailwind, swr)
+│   ├── hooks/
+│   ├── lib/
+│   ├── providers/
+│   └── test/
+├── Dockerfile
+├── .dockerignore
+├── .env.example
+└── vitest.config.ts
 ```
-
-## Consumindo o backend
-- **API hooks** (ex.: `frontend/src/hooks/useAdminJobs.ts`) devem chamar `fetch('/api/admin/jobs/fila?limit=15')` e expor `status`, `data`, `error`.
-- Use `SWR` com `fetcher` padrão:
-  ```ts
-  const fetcher = (url: string) => fetch(url).then((res) => res.json());
-  const { data, error, isLoading } = useSWR('/api/admin/jobs/fila/metricas', fetcher);
-  ```
-- Os componentes devem tratar estados: loading skeletons, empty states (sem alertas) e erros (mensagem amigável). Sempre priorize o conteúdo principal no topo da tela.
-
-## Telas iniciais prioritárias
-
-1. **Dashboard de jobs** (cards com `BackgroundJobAdminItemResponse` + status).\n2. **Fila de execuções** (`/fila` com `BackgroundJobFilaItemResponse`, botões para cancelar/reprocessar no futuro).\n3. **Métricas em tempo real** (`/fila/metricas` com indicadores de pendentes/processando/sucesso).\n4. **Alertas ativos** (`/fila/alertas` com cores/mensagens).\n5. **Histórico + retries** para detalhes das execuções.
-
-## Próximos passos
-
-1. `cd frontend && npx create-next-app@latest --typescript --app --tailwind`\n+2. Copiar `backend/src/MeAjudaAi.Api/MeAjudaAi.Api.http` para `frontend/docs/api-contracts.md` como referência de payloads.\n+3. Implementar hooks `useAdminJobs`/`useAlertsHistory` que encapsulam os fetches com SWR.\n+4. Criar storyboards (mobile) com cards/indicadores usando Tailwind Utilities (`flex`, `gap`, `border`, `shadow`).\n5. Habilitar PWA: `next-pwa` + manifest com iconografia leve.
-
-Precisa que eu avance gerando um `package.json` + componentes iniciais (JobCard, MetricsPanel, AlertsCarousel) com alguns dados estáticos e chamadas SWR mockadas?"
