@@ -11,7 +11,7 @@ import { useProfissoes } from '@/hooks/useProfissoes';
 
 function Placeholder({ label }: { label: string }) {
   return (
-    <div className="rounded-[1.6rem] border border-dashed border-slate-300 bg-white/70 p-5 text-sm text-slate-400">
+    <div className="rounded-[1.8rem] border border-dashed border-slate-300 bg-white/72 p-5 text-sm text-slate-400 shadow-[0_18px_44px_rgba(15,23,42,0.04)]">
       {label}
     </div>
   );
@@ -141,38 +141,55 @@ export function ExplorePageClient() {
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f8fafc_100%)] px-4 py-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <section className="overflow-hidden rounded-[2.4rem] border border-white/80 bg-[linear-gradient(135deg,#0f172a_0%,#1f2937_45%,#f59e0b_130%)] p-6 text-white shadow-[0_28px_80px_rgba(15,23,42,0.16)]">
+        <section className="overflow-hidden rounded-[2.4rem] border border-white/80 bg-[linear-gradient(135deg,#111827_0%,#1f2937_42%,#ea580c_115%)] p-6 text-white shadow-[0_28px_80px_rgba(15,23,42,0.16)]">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
               <p className="text-xs font-semibold uppercase tracking-[0.26em] text-amber-200">Me Ajuda Ai</p>
-              <h1 className="mt-3 text-4xl font-semibold leading-tight">
-                Encontre profissionais confiáveis para o que você precisa hoje.
+              <h1 data-display="true" className="mt-3 text-[2.6rem] font-semibold leading-[0.96] sm:text-[3.5rem]">
+                Ache ajuda boa, perto de voce, sem perder tempo.
               </h1>
               <p className="mt-4 max-w-xl text-sm leading-7 text-white/78">
-                Busca mobile-first por profissão, cidade e nome, com destaque para perfis verificados e melhor leitura em tela pequena.
+                Busca mobile-first por profissão, cidade e nome, com leitura pensada para o celular e conversão direta para contratação.
               </p>
             </div>
 
-            <Link
-              href="/login"
-              className="inline-flex w-fit rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
-            >
-              Entrar no painel
-            </Link>
+            <div className="grid gap-3 sm:grid-cols-2 lg:max-w-sm">
+              <div className="rounded-[1.5rem] border border-white/12 bg-white/10 px-4 py-4 backdrop-blur">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-100">Resposta rápida</p>
+                <p className="mt-2 text-2xl font-semibold text-white">+5 áreas</p>
+                <p className="mt-1 text-sm text-white/70">Profissões já populadas para começar a usar agora.</p>
+              </div>
+              <Link
+                href="/login"
+                className="inline-flex min-h-[96px] items-end rounded-[1.5rem] border border-white/12 bg-white/10 px-4 py-4 text-sm font-semibold text-white transition hover:bg-white/15"
+              >
+                Entrar no painel
+              </Link>
+            </div>
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-white/70 bg-white/85 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <section className="rounded-[2rem] border border-white/70 bg-white/88 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Busca inteligente</p>
+              <h2 data-display="true" className="mt-1 text-3xl font-semibold text-slate-900">Filtre do seu jeito</h2>
+            </div>
+            <p className="max-w-md text-sm leading-6 text-slate-500">
+              Ajuste profissão, cidade, ordenação e paginação sem perder o contexto da busca.
+            </p>
+          </div>
+
           <form className="grid gap-3 lg:grid-cols-[1.3fr_1fr_1fr_1fr_auto]" onSubmit={handleSubmit}>
             <input
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+              className="rounded-[1.35rem] border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition focus:border-slate-900"
               placeholder="Nome ou palavra-chave"
               value={nome}
               onChange={(event) => setNome(event.target.value)}
             />
 
             <select
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+              className="rounded-[1.35rem] border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition focus:border-slate-900"
               value={profissaoId}
               onChange={(event) => setProfissaoId(event.target.value)}
             >
@@ -185,7 +202,7 @@ export function ExplorePageClient() {
             </select>
 
             <select
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+              className="rounded-[1.35rem] border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition focus:border-slate-900"
               value={cidadeId}
               onChange={(event) => setCidadeId(event.target.value)}
             >
@@ -198,7 +215,7 @@ export function ExplorePageClient() {
             </select>
 
             <select
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+              className="rounded-[1.35rem] border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition focus:border-slate-900"
               value={ordenacao}
               onChange={(event) => setOrdenacao(event.target.value)}
             >
@@ -211,25 +228,24 @@ export function ExplorePageClient() {
 
             <button
               type="submit"
-              className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="rounded-[1.35rem] bg-slate-900 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               Buscar
             </button>
           </form>
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-            <span>{totalRegistros} profissionais encontrados</span>
-            <span>•</span>
+            <span className="rounded-full bg-amber-50 px-3 py-1.5 font-semibold text-amber-700">
+              {totalRegistros} profissionais encontrados
+            </span>
             <span>
               Mostrando {inicio}-{fim}
             </span>
-            <span>•</span>
             <span>{totalPaginas} páginas</span>
-            <span>•</span>
-            <label className="inline-flex items-center gap-2">
+            <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5">
               <span>Por página</span>
               <select
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 outline-none transition focus:border-slate-900"
+                className="rounded-full bg-white px-1 text-sm text-slate-700 outline-none"
                 value={tamanhoPagina}
                 onChange={(event) => {
                   const nextSize = Number(event.target.value);
@@ -282,7 +298,7 @@ export function ExplorePageClient() {
             </div>
 
             {data.totalPaginas > 1 ? (
-              <section className="rounded-[2rem] border border-white/70 bg-white/85 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+              <section className="rounded-[2rem] border border-white/70 bg-white/88 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-slate-500">
                     Página {paginaAtual} de {data.totalPaginas}

@@ -93,11 +93,11 @@ export function ProfessionalServicesPageClient() {
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#eef1f6_0%,#fff7ed_100%)] px-4 py-6">
       <div className="mx-auto flex max-w-5xl flex-col gap-6">
-        <section className="rounded-[2.2rem] border border-white/80 bg-white/85 p-6 shadow-[0_28px_80px_rgba(15,23,42,0.08)]">
+        <section className="rounded-[2.2rem] border border-white/80 bg-white/88 p-6 shadow-[0_28px_80px_rgba(15,23,42,0.08)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Área do profissional</p>
-              <h1 className="mt-2 text-3xl font-semibold text-slate-900">Serviços recebidos</h1>
+              <h1 data-display="true" className="mt-2 text-4xl font-semibold leading-[0.98] text-slate-900">Serviços recebidos</h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
                 Aceite, inicie, conclua ou cancele solicitações recebidas diretamente no app.
               </p>
@@ -105,15 +105,30 @@ export function ProfessionalServicesPageClient() {
 
             <Link
               href="/servicos"
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               Ver lado do cliente
             </Link>
           </div>
 
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-[1.4rem] bg-[linear-gradient(180deg,#eef6ff_0%,#ffffff_100%)] px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Status ativo</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">{activeStatus || 'Todos'}</p>
+            </div>
+            <div className="rounded-[1.4rem] bg-[linear-gradient(180deg,#eef6ff_0%,#ffffff_100%)] px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Ações</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">Aceitar e concluir</p>
+            </div>
+            <div className="rounded-[1.4rem] bg-[linear-gradient(180deg,#eef6ff_0%,#ffffff_100%)] px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Perspectiva</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">Operação mobile</p>
+            </div>
+          </div>
+
           <form className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]" onSubmit={handleSubmit}>
             <select
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-900"
+              className="rounded-[1.35rem] border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 outline-none transition focus:border-slate-900"
               value={status}
               onChange={(event) => setStatus(event.target.value)}
             >
@@ -126,7 +141,7 @@ export function ProfessionalServicesPageClient() {
 
             <button
               type="submit"
-              className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              className="rounded-[1.35rem] bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               Filtrar
             </button>

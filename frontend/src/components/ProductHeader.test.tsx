@@ -46,7 +46,7 @@ describe('ProductHeader', () => {
     expect(screen.getByRole('link', { name: 'Explorar' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Meus serviços' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Conta' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Criar conta' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Criar conta' })).toHaveLength(2);
   });
 
   it('mostra ações autenticadas e executa logout com redirecionamento', async () => {

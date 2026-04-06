@@ -86,11 +86,11 @@ export function ServiceDetailPageClient({ id }: { id: string }) {
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fff7ed_0%,#f8fafc_100%)] px-4 py-6">
       <div className="mx-auto flex max-w-5xl flex-col gap-6">
-        <section className="rounded-[2.2rem] border border-white/80 bg-white/85 p-6 shadow-[0_28px_80px_rgba(15,23,42,0.08)]">
+        <section className="rounded-[2.2rem] border border-white/80 bg-white/88 p-6 shadow-[0_28px_80px_rgba(15,23,42,0.08)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Detalhe do serviço</p>
-              <h1 className="mt-2 text-3xl font-semibold text-slate-900">{data?.titulo ?? 'Acompanhamento completo'}</h1>
+              <h1 data-display="true" className="mt-2 text-4xl font-semibold leading-[0.98] text-slate-900">{data?.titulo ?? 'Acompanhamento completo'}</h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
                 Timeline do pedido, partes envolvidas, valores e ações disponíveis de acordo com o status atual.
               </p>
@@ -99,13 +99,13 @@ export function ServiceDetailPageClient({ id }: { id: string }) {
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/servicos"
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Meus serviços
               </Link>
               <Link
                 href="/servicos/profissional"
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Área profissional
               </Link>
@@ -126,7 +126,7 @@ export function ServiceDetailPageClient({ id }: { id: string }) {
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
                       {data.nomeCliente} → {data.nomeProfissional}
                     </p>
-                    <h2 className="mt-1 text-2xl font-semibold text-slate-900">{data.titulo}</h2>
+                    <h2 data-display="true" className="mt-1 text-3xl font-semibold leading-tight text-slate-900">{data.titulo}</h2>
                   </div>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-700">
                     {formatServiceStatus(data.status)}
@@ -136,21 +136,21 @@ export function ServiceDetailPageClient({ id }: { id: string }) {
                 <p className="mt-4 text-sm leading-7 text-slate-600">{data.descricao}</p>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[1.25rem] bg-slate-50 px-4 py-3">
+                  <div className="rounded-[1.35rem] bg-[linear-gradient(180deg,#fff7ed_0%,#ffffff_100%)] px-4 py-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Profissão</p>
                     <p className="mt-2 text-lg font-semibold text-slate-900">{data.nomeProfissao || '-'}</p>
                   </div>
-                  <div className="rounded-[1.25rem] bg-slate-50 px-4 py-3">
+                  <div className="rounded-[1.35rem] bg-[linear-gradient(180deg,#fff7ed_0%,#ffffff_100%)] px-4 py-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Valor</p>
                     <p className="mt-2 text-lg font-semibold text-slate-900">{formatCurrency(data.valorCombinado)}</p>
                   </div>
-                  <div className="rounded-[1.25rem] bg-slate-50 px-4 py-3">
+                  <div className="rounded-[1.35rem] bg-[linear-gradient(180deg,#fff7ed_0%,#ffffff_100%)] px-4 py-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Cidade</p>
                     <p className="mt-2 text-lg font-semibold text-slate-900">
                       {data.cidadeNome} - {data.uf}
                     </p>
                   </div>
-                  <div className="rounded-[1.25rem] bg-slate-50 px-4 py-3">
+                  <div className="rounded-[1.35rem] bg-[linear-gradient(180deg,#fff7ed_0%,#ffffff_100%)] px-4 py-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Bairro</p>
                     <p className="mt-2 text-lg font-semibold text-slate-900">{data.bairroNome || '-'}</p>
                   </div>
