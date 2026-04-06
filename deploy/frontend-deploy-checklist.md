@@ -20,6 +20,8 @@
   - `cd devops && NEXT_PUBLIC_API_BASE_URL=http://host.docker.internal:5231 docker compose -f docker-compose.frontend.yml up -d --build`
 - Proxy unificado opcional:
   - `cd devops && GATEWAY_PORT=8080 NEXT_PUBLIC_API_BASE_URL= docker compose -f docker-compose.gateway.yml up -d --build`
+  - suba o backend com binding externo:
+    `cd backend && dotnet run --project src/MeAjudaAi.Api --urls http://0.0.0.0:5231`
 
 ## Verificações pós-subida
 - Acesse `http://localhost:3000`

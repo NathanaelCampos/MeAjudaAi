@@ -92,6 +92,12 @@ Fluxo esperado:
 
 Pré-requisito:
 - backend rodando no host em `http://localhost:5231`
+- ao usar o gateway a partir de containers, suba a API ouvindo externamente:
+
+```bash
+cd backend
+dotnet run --project src/MeAjudaAi.Api --urls http://0.0.0.0:5231
+```
 
 Checklist formal de deploy:
 - [frontend-deploy-checklist.md](/home/nathanael-campos/dev/src/me-ajuda-ai/deploy/frontend-deploy-checklist.md)
