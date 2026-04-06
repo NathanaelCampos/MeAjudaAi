@@ -158,7 +158,7 @@ public static class InfrastructureDependencyInjection
             var niveis = niveisSection.Exists()
                 ? niveisSection.GetChildren()
                     .Select(child => child.Value)
-                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .OfType<string>()
                     .ToArray()
                 : null;
 

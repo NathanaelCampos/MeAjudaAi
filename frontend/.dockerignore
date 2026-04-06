@@ -1,0 +1,12 @@
+.git
+.gitignore
+.next
+coverage
+node_modules
+npm-debug.log
+vitest.config.ts
+src/**/*.test.ts
+src/**/*.test.tsx
+app/**/*.test.ts
+app/**/*.test.tsx
+README.md
